@@ -1,0 +1,56 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "U2tLYxgjNWdu5IoA97RVV"
+uri = "file://artifacts/mockup-sandbox/public/images/hero.png"
+type = "image"
+title = "abstract clean tech shapes"
+
+[[generated]]
+id = "Z2ra804ioi0H8K73t95Qn"
+uri = "file://artifacts/mockup-sandbox/public/images/project-1.png"
+type = "image"
+title = "SaaS dashboard mockup"
+
+[[generated]]
+id = "K4EBFhOXpI_5rW6Yz2lxc"
+uri = "file://artifacts/mockup-sandbox/public/images/project-2.png"
+type = "image"
+title = "mobile app UI mockup"
+
+[[generated]]
+id = "xEuAUnPy28lGXFcGmuckH"
+uri = "file://artifacts/mockup-sandbox/public/images/project-3.png"
+type = "image"
+title = "code editor abstract"
+
+[[generated]]
+id = "rvXrhCgg558kZ1I-29Vk6"
+uri = "file://artifacts/mockup-sandbox/public/images/project-4.png"
+type = "image"
+title = "kanban board UI"
+
+[[generated]]
+id = "uNtI15zx8BCaVYeJbHafL"
+uri = "file://artifacts/mockup-sandbox/public/images/avatar-1.png"
+type = "image"
+title = "italian man headshot"
+
+[[generated]]
+id = "7FRxwqoH0DtKiF8D_MhDq"
+uri = "file://artifacts/mockup-sandbox/public/images/avatar-2.png"
+type = "image"
+title = "italian woman headshot"
+
+[[generated]]
+id = "ROZ-desZSWwQziev4pzy-"
+uri = "file://artifacts/mockup-sandbox/public/images/avatar-3.png"
+type = "image"
+title = "italian man with glasses"
+
+[[generated]]
+id = "YgP0kUQ5ajEkJtE8MiwBy"
+uri = "file://artifacts/mockup-sandbox/public/images/avatar-4.png"
+type = "image"
+title = "italian woman outdoor"
