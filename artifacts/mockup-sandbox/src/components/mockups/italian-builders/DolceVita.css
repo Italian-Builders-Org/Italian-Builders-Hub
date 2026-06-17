@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
+.dolcevita-container {
+  font-family: 'Inter', sans-serif;
+  background-color: #FDFBF7;
+  color: #2C241B;
+  overflow-x: hidden;
+}
+
+.dolcevita-container .font-display {
+  font-family: 'Playfair Display', serif;
+}
+
+.tricolore-bar {
+  display: flex;
+  height: 6px;
+  width: 100%;
+}
+.tricolore-bar .green { background-color: #008C45; flex: 1; }
+.tricolore-bar .white { background-color: #FDFBF7; flex: 1; }
+.tricolore-bar .red { background-color: #CD212A; flex: 1; }
+
+.text-italy-green { color: #008C45; }
+.text-italy-red { color: #CD212A; }
+.bg-italy-green { background-color: #008C45; }
+.bg-italy-red { background-color: #CD212A; }
+
+.trattoria-pattern {
+  background-color: #FDFBF7;
+  background-image: 
+    repeating-linear-gradient(45deg, rgba(205, 33, 42, 0.03) 25%, transparent 25%, transparent 75%, rgba(205, 33, 42, 0.03) 75%, rgba(205, 33, 42, 0.03)), 
+    repeating-linear-gradient(45deg, rgba(205, 33, 42, 0.03) 25%, transparent 25%, transparent 75%, rgba(205, 33, 42, 0.03) 75%, rgba(205, 33, 42, 0.03));
+  background-position: 0 0, 20px 20px;
+  background-size: 40px 40px;
+}
+
+.dolcevita-card {
+  background: #ffffff;
+  border: 2px solid #EADECD;
+  border-radius: 16px;
+  box-shadow: 6px 6px 0px rgba(234, 222, 205, 0.6);
+  transition: all 0.2s ease-in-out;
+}
+.dolcevita-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 8px 8px 0px rgba(205, 33, 42, 0.15);
+  border-color: rgba(205, 33, 42, 0.3);
+}
+
+.dolcevita-btn-green {
+  background-color: #008C45;
+  color: white;
+  border: 2px solid #005c2d;
+  box-shadow: 3px 3px 0px #005c2d;
+  transition: all 0.15s ease;
+}
+.dolcevita-btn-green:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #005c2d;
+}
+.dolcevita-btn-green:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0px 0px 0px #005c2d;
+}
+
+.dolcevita-btn-red {
+  background-color: #CD212A;
+  color: white;
+  border: 2px solid #8f171d;
+  box-shadow: 3px 3px 0px #8f171d;
+  transition: all 0.15s ease;
+}
+.dolcevita-btn-red:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #8f171d;
+}
+.dolcevita-btn-red:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0px 0px 0px #8f171d;
+}
+
+.dolcevita-btn-outline {
+  background-color: #FDFBF7;
+  color: #2C241B;
+  border: 2px solid #EADECD;
+  box-shadow: 3px 3px 0px #EADECD;
+  transition: all 0.15s ease;
+}
+.dolcevita-btn-outline:hover {
+  background-color: #ffffff;
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #EADECD;
+}
+.dolcevita-btn-outline:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0px 0px 0px #EADECD;
+}
+
+.dolcevita-input {
+  background: white;
+  border: 2px solid #EADECD;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.02);
+}
+.dolcevita-input:focus {
+  outline: none;
+  border-color: #008C45;
+  box-shadow: 0 0 0 3px rgba(0, 140, 69, 0.1);
+}
+
+.dolcevita-badge-category {
+  background: #FFF8E7;
+  color: #B5651D;
+  border: 1px solid #F3E0B5;
+}
+
+/* Custom Scrollbar for horizontal scrolling elements */
+.dolcevita-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.dolcevita-scroll::-webkit-scrollbar-track {
+  background: #FDFBF7;
+  border-radius: 4px;
+}
+.dolcevita-scroll::-webkit-scrollbar-thumb {
+  background: #EADECD;
+  border-radius: 4px;
+}
+.dolcevita-scroll::-webkit-scrollbar-thumb:hover {
+  background: #D5C1A6;
+}
