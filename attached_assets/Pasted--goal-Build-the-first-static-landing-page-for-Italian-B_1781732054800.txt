@@ -1,0 +1,251 @@
+/goal
+Build the first static landing page for “Italian Builders”, a young Italian community of people building apps, startups, AI tools, SaaS products, open-source projects, and internet businesses.
+
+The goal of this first version is NOT to build the full community platform yet.
+The goal is to create a polished public-facing website that:
+1. Explains what Italian Builders is.
+2. Makes the community feel active, ambitious, and credible.
+3. Collects emails for the upcoming community platform.
+4. Shows that builder profiles, project pages, categories, and community OS projects are coming soon.
+5. Uses a visual direction inspired by Contra’s project/community browsing experience, but without copying it directly.
+
+Reference:
+- Contra projects/community style: https://contra.com/?view=projects
+- Existing rough community page: https://italianbuilders.lovable.app/
+
+Core positioning:
+Italian Builders is the home for Italian builders creating apps, startups, AI products, SaaS tools, open-source projects, and internet businesses.
+
+Tone:
+Modern, sharp, energetic, community-first, slightly editorial.
+Avoid corporate startup clichés.
+Avoid sounding like an incubator, accelerator, or LinkedIn clone.
+The site should feel like a movement of people who build.
+
+Visual direction:
+- Clean, modern, high-density but readable.
+- Inspired by Contra: cards, project grids, category filters, featured sections, people/projects as the main content.
+- Use strong typography.
+- Use a light theme by default.
+- Add subtle gradients, soft borders, rounded cards, and tasteful motion.
+- The homepage should feel like a live directory/product showcase even if the real data is still mocked.
+- Mobile-first responsive design.
+
+Tech requirements:
+- Build as a static landing page.
+- Use the existing app stack if present.
+- If this is a React/Vite/Next project, implement using the existing structure.
+- Use reusable components.
+- No backend required for now.
+- The waitlist form can submit to a placeholder function or use a mocked handler.
+- Make it easy to later connect the form to Supabase, MailerLite, Resend, ConvertKit, or another provider.
+- Do not over-engineer authentication, profiles, or project submission in this iteration.
+
+Page structure:
+
+1. Header
+- Logo/text: Italian Builders
+- Nav links:
+  - Builders
+  - Projects
+  - OS Projects
+  - Manifesto
+  - Join
+- CTA button: Join waitlist
+
+2. Hero section
+Main headline:
+“Where Italian builders come to build in public.”
+
+Alternative if it works better visually:
+“The home for Italian builders.”
+
+Subheadline:
+“A community for people building apps, AI tools, SaaS products, open-source projects, and internet businesses from Italy.”
+
+CTA:
+- Primary: Join the waitlist
+- Secondary: Explore what’s coming
+
+Add small trust/social proof line:
+“240+ builders joined in the first 48 hours.”
+
+Hero visual:
+Create a large interactive-looking grid of mock cards:
+- Builder cards
+- Project cards
+- Category pills
+- “Coming soon” badges
+This should make the site feel alive even without real profiles yet.
+
+3. Category strip
+Show categories as clickable-looking pills, but they can be non-functional for now:
+- AI
+- SaaS
+- B2B
+- B2C
+- Crypto
+- Open Source
+- DevTools
+- Consumer Apps
+- Automation
+- Design
+- No-Code
+- Mobile Apps
+
+4. Featured community OS projects
+Section title:
+“Community OS projects”
+
+Description:
+“Open projects built by and for the Italian Builders community.”
+
+Use placeholder cards for now:
+- Italian Builders Directory
+- Builder Profile Pages
+- Project Showcase
+- Resource Hub
+- Founder Matching
+- Perks & Discounts
+
+Each card should include:
+- Title
+- Short description
+- Status badge: Coming soon / In discussion / Open to contributors
+- CTA: Suggest idea / Join waitlist
+
+5. Builder projects section
+Section title:
+“Projects from the community”
+
+Description:
+“Apps, tools, experiments, startups, and side projects from Italian builders.”
+
+Create a Contra-inspired grid of placeholder project cards.
+Use realistic mock projects, but make clear they are examples/placeholders unless real links are available.
+
+Each card:
+- Project name
+- Category badge
+- Short one-line description
+- Builder name placeholder
+- Status: Idea / MVP / Beta / Live / Revenue
+- Visual placeholder
+
+Categories should include:
+- AI
+- B2B
+- B2C
+- Crypto
+- SaaS
+- Open Source
+
+Add a note:
+“Real community projects will be added soon.”
+
+6. What’s coming
+Section title:
+“More than a Telegram group.”
+
+Copy:
+“Telegram is where the conversation happens. The website will become the place to discover builders, projects, opportunities, resources, and collaborations.”
+
+Feature cards:
+- Builder profiles
+- Project pages
+- Video introductions
+- Category-based discovery
+- Open-source community projects
+- Founder and collaborator matching
+- Resources and playbooks
+- Member perks and discounts
+
+7. Who it’s for
+Create 4 cards:
+- Builders
+  “For people building apps, products, startups, and tools.”
+- Contributors
+  “For developers, designers, marketers, operators, and makers who want to collaborate.”
+- Supporters
+  “For mentors, advisors, and people who want to help the ecosystem grow.”
+- Investors & Talent Scouts
+  “For people looking for early projects, promising builders, and emerging talent.”
+
+8. Waitlist section
+Section title:
+“Join the waitlist”
+
+Copy:
+“Leave your email to be notified when the Italian Builders platform goes live.”
+
+Form fields:
+- Name
+- Email
+- Role dropdown:
+  - Builder
+  - Developer
+  - Designer
+  - Founder
+  - Investor
+  - Student
+  - Supporter
+  - Other
+- Optional field:
+  “What are you building?”
+
+Button:
+“Join the waitlist”
+
+After submit:
+Show success state:
+“You’re on the list. We’ll keep you posted.”
+
+9. Footer
+- Italian Builders
+- Short sentence:
+  “A community for people building from Italy.”
+- Links:
+  - Telegram
+  - X/Twitter
+  - GitHub
+  - Contact
+Use placeholder hrefs if final links are not available.
+
+Copy constraints:
+- Keep text concise.
+- Avoid long paragraphs.
+- Prefer punchy section intros.
+- Use English as the main language for the first version, because the community may include Italian builders who want international visibility.
+- It is okay to use “Italian Builders” as a proper noun.
+- Do not use fake metrics beyond “240+ builders joined in the first 48 hours.”
+- Make placeholder content visually useful but clearly replaceable.
+
+Implementation details:
+- Create a clean component structure:
+  - Header
+  - Hero
+  - CategoryPills
+  - ProjectCard
+  - BuilderCard
+  - OSProjectCard
+  - FeatureCard
+  - WaitlistForm
+  - Footer
+- Use a centralized data file or arrays for:
+  - categories
+  - OS projects
+  - placeholder builder projects
+  - features
+  - roles
+This will make it easy to replace mock data later.
+
+Important:
+Do not build login.
+Do not build real user profiles.
+Do not build a dashboard.
+Do not build a CMS.
+Do not add payment or membership yet.
+This is only the first landing page to validate interest and collect emails.
+
+Final result:
+A polished, responsive, production-ready landing page for Italian Builders that feels like the beginning of a serious builder network, with a strong Contra-inspired project/community browsing feel.

@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;500;600&display=swap');
+
+.landing-container {
+  font-family: 'Inter', sans-serif;
+  background-color: #fafafa;
+  color: #09090b;
+}
+
+.landing-container h1, 
+.landing-container h2, 
+.landing-container h3, 
+.landing-container h4, 
+.landing-container .font-display {
+  font-family: 'Bricolage Grotesque', sans-serif;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  transform: rotate(-4deg) scale(1.1) translateY(-20px);
+  transform-origin: center center;
+  opacity: 0.9;
+}
+
+.hero-grid-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hero-grid-column:nth-child(even) {
+  transform: translateY(-40px);
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #09090b 0%, #52525b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
