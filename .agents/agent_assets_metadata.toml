@@ -54,3 +54,33 @@ id = "YgP0kUQ5ajEkJtE8MiwBy"
 uri = "file://artifacts/mockup-sandbox/public/images/avatar-4.png"
 type = "image"
 title = "italian woman outdoor"
+
+[[generated]]
+id = "6HpJbXXYHm25mPD3rS7Rf"
+uri = "file://artifacts/mockup-sandbox/public/images/avatar-5.png"
+type = "image"
+title = "Italian builder portrait 5"
+
+[[generated]]
+id = "Y20z8A_WK6pKA71HXKwp5"
+uri = "file://artifacts/mockup-sandbox/public/images/avatar-6.png"
+type = "image"
+title = "Italian builder portrait 6"
+
+[[generated]]
+id = "JGIeLzAWx9mqIv1lP1EeH"
+uri = "file://artifacts/mockup-sandbox/public/images/project-5.png"
+type = "image"
+title = "Fintech app interface"
+
+[[generated]]
+id = "BNG-gy9xPcb8697Zed0Zw"
+uri = "file://artifacts/mockup-sandbox/public/images/project-6.png"
+type = "image"
+title = "Web3 crypto interface"
+
+[[generated]]
+id = "4okXK_rH2IYdpOCH49fbt"
+uri = "file://artifacts/mockup-sandbox/public/images/project-7.png"
+type = "image"
+title = "AI research tool"
