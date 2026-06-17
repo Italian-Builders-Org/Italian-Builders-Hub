@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..800;1,400..800&family=Outfit:wght@300;400;500&display=swap');
+
+.warm-editorial {
+  background-color: #FBF9F6;
+  color: #2D2A26;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+}
+
+.warm-editorial h1, 
+.warm-editorial h2, 
+.warm-editorial h3, 
+.warm-editorial h4,
+.warm-editorial .font-serif {
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+}
+
+.warm-editorial-accent {
+  color: #B85C38;
+}
+
+.warm-editorial-bg-accent {
+  background-color: #B85C38;
+}
+
+.warm-editorial-border {
+  border-color: #E8E3DB;
+}
+
+.warm-editorial-input {
+  border: none;
+  border-bottom: 1px solid #E8E3DB;
+  border-radius: 0;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  box-shadow: none !important;
+}
+
+.warm-editorial-input:focus {
+  border-bottom-color: #B85C38;
+  outline: none;
+  box-shadow: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

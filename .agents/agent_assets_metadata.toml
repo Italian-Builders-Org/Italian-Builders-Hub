@@ -90,3 +90,15 @@ id = "7Uch2Dovt6oP9B_J6C2AF"
 uri = "file://artifacts/mockup-sandbox/public/images/dolcevita-hero.png"
 type = "image"
 title = "Golden hour Italian piazza"
+
+[[generated]]
+id = "UTYXStWgqNYqIlygTCayu"
+uri = "file://artifacts/mockup-sandbox/public/images/warmed-hero.png"
+type = "image"
+title = "Warm Italian architecture"
+
+[[generated]]
+id = "s6I3cJVtRMbdffgV9yV1S"
+uri = "file://artifacts/mockup-sandbox/public/images/densetechnical-hero.png"
+type = "image"
+title = "Technical node graph data visualization"

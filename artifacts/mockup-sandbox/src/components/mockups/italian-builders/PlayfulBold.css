@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --pb-bg: #fffbf0;
+  --pb-text: #111827;
+  --pb-primary: #ffeb3b; /* vibrant yellow */
+  --pb-secondary: #ec4899; /* hot pink */
+  --pb-accent: #3b82f6; /* blue */
+  --pb-border: #111827;
+}
+
+.pb-container {
+  font-family: 'Space Grotesk', sans-serif;
+  background-color: var(--pb-bg);
+  color: var(--pb-text);
+  overflow-x: hidden;
+}
+
+.pb-container h1, 
+.pb-container h2, 
+.pb-container h3, 
+.pb-container h4, 
+.pb-display {
+  font-family: 'Bricolage Grotesque', sans-serif;
+}
+
+/* Neobrutalist components */
+.pb-card {
+  background-color: #ffffff;
+  border: 3px solid var(--pb-border);
+  border-radius: 1.5rem;
+  box-shadow: 6px 6px 0px 0px var(--pb-border);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pb-card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 10px 10px 0px 0px var(--pb-border);
+}
+
+.pb-button {
+  background-color: var(--pb-primary);
+  color: var(--pb-text);
+  border: 3px solid var(--pb-border);
+  border-radius: 9999px;
+  box-shadow: 4px 4px 0px 0px var(--pb-border);
+  font-weight: 700;
+  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pb-button:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px var(--pb-border);
+  background-color: #fde047;
+}
+
+.pb-button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px var(--pb-border);
+}
+
+.pb-button-secondary {
+  background-color: #fff;
+}
+
+.pb-button-secondary:hover:not(:disabled) {
+  background-color: #f3f4f6;
+}
+
+.pb-badge {
+  background-color: #fff;
+  border: 2px solid var(--pb-border);
+  box-shadow: 3px 3px 0px 0px var(--pb-border);
+  font-weight: 700;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pb-badge-pink {
+  background-color: #fbcfe8;
+}
+
+.pb-badge-blue {
+  background-color: #bfdbfe;
+}
+
+.pb-badge-green {
+  background-color: #bbf7d0;
+}
+
+.pb-badge-yellow {
+  background-color: #fef08a;
+}
+
+.pb-input {
+  background-color: #fff;
+  border: 3px solid var(--pb-border);
+  border-radius: 1rem;
+  box-shadow: 4px 4px 0px 0px var(--pb-border);
+  transition: all 0.2s;
+}
+
+.pb-input:focus {
+  outline: none;
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px var(--pb-border);
+}
+
+/* Animations */
+.pb-marquee {
+  animation: pb-marquee 25s linear infinite;
+}
+
+@keyframes pb-marquee {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.pb-rotate-hover:hover {
+  transform: rotate(3deg) scale(1.05);
+}
+
+.pb-blob {
+  position: absolute;
+  filter: blur(40px);
+  z-index: 0;
+  opacity: 0.6;
+  border-radius: 50%;
+}
+
+.pb-no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.pb-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
