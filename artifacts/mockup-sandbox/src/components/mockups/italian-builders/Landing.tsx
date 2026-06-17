@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Menu, X, ArrowRight, Github, Twitter, CheckCircle2, ChevronRight, Zap } from "lucide-react";
+import { Menu, X, ArrowRight, Github, Twitter, CheckCircle2, ChevronRight, ChevronLeft, Zap, MapPin, Sparkles } from "lucide-react";
 import "./Landing.css";
 
 // --- Mock Data ---
@@ -158,6 +158,19 @@ const WHO_FOR = [
 
 const ROLES = [
   "Builder", "Developer", "Designer", "Founder", "Investor", "Student", "Supporter", "Other"
+];
+
+const BUILDERS = [
+  { name: "Marco Rossi", role: "Founder", location: "Milano", avatar: "/__mockup/images/avatar-1.png", highlight: "Bootstrapping Supersync to $12k MRR, solo.", tags: ["SaaS", "DevTools"] },
+  { name: "Sofia Bianchi", role: "AI Engineer", location: "Torino", avatar: "/__mockup/images/avatar-2.png", highlight: "Shipping generative UI tooling with Lumina AI.", tags: ["AI", "Design"] },
+  { name: "Luca Ferrari", role: "Infra Developer", location: "Bologna", avatar: "/__mockup/images/avatar-3.png", highlight: "Building Postgres branching for preview envs.", tags: ["DevTools", "Open Source"] },
+  { name: "Giulia Romano", role: "Product Lead", location: "Roma", avatar: "/__mockup/images/avatar-4.png", highlight: "Designing a CRM for boutique agencies.", tags: ["B2B", "SaaS"] },
+  { name: "Alessandro Conti", role: "Founder", location: "Napoli", avatar: "/__mockup/images/avatar-5.png", highlight: "Fiat-to-crypto rails for EU merchants.", tags: ["Crypto", "Fintech"] },
+  { name: "Elena Marino", role: "Creator", location: "Firenze", avatar: "/__mockup/images/avatar-6.png", highlight: "Open-source storefront for digital creators.", tags: ["Open Source", "E-commerce"] },
+  { name: "Davide Greco", role: "Indie Hacker", location: "Verona", avatar: "/__mockup/images/avatar-1.png", highlight: "Automating boring ops with no-code flows.", tags: ["Automation", "No-Code"] },
+  { name: "Chiara Esposito", role: "Designer & Dev", location: "Palermo", avatar: "/__mockup/images/avatar-2.png", highlight: "Crafting calm consumer apps for iOS.", tags: ["Consumer Apps", "Mobile"] },
+  { name: "Matteo Galli", role: "Solo Founder", location: "Genova", avatar: "/__mockup/images/avatar-3.png", highlight: "AI copilots for indie developers.", tags: ["AI", "DevTools"] },
+  { name: "Francesca Lombardi", role: "Growth", location: "Padova", avatar: "/__mockup/images/avatar-4.png", highlight: "Scaling a B2C habit-tracking app to 50k users.", tags: ["B2C", "Mobile"] },
 ];
 
 // --- Components ---
@@ -336,6 +349,114 @@ function CategoryStrip() {
         ))}
       </div>
     </div>
+  );
+}
+
+function FeaturedBuilders() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Rotate the featured selection every day based on the day of the year.
+  const now = new Date();
+  const dayOfYear = Math.floor(
+    (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000
+  );
+  const offset = dayOfYear % BUILDERS.length;
+  const todaysBuilders = [...BUILDERS.slice(offset), ...BUILDERS.slice(0, offset)];
+  const todayLabel = now.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+
+  const scroll = (dir: "left" | "right") => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollBy({ left: dir === "left" ? -360 : 360, behavior: "smooth" });
+  };
+
+  return (
+    <section id="builders" className="py-24 bg-white">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 mb-4 text-sm font-semibold text-zinc-500 bg-zinc-100 px-3 py-1.5 rounded-full">
+              <Sparkles size={14} className="text-yellow-500 fill-yellow-500" />
+              Refreshed daily · {todayLabel}
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold font-display text-zinc-900 mb-4">Builder highlights</h2>
+            <p className="text-lg text-zinc-600">A rotating spotlight on the people building from Italy. New faces every day.</p>
+          </div>
+          <div className="hidden md:flex items-center gap-3">
+            <button
+              onClick={() => scroll("left")}
+              aria-label="Scroll left"
+              className="w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center text-zinc-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={() => scroll("right")}
+              aria-label="Scroll right"
+              className="w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center text-zinc-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative">
+        {/* Fade edges */}
+        <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
+
+        <div
+          ref={scrollRef}
+          className="flex gap-5 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth px-4 md:px-[max(1.5rem,calc((100vw-1280px)/2+1.5rem))] py-2"
+        >
+          {todaysBuilders.map((builder, i) => (
+            <div
+              key={`${builder.name}-${i}`}
+              className="snap-start flex-shrink-0 w-72 group rounded-3xl border border-gray-200 bg-white p-6 hover:border-gray-300 hover:shadow-lg transition-all flex flex-col"
+            >
+              <div className="flex items-center gap-4 mb-5">
+                <img
+                  src={builder.avatar}
+                  alt={builder.name}
+                  className="w-14 h-14 rounded-full object-cover bg-gray-100 ring-2 ring-white shadow-sm"
+                />
+                <div className="min-w-0">
+                  <h3 className="font-bold text-lg text-zinc-900 truncate">{builder.name}</h3>
+                  <div className="flex items-center gap-1.5 text-sm text-zinc-500">
+                    <span className="truncate">{builder.role}</span>
+                    <span className="text-zinc-300">·</span>
+                    <span className="inline-flex items-center gap-0.5 shrink-0">
+                      <MapPin size={12} /> {builder.location}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-zinc-600 text-sm leading-relaxed mb-5 flex-grow">{builder.highlight}</p>
+
+              <div className="flex flex-wrap gap-2 mb-5">
+                {builder.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200 text-xs font-medium text-zinc-600"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <Button
+                variant="ghost"
+                className="w-full justify-between mt-auto rounded-xl border border-gray-200 hover:bg-gray-50 text-zinc-700 font-medium group/btn"
+              >
+                View profile
+                <ArrowRight size={16} className="text-zinc-400 group-hover/btn:text-zinc-700 group-hover/btn:translate-x-0.5 transition-all" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -614,6 +735,7 @@ export function Landing() {
       <main>
         <Hero />
         <CategoryStrip />
+        <FeaturedBuilders />
         <OSProjects />
         <BuilderProjects />
         <WhatsComing />
