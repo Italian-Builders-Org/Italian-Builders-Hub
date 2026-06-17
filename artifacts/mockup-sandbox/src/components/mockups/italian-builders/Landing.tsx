@@ -1,61 +1,41 @@
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Menu, X, ArrowRight, Github, Twitter, CheckCircle2, ChevronRight, ChevronLeft, Zap, MapPin, Sparkles } from "lucide-react";
+import {
+  Menu, X, ArrowRight, Twitter, Linkedin, Globe, Link as LinkIcon,
+  CheckCircle2, ChevronRight, ChevronLeft, ChevronUp, Plus, Zap, MapPin,
+  Sparkles, Hammer, Handshake, Sprout, Telescope, Compass, LayoutGrid, Rocket
+} from "lucide-react";
 import "./Landing.css";
 
 // --- Mock Data ---
-
-const CATEGORIES = [
-  "AI", "SaaS", "B2B", "B2C", "Crypto", "Open Source", 
-  "DevTools", "Consumer Apps", "Automation", "Design", "No-Code", "Mobile Apps"
-];
 
 const OS_PROJECTS = [
   {
     title: "Italian Builders Directory",
     description: "An open directory to discover active builders, products, and startups in the ecosystem.",
     status: "Coming soon",
-    action: "Suggest idea",
-    statusColor: "bg-blue-100 text-blue-700 border-blue-200"
+    category: "Directory",
+    icon: Compass,
+    gradient: "from-blue-500 to-indigo-500"
   },
   {
     title: "Builder Profile Pages",
     description: "Public pages showcasing your projects, contributions, and builder journey.",
     status: "In discussion",
-    action: "Join waitlist",
-    statusColor: "bg-orange-100 text-orange-700 border-orange-200"
+    category: "Profiles",
+    icon: LayoutGrid,
+    gradient: "from-orange-500 to-rose-500"
   },
   {
     title: "Project Showcase",
     description: "A centralized hub to launch, hunt, and vote on projects built by the community.",
     status: "Coming soon",
-    action: "Suggest idea",
-    statusColor: "bg-blue-100 text-blue-700 border-blue-200"
-  },
-  {
-    title: "Resource Hub",
-    description: "Playbooks, legal guides, and technical templates specifically for the Italian market.",
-    status: "Open to contributors",
-    action: "Suggest idea",
-    statusColor: "bg-green-100 text-green-700 border-green-200"
-  },
-  {
-    title: "Founder Matching",
-    description: "Find technical or business co-founders with complementary skillsets.",
-    status: "In discussion",
-    action: "Join waitlist",
-    statusColor: "bg-orange-100 text-orange-700 border-orange-200"
-  },
-  {
-    title: "Perks & Discounts",
-    description: "Exclusive deals on AWS, Vercel, Stripe, and other essential tools for members.",
-    status: "Coming soon",
-    action: "Suggest idea",
-    statusColor: "bg-blue-100 text-blue-700 border-blue-200"
+    category: "Showcase",
+    icon: Rocket,
+    gradient: "from-violet-500 to-fuchsia-500"
   }
 ];
 
@@ -119,40 +99,76 @@ const BUILDER_PROJECTS = [
     statusColor: "bg-purple-100 text-purple-700",
     image: "/__mockup/images/project-6.png",
     avatar: "/__mockup/images/avatar-6.png"
+  },
+  {
+    name: "Pulse",
+    category: "B2C",
+    description: "Real-time audience analytics for independent creators.",
+    builder: "Davide Greco",
+    status: "Beta",
+    statusColor: "bg-purple-100 text-purple-700",
+    image: "/__mockup/images/project-7.png",
+    avatar: "/__mockup/images/avatar-1.png"
+  },
+  {
+    name: "Forms.it",
+    category: "SaaS",
+    description: "An Italian-first form builder with native invoicing support.",
+    builder: "Chiara Esposito",
+    status: "Live",
+    statusColor: "bg-blue-100 text-blue-700",
+    image: "/__mockup/images/project-2.png",
+    avatar: "/__mockup/images/avatar-2.png"
+  },
+  {
+    name: "DevKit",
+    category: "DevTools",
+    description: "Production-ready starter kits for solo founders shipping fast.",
+    builder: "Matteo Galli",
+    status: "MVP",
+    statusColor: "bg-yellow-100 text-yellow-700",
+    image: "/__mockup/images/project-3.png",
+    avatar: "/__mockup/images/avatar-3.png"
   }
 ];
 
-const FEATURES = [
-  { title: "Builder profiles", description: "Showcase your work, stack, and current focus." },
-  { title: "Project pages", description: "Dedicated spaces to launch and gather feedback." },
-  { title: "Video introductions", description: "Short asynchronous intros to build trust." },
-  { title: "Category-based discovery", description: "Find peers by niche, from AI to Crypto." },
-  { title: "Open-source projects", description: "Contribute to shared community infrastructure." },
-  { title: "Founder matching", description: "Find the right partner for your next venture." },
-  { title: "Resources and playbooks", description: "Curated knowledge from successful operators." },
-  { title: "Member perks", description: "Software discounts to extend your runway." }
+const ROADMAP = [
+  { title: "Builder profiles", description: "Public pages to showcase your work, stack, and current focus.", votes: 142, status: "In progress" },
+  { title: "Project pages", description: "Dedicated spaces to launch products and gather feedback.", votes: 118, status: "Planned" },
+  { title: "Category-based discovery", description: "Find peers by niche, from AI to Crypto.", votes: 97, status: "Planned" },
+  { title: "Founder matching", description: "Get matched with co-founders who complement your skills.", votes: 86, status: "Exploring" },
+  { title: "Video introductions", description: "Short asynchronous intros to build trust faster.", votes: 64, status: "Exploring" },
+  { title: "Open-source projects", description: "Contribute to shared community infrastructure.", votes: 53, status: "In progress" },
+  { title: "Resources and playbooks", description: "Curated knowledge from operators who have done it.", votes: 48, status: "Planned" },
+  { title: "Member perks", description: "Software discounts to extend your runway.", votes: 39, status: "Planned" }
 ];
+
+const ROADMAP_STATUS_COLORS: Record<string, string> = {
+  "In progress": "bg-blue-100 text-blue-700",
+  "Planned": "bg-gray-100 text-gray-600",
+  "Exploring": "bg-purple-100 text-purple-700"
+};
 
 const WHO_FOR = [
   {
     title: "Builders",
     description: "For people building apps, products, startups, and tools.",
-    icon: "🔨"
+    icon: Hammer
   },
   {
     title: "Contributors",
-    description: "For developers, designers, marketers, operators, and makers who want to collaborate.",
-    icon: "🤝"
+    description: "For developers, designers, marketers, and makers who want to collaborate.",
+    icon: Handshake
   },
   {
     title: "Supporters",
     description: "For mentors, advisors, and people who want to help the ecosystem grow.",
-    icon: "🌱"
+    icon: Sprout
   },
   {
     title: "Investors & Talent Scouts",
     description: "For people looking for early projects, promising builders, and emerging talent.",
-    icon: "👀"
+    icon: Telescope
   }
 ];
 
@@ -193,7 +209,7 @@ function Header() {
           <a href="#builders" className="text-sm font-medium text-gray-600 hover:text-zinc-900 transition-colors">Builders</a>
           <a href="#projects" className="text-sm font-medium text-gray-600 hover:text-zinc-900 transition-colors">Projects</a>
           <a href="#os-projects" className="text-sm font-medium text-gray-600 hover:text-zinc-900 transition-colors">OS Projects</a>
-          <a href="#manifesto" className="text-sm font-medium text-gray-600 hover:text-zinc-900 transition-colors">Manifesto</a>
+          <a href="#roadmap" className="text-sm font-medium text-gray-600 hover:text-zinc-900 transition-colors">Roadmap</a>
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
@@ -219,7 +235,7 @@ function Header() {
             <a href="#builders" className="text-base font-medium text-gray-600">Builders</a>
             <a href="#projects" className="text-base font-medium text-gray-600">Projects</a>
             <a href="#os-projects" className="text-base font-medium text-gray-600">OS Projects</a>
-            <a href="#manifesto" className="text-base font-medium text-gray-600">Manifesto</a>
+            <a href="#roadmap" className="text-base font-medium text-gray-600">Roadmap</a>
           </nav>
           <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
             <Button variant="outline" className="w-full justify-center">Sign in</Button>
@@ -331,27 +347,6 @@ function Hero() {
   );
 }
 
-function CategoryStrip() {
-  return (
-    <div className="w-full overflow-hidden py-6 border-y border-gray-100 bg-white relative">
-      {/* Fade edges */}
-      <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent z-10" />
-      <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent z-10" />
-      
-      <div className="flex gap-3 px-4 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap items-center">
-        {CATEGORIES.map((cat, i) => (
-          <button 
-            key={i} 
-            className="px-5 py-2.5 rounded-full border border-gray-200 bg-gray-50 text-gray-700 font-medium text-sm hover:bg-gray-100 hover:border-gray-300 transition-all flex-shrink-0"
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function FeaturedBuilders() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -460,55 +455,43 @@ function FeaturedBuilders() {
   );
 }
 
-function OSProjects() {
+function BuilderProjects() {
+  const categories = ["All", ...Array.from(new Set(BUILDER_PROJECTS.map((p) => p.category)))];
+  const [active, setActive] = useState("All");
+  const [showAll, setShowAll] = useState(false);
+
+  const filtered = active === "All" ? BUILDER_PROJECTS : BUILDER_PROJECTS.filter((p) => p.category === active);
+  const visible = showAll ? filtered : filtered.slice(0, 6);
+  const hasMore = filtered.length > visible.length;
+
   return (
-    <section id="os-projects" className="py-24 bg-zinc-50">
+    <section id="projects" className="py-24 bg-zinc-50">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="max-w-2xl mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold font-display text-zinc-900 mb-4">Community OS projects</h2>
-          <p className="text-lg text-zinc-600">Open projects built by and for the Italian Builders community.</p>
+        <div className="max-w-2xl mb-8">
+          <h2 className="text-3xl md:text-4xl font-bold font-display text-zinc-900 mb-4">Projects from the community</h2>
+          <p className="text-lg text-zinc-600">Apps, tools, experiments, startups, and side projects from Italian builders.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {OS_PROJECTS.map((project, i) => (
-            <Card key={i} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col h-full rounded-2xl">
-              <div className="mb-4 flex justify-between items-start gap-4">
-                <h3 className="font-bold text-lg text-zinc-900 leading-tight">{project.title}</h3>
-                <Badge variant="outline" className={`font-medium whitespace-nowrap ${project.statusColor}`}>
-                  {project.status}
-                </Badge>
-              </div>
-              <p className="text-zinc-600 text-sm mb-8 flex-grow">{project.description}</p>
-              
-              <Button variant="ghost" className="w-full mt-auto rounded-xl border-gray-200 hover:bg-gray-50 text-zinc-700 font-medium group">
-                {project.action}
-                <ArrowRight size={16} className="ml-2 text-zinc-400 group-hover:text-zinc-700 transition-colors" />
-              </Button>
-            </Card>
+        {/* Filters */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-8 md:flex-wrap">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => { setActive(cat); setShowAll(false); }}
+              className={`px-4 py-2 rounded-full border text-sm font-medium transition-all flex-shrink-0 ${
+                active === cat
+                  ? "bg-zinc-900 text-white border-zinc-900"
+                  : "bg-white text-zinc-700 border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              {cat}
+            </button>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-function BuilderProjects() {
-  return (
-    <section id="projects" className="py-24 bg-white">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div className="max-w-2xl">
-            <h2 className="text-3xl md:text-4xl font-bold font-display text-zinc-900 mb-4">Projects from the community</h2>
-            <p className="text-lg text-zinc-600">Apps, tools, experiments, startups, and side projects from Italian builders.</p>
-          </div>
-          <p className="text-sm font-medium text-zinc-500 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
-            Real community projects will be added soon.
-          </p>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {BUILDER_PROJECTS.map((project, i) => (
-            <div key={i} className="group rounded-2xl border border-gray-200 overflow-hidden hover:border-gray-300 hover:shadow-lg transition-all bg-white flex flex-col">
+          {visible.map((project, i) => (
+            <div key={`${project.name}-${i}`} className="group rounded-2xl border border-gray-200 overflow-hidden hover:border-gray-300 hover:shadow-lg transition-all bg-white flex flex-col">
               {/* Image Container */}
               <div className="aspect-[4/3] w-full bg-gray-100 relative overflow-hidden">
                  <img src={project.image} alt={project.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -538,55 +521,129 @@ function BuilderProjects() {
             </div>
           ))}
         </div>
+
+        {/* Discover more */}
+        {hasMore && (
+          <div className="flex justify-center mt-12">
+            <Button
+              onClick={() => setShowAll(true)}
+              variant="outline"
+              className="rounded-full h-12 px-8 border-gray-300 text-zinc-700 hover:bg-white bg-white/60 font-medium group"
+            >
+              Discover more projects
+              <ArrowRight size={16} className="ml-2 text-zinc-400 group-hover:text-zinc-700 group-hover:translate-x-0.5 transition-all" />
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
-function WhatsComing() {
+function OSProjects() {
   return (
-    <section className="py-24 bg-zinc-900 text-white rounded-[2.5rem] mx-4 md:mx-6 lg:mx-8 mb-24 overflow-hidden relative">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-zinc-800 rounded-full blur-3xl opacity-50 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl opacity-50 -translate-x-1/3 translate-y-1/3 pointer-events-none" />
-
-      <div className="container mx-auto px-6 md:px-12 relative z-10">
-        <div className="max-w-3xl mb-16">
-          <Badge className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 mb-6 border-none">Platform vision</Badge>
-          <h2 className="text-3xl md:text-5xl font-bold font-display mb-6 leading-tight">More than a Telegram group.</h2>
-          <p className="text-lg md:text-xl text-zinc-400 leading-relaxed">
-            Telegram is where the conversation happens. The website will become the place to discover builders, projects, opportunities, resources, and collaborations.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {FEATURES.map((feature, i) => (
-            <div key={i} className="bg-zinc-800/50 backdrop-blur-sm border border-zinc-700/50 rounded-2xl p-6 hover:bg-zinc-800 transition-colors">
-              <CheckCircle2 className="w-6 h-6 text-zinc-400 mb-4" />
-              <h3 className="font-semibold text-white mb-2 text-lg">{feature.title}</h3>
-              <p className="text-sm text-zinc-400">{feature.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function WhoFor() {
-  return (
-    <section className="py-24 bg-white">
+    <section id="os-projects" className="py-24 bg-white">
       <div className="container mx-auto px-4 md:px-6">
-        <h2 className="text-3xl md:text-4xl font-bold font-display text-center text-zinc-900 mb-16">Who is it for?</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {WHO_FOR.map((persona, i) => (
-            <div key={i} className="p-8 rounded-3xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
-              <div className="text-4xl mb-6 bg-white w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-gray-100">
-                {persona.icon}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div className="max-w-2xl">
+            <h2 className="text-3xl md:text-4xl font-bold font-display text-zinc-900 mb-4">Community OS projects</h2>
+            <p className="text-lg text-zinc-600">Open projects built by and for the Italian Builders community.</p>
+          </div>
+          <a href="#roadmap" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 inline-flex items-center gap-1.5 group">
+            See the full roadmap
+            <ArrowRight size={16} className="text-zinc-400 group-hover:text-zinc-700 group-hover:translate-x-0.5 transition-all" />
+          </a>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {OS_PROJECTS.slice(0, 3).map((project, i) => {
+            const Icon = project.icon;
+            return (
+              <div key={i} className="group rounded-2xl border border-gray-200 overflow-hidden hover:border-gray-300 hover:shadow-lg transition-all bg-white flex flex-col">
+                {/* Gradient media block */}
+                <div className={`aspect-[16/9] w-full bg-gradient-to-br ${project.gradient} relative flex items-center justify-center`}>
+                  <Icon className="w-12 h-12 text-white/90" strokeWidth={1.5} />
+                  <div className="absolute top-4 left-4">
+                    <Badge className="bg-white/90 backdrop-blur-sm text-zinc-800 hover:bg-white border-none shadow-sm font-semibold">
+                      {project.category}
+                    </Badge>
+                  </div>
+                  <div className="absolute top-4 right-4">
+                    <Badge className="bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 border-none font-medium">
+                      {project.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-5 flex flex-col flex-grow">
+                  <h3 className="font-bold text-xl text-zinc-900 mb-2">{project.title}</h3>
+                  <p className="text-zinc-600 text-sm flex-grow">{project.description}</p>
+                </div>
               </div>
-              <h3 className="font-bold text-xl text-zinc-900 mb-3">{persona.title}</h3>
-              <p className="text-zinc-600 text-sm leading-relaxed">{persona.description}</p>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Roadmap() {
+  const [votes, setVotes] = useState<number[]>(() => ROADMAP.map((r) => r.votes));
+  const [voted, setVoted] = useState<Record<number, boolean>>({});
+
+  const toggleVote = (i: number) => {
+    setVotes((prev) => prev.map((n, idx) => (idx === i ? (voted[i] ? n - 1 : n + 1) : n)));
+    setVoted((prev) => ({ ...prev, [i]: !prev[i] }));
+  };
+
+  return (
+    <section id="roadmap" className="py-24 bg-zinc-50 border-y border-gray-100">
+      <div className="container mx-auto px-4 md:px-6 max-w-4xl">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div className="max-w-2xl">
+            <Badge className="bg-zinc-900 hover:bg-zinc-800 text-white mb-6 border-none">Open backlog</Badge>
+            <h2 className="text-3xl md:text-5xl font-bold font-display text-zinc-900 mb-4 leading-tight">A roadmap shaped by the community.</h2>
+            <p className="text-lg text-zinc-600 leading-relaxed">
+              Telegram is where the conversation happens. This is where we decide what gets built next. Upvote what matters most to you.
+            </p>
+          </div>
+          <Button variant="outline" className="rounded-full h-12 px-6 border-gray-300 text-zinc-700 hover:bg-white bg-white font-medium shrink-0">
+            <Plus size={16} className="mr-2" />
+            Suggest a feature
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          {ROADMAP.map((item, i) => (
+            <div
+              key={item.title}
+              className="flex items-center gap-4 bg-white border border-gray-200 rounded-2xl p-4 md:p-5 hover:border-gray-300 hover:shadow-sm transition-all"
+            >
+              <button
+                onClick={() => toggleVote(i)}
+                aria-pressed={!!voted[i]}
+                aria-label={`Upvote ${item.title}`}
+                className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl border transition-all shrink-0 ${
+                  voted[i]
+                    ? "border-zinc-900 bg-zinc-900 text-white"
+                    : "border-gray-200 text-zinc-700 hover:border-zinc-400"
+                }`}
+              >
+                <ChevronUp size={16} />
+                <span className="text-sm font-bold leading-none mt-0.5">{votes[i]}</span>
+              </button>
+
+              <div className="flex-grow min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h3 className="font-semibold text-zinc-900">{item.title}</h3>
+                  <Badge variant="outline" className={`border-transparent font-medium ${ROADMAP_STATUS_COLORS[item.status]}`}>
+                    {item.status}
+                  </Badge>
+                </div>
+                <p className="text-sm text-zinc-600">{item.description}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -595,9 +652,36 @@ function WhoFor() {
   );
 }
 
-function Waitlist() {
+function SocialInput({
+  icon: Icon,
+  placeholder,
+  value,
+  onChange
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <Icon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+      <Input
+        placeholder={placeholder}
+        className="h-12 pl-10 bg-gray-50 border-gray-200 focus-visible:ring-zinc-900 rounded-xl"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+function JoinSection() {
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
-  const [formData, setFormData] = useState({ name: "", email: "", role: "", building: "" });
+  const [formData, setFormData] = useState({
+    name: "", email: "", role: "", building: "",
+    x: "", linkedin: "", website: "", projectUrl: ""
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -609,90 +693,135 @@ function Waitlist() {
   };
 
   return (
-    <section id="join" className="py-32 bg-gray-50 border-t border-gray-100 relative">
-      {/* Pattern background */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23000000\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+    <section id="join" className="py-24 bg-white border-t border-gray-100">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-start">
+          {/* Left: Who is it for */}
+          <div>
+            <Badge variant="outline" className="mb-6 py-1.5 px-4 bg-gray-50 border-gray-200 text-zinc-600 font-medium">
+              Who is it for?
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold font-display text-zinc-900 mb-4 leading-tight">
+              Built for everyone moving the ecosystem forward.
+            </h2>
+            <p className="text-lg text-zinc-600 mb-8 leading-relaxed">
+              Whether you ship code, back founders, or cheer from the sidelines, there is a place for you here.
+            </p>
 
-      <div className="container mx-auto px-4 md:px-6 max-w-2xl relative z-10">
-        <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8 md:p-12">
-          
-          {status === "success" ? (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="w-10 h-10 text-green-600" />
-              </div>
-              <h2 className="text-3xl font-bold font-display text-zinc-900 mb-4">You're on the list.</h2>
-              <p className="text-lg text-zinc-600">We'll keep you posted. In the meantime, join the conversation on Telegram.</p>
-              <Button className="mt-8 rounded-full px-8 bg-[#0088cc] hover:bg-[#0077b5] text-white">
-                Join Telegram
-              </Button>
+            <div className="space-y-3">
+              {WHO_FOR.map((persona) => {
+                const Icon = persona.icon;
+                return (
+                  <div key={persona.title} className="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                    <div className="w-11 h-11 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-zinc-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-zinc-900 mb-0.5">{persona.title}</h3>
+                      <p className="text-sm text-zinc-600 leading-relaxed">{persona.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ) : (
-            <>
-              <div className="text-center mb-10">
-                <h2 className="text-3xl md:text-4xl font-bold font-display text-zinc-900 mb-4">Join the waitlist</h2>
-                <p className="text-lg text-zinc-600">Leave your email to be notified when the Italian Builders platform goes live.</p>
-              </div>
+          </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-zinc-900">Name</label>
-                    <Input 
-                      required 
-                      placeholder="Mario Rossi" 
-                      className="h-12 bg-gray-50 border-gray-200 focus-visible:ring-zinc-900 rounded-xl"
-                      value={formData.name}
-                      onChange={e => setFormData({...formData, name: e.target.value})}
-                    />
+          {/* Right: Waitlist form */}
+          <div className="lg:sticky lg:top-24">
+            <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8 md:p-10">
+              {status === "success" ? (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle2 className="w-10 h-10 text-green-600" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-zinc-900">Email</label>
-                    <Input 
-                      required 
-                      type="email" 
-                      placeholder="mario@example.com" 
-                      className="h-12 bg-gray-50 border-gray-200 focus-visible:ring-zinc-900 rounded-xl"
-                      value={formData.email}
-                      onChange={e => setFormData({...formData, email: e.target.value})}
-                    />
+                  <h3 className="text-3xl font-bold font-display text-zinc-900 mb-4">You're on the list.</h3>
+                  <p className="text-lg text-zinc-600">We'll keep you posted. In the meantime, join the conversation on Telegram.</p>
+                  <Button className="mt-8 rounded-full px-8 bg-[#0088cc] hover:bg-[#0077b5] text-white">
+                    Join Telegram
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-8">
+                    <h3 className="text-2xl md:text-3xl font-bold font-display text-zinc-900 mb-2">Join the waitlist</h3>
+                    <p className="text-zinc-600">Tell us who you are and what you're building. Links are optional.</p>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-zinc-900">I am a...</label>
-                  <Select value={formData.role} onValueChange={v => setFormData({...formData, role: v})}>
-                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200 focus-visible:ring-zinc-900 rounded-xl">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLES.map(role => (
-                        <SelectItem key={role} value={role}>{role}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-zinc-900">Name</label>
+                        <Input 
+                          required 
+                          placeholder="Mario Rossi" 
+                          className="h-12 bg-gray-50 border-gray-200 focus-visible:ring-zinc-900 rounded-xl"
+                          value={formData.name}
+                          onChange={e => setFormData({...formData, name: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-zinc-900">Email</label>
+                        <Input 
+                          required 
+                          type="email" 
+                          placeholder="mario@example.com" 
+                          className="h-12 bg-gray-50 border-gray-200 focus-visible:ring-zinc-900 rounded-xl"
+                          value={formData.email}
+                          onChange={e => setFormData({...formData, email: e.target.value})}
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-zinc-900">What are you building? <span className="text-zinc-400 font-normal">(Optional)</span></label>
-                  <Input 
-                    placeholder="Link to project, short description, or 'looking for ideas'" 
-                    className="h-12 bg-gray-50 border-gray-200 focus-visible:ring-zinc-900 rounded-xl"
-                    value={formData.building}
-                    onChange={e => setFormData({...formData, building: e.target.value})}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-zinc-900">I am a...</label>
+                      <Select value={formData.role} onValueChange={v => setFormData({...formData, role: v})}>
+                        <SelectTrigger className="h-12 bg-gray-50 border-gray-200 focus-visible:ring-zinc-900 rounded-xl">
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROLES.map(role => (
+                            <SelectItem key={role} value={role}>{role}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <Button 
-                  type="submit" 
-                  disabled={status === "submitting"}
-                  className="w-full h-14 text-lg rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white mt-4"
-                >
-                  {status === "submitting" ? "Joining..." : "Join the waitlist"}
-                </Button>
-              </form>
-            </>
-          )}
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-zinc-900">What are you building? <span className="text-zinc-400 font-normal">(Optional)</span></label>
+                      <Input 
+                        placeholder="A short description, or 'looking for ideas'" 
+                        className="h-12 bg-gray-50 border-gray-200 focus-visible:ring-zinc-900 rounded-xl"
+                        value={formData.building}
+                        onChange={e => setFormData({...formData, building: e.target.value})}
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-px bg-gray-100 flex-grow" />
+                        <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Show your work (optional)</span>
+                        <div className="h-px bg-gray-100 flex-grow" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <SocialInput icon={Twitter} placeholder="X / Twitter profile" value={formData.x} onChange={(v) => setFormData({ ...formData, x: v })} />
+                        <SocialInput icon={Linkedin} placeholder="LinkedIn profile" value={formData.linkedin} onChange={(v) => setFormData({ ...formData, linkedin: v })} />
+                        <SocialInput icon={Globe} placeholder="Personal website" value={formData.website} onChange={(v) => setFormData({ ...formData, website: v })} />
+                        <SocialInput icon={LinkIcon} placeholder="Project website" value={formData.projectUrl} onChange={(v) => setFormData({ ...formData, projectUrl: v })} />
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      disabled={status === "submitting"}
+                      className="w-full h-14 text-lg rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white mt-2"
+                    >
+                      {status === "submitting" ? "Joining..." : "Join the waitlist"}
+                    </Button>
+                  </form>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -734,13 +863,11 @@ export function Landing() {
       <Header />
       <main>
         <Hero />
-        <CategoryStrip />
         <FeaturedBuilders />
-        <OSProjects />
         <BuilderProjects />
-        <WhatsComing />
-        <WhoFor />
-        <Waitlist />
+        <OSProjects />
+        <Roadmap />
+        <JoinSection />
       </main>
       <Footer />
     </div>
