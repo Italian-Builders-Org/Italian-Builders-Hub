@@ -1,0 +1,1 @@
+- [Drizzle unique-violation 409](drizzle-unique-violation.md) — pg error code 23505 is on err.cause, not err, when Drizzle wraps it; check both for duplicate-key 409 handling.
