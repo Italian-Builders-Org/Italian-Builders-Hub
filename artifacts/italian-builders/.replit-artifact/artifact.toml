@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Italian Builders"
+version = "1.0.0"
+id = "artifacts/italian-builders"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21375
+
+[services.development]
+run = "pnpm --filter @workspace/italian-builders run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/italian-builders", "run", "build" ]
+publicDir = "artifacts/italian-builders/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21375"
+BASE_PATH = "/"

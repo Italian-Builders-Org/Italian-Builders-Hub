@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: waitlist
+    description: Waitlist signup operations
+  - name: directory
+    description: Builder directory content
 paths:
   /healthz:
     get:
@@ -24,6 +28,115 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /waitlist:
+    post:
+      operationId: createWaitlistSignup
+      tags: [waitlist]
+      summary: Submit a waitlist application
+      description: Persists a new waitlist signup (Network Access Protocol request).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WaitlistInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistSignup"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /waitlist/count:
+    get:
+      operationId: getWaitlistCount
+      tags: [waitlist]
+      summary: Waitlist signup count
+      description: Returns the total number of waitlist signups.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistCount"
+  /builders:
+    get:
+      operationId: listBuilders
+      tags: [directory]
+      summary: List builders
+      description: Returns the curated directory of Italian builders.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Builder"
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [directory]
+      summary: List builder projects
+      description: Returns deployed builder projects, optionally filtered by category.
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter projects by category.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+  /os-projects:
+    get:
+      operationId: listOsProjects
+      tags: [directory]
+      summary: List community open-source projects
+      description: Returns shared community open-source infrastructure projects.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OsProject"
+  /stats:
+    get:
+      operationId: getDirectoryStats
+      tags: [directory]
+      summary: Directory statistics
+      description: Returns headline directory statistics for the hero strip.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectoryStats"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +146,168 @@ components:
           type: string
       required:
         - status
-
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    WaitlistInput:
+      type: object
+      required:
+        - name
+        - email
+        - role
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          minLength: 3
+        role:
+          type: string
+          minLength: 1
+        building:
+          type: string
+        xHandle:
+          type: string
+        linkedin:
+          type: string
+        website:
+          type: string
+        projectUrl:
+          type: string
+    WaitlistSignup:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - role
+        - createdAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        building:
+          type: ["string", "null"]
+        xHandle:
+          type: ["string", "null"]
+        linkedin:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        projectUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+    WaitlistCount:
+      type: object
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+    Builder:
+      type: object
+      required:
+        - id
+        - name
+        - role
+        - location
+        - avatarUrl
+        - highlight
+        - tags
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        location:
+          type: string
+        avatarUrl:
+          type: string
+        highlight:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    Project:
+      type: object
+      required:
+        - id
+        - name
+        - category
+        - description
+        - builder
+        - status
+        - statusColor
+        - imageUrl
+        - avatarUrl
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        builder:
+          type: string
+        status:
+          type: string
+        statusColor:
+          type: string
+        imageUrl:
+          type: string
+        avatarUrl:
+          type: string
+    OsProject:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - status
+        - category
+        - icon
+        - color
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        category:
+          type: string
+        icon:
+          type: string
+        color:
+          type: string
+    DirectoryStats:
+      type: object
+      required:
+        - builders
+        - regions
+        - cities
+      properties:
+        builders:
+          type: string
+        regions:
+          type: string
+        cities:
+          type: string
