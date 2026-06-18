@@ -1,0 +1,5 @@
+name = "italian-builders-hub"
+pages_build_output_dir = "artifacts/italian-builders/dist/public"
+
+[vars]
+BASE_PATH = "/"

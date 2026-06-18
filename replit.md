@@ -5,8 +5,11 @@ A dark, terminal/technical-themed showcase + waitlist homepage for a curated dir
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `PORT=5173 BASE_PATH=/ pnpm --filter @workspace/italian-builders run dev` — run the public homepage locally
+- `PORT=5173 BASE_PATH=/ pnpm --filter @workspace/italian-builders run serve` — preview the built homepage locally
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
+- `pnpm --filter @workspace/italian-builders run build` — build the Cloudflare Pages static output
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
@@ -40,7 +43,17 @@ A dark, terminal/technical-themed showcase + waitlist homepage for a curated dir
 ## Product
 
 - A single scrolling homepage: hero with an interactive Italy globe + cycling builder HUD + live stats, featured builders carousel, filterable builder projects, community OS projects, and a functional "Network Access Protocol" waitlist form.
+- First standalone routes now exist on top of the homepage: `/builders`, `/projects`, `/os-projects`, and `/join`.
+- The public React app can run as a static Cloudflare Pages first version. It prefers live `/api/*` data when available and falls back to typed static directory data when the API is not deployed yet.
 - The waitlist form persists signups to Postgres, shows a confirmation state, surfaces server errors (e.g. already-registered email), and the live waitlist count updates after signup.
+
+## Cloudflare Pages
+
+- Build command: `pnpm --filter @workspace/italian-builders run build`
+- Build output directory: `artifacts/italian-builders/dist/public`
+- `wrangler.toml` sets `pages_build_output_dir` to that same output directory for Wrangler-based deploys.
+- `artifacts/italian-builders/public/_redirects` rewrites all routes to `index.html`, so direct visits to `/builders`, `/projects`, `/os-projects`, and `/join` work on Cloudflare Pages.
+- The first static version does not require `DATABASE_URL`. The Express API still needs `DATABASE_URL` when deployed separately.
 
 ## User preferences
 
