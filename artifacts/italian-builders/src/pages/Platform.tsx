@@ -1722,7 +1722,7 @@ export function ProjectDetailPage() {
       const { data } = await supabase
         .from("projects")
         .select(
-          "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(*, profiles(username, full_name, avatar_url, headline))",
+          "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(*, profiles!project_members_profile_id_fkey(username, full_name, avatar_url, headline))",
         )
         .eq("slug", params.slug)
         .eq("is_public", true)
@@ -2059,7 +2059,7 @@ export function CommunityProjectDetailPage() {
       const { data } = await supabase
         .from("community_projects")
         .select(
-          "*, community_project_members(*, profiles(username, full_name, avatar_url, headline))",
+          "*, community_project_members(*, profiles!community_project_members_profile_id_fkey(username, full_name, avatar_url, headline))",
         )
         .eq("slug", params.slug)
         .eq("is_public", true)
@@ -4357,7 +4357,7 @@ function ProjectEditorLoader({
     setProject((data as Project | null) ?? null);
     const { data: memberData } = await supabase
       .from("project_members")
-      .select("*, profiles(username, full_name, avatar_url, headline)")
+      .select("*, profiles!project_members_profile_id_fkey(username, full_name, avatar_url, headline)")
       .eq("project_id", projectId)
       .order("created_at", { ascending: true });
     setMembers((memberData as ProjectMember[]) ?? []);
@@ -5069,7 +5069,7 @@ function CommunityProjectEditorLoader({
     if (projectId && projectId !== "new") {
       const { data: memberData } = await supabase
         .from("community_project_members")
-        .select("*, profiles(username, full_name, avatar_url, headline)")
+        .select("*, profiles!community_project_members_profile_id_fkey(username, full_name, avatar_url, headline)")
         .eq("community_project_id", projectId);
       setMembers((memberData as CommunityProjectMember[]) ?? []);
     }

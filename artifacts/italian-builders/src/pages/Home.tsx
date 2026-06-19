@@ -1923,17 +1923,23 @@ export function Footer() {
             </h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a
+                  href="/privacy"
+                  className="hover:text-white transition-colors"
+                >
                   {techLabels ? "PRIVACY_POLICY" : "Privacy policy"}
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="/terms" className="hover:text-white transition-colors">
                   {techLabels ? "TERMS_OF_SERVICE" : "Terms of service"}
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a
+                  href="mailto:domenico.dd@gmail.com"
+                  className="hover:text-white transition-colors"
+                >
                   {techLabels ? "CONTACT_ENDPOINT" : "Contact us"}
                 </a>
               </li>
