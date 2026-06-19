@@ -1,11 +1,22 @@
-import { createClient, type Session, type SupabaseClient, type User } from "@supabase/supabase-js";
+import {
+  createClient,
+  type Session,
+  type SupabaseClient,
+  type User,
+} from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as
+  | string
+  | undefined;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
-export const appBaseUrl = ((import.meta.env.VITE_APP_BASE_URL || import.meta.env.APP_BASE_URL || "") as string).replace(/\/$/, "");
+export const appBaseUrl = (
+  (import.meta.env.VITE_APP_BASE_URL ||
+    import.meta.env.APP_BASE_URL ||
+    "") as string
+).replace(/\/$/, "");
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseUrl!, supabaseKey!, {
@@ -75,7 +86,10 @@ export type Project = {
   is_public: boolean;
   created_at: string;
   updated_at: string;
-  profiles?: Pick<Profile, "username" | "full_name" | "avatar_url" | "headline" | "telegram_handle"> | null;
+  profiles?: Pick<
+    Profile,
+    "username" | "full_name" | "avatar_url" | "headline" | "telegram_handle"
+  > | null;
   project_members?: ProjectMember[];
 };
 
@@ -88,7 +102,10 @@ export type ProjectMember = {
   invited_by: string | null;
   created_at: string;
   updated_at: string;
-  profiles?: Pick<Profile, "username" | "full_name" | "avatar_url" | "headline"> | null;
+  profiles?: Pick<
+    Profile,
+    "username" | "full_name" | "avatar_url" | "headline"
+  > | null;
   projects?: Project | null;
 };
 
@@ -119,7 +136,10 @@ export type CommunityProjectMember = {
   assigned_by: string | null;
   created_at: string;
   updated_at?: string;
-  profiles?: Pick<Profile, "username" | "full_name" | "avatar_url" | "headline"> | null;
+  profiles?: Pick<
+    Profile,
+    "username" | "full_name" | "avatar_url" | "headline"
+  > | null;
   community_projects?: CommunityProject | null;
 };
 
@@ -147,6 +167,7 @@ export type WaitlistSignup = {
   linkedin: string | null;
   website: string | null;
   projectUrl: string | null;
+  source: string;
   status: "pending" | "active";
   activatedAt: string | null;
   activatedBy: string | null;
@@ -183,7 +204,9 @@ export function publicUrl(path: string) {
   return `${appBaseUrl || window.location.origin}${path}`;
 }
 
-export function authRedirectUrl(path = window.location.pathname + window.location.search) {
+export function authRedirectUrl(
+  path = window.location.pathname + window.location.search,
+) {
   const base = appBaseUrl || window.location.origin;
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
@@ -191,7 +214,9 @@ export function authRedirectUrl(path = window.location.pathname + window.locatio
 export function newInviteToken() {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
 }
 
 export function useSupabaseSession() {

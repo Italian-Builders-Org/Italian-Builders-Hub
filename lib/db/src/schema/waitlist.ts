@@ -11,6 +11,7 @@ export const waitlistTable = pgTable("waitlist_signups", {
   linkedin: text("linkedin"),
   website: text("website"),
   projectUrl: text("project_url"),
+  source: text("source").notNull().default("Website Waitlist"),
   status: text("status").notNull().default("pending"),
   activatedAt: timestamp("activated_at", { withTimezone: true }),
   activatedBy: uuid("activated_by"),

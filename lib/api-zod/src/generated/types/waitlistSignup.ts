@@ -23,5 +23,6 @@ export interface WaitlistSignup {
   website?: string | null;
   /** @nullable */
   projectUrl?: string | null;
+  source?: string;
   createdAt: string;
 }

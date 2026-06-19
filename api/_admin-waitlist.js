@@ -39,7 +39,9 @@ function bearerToken(req) {
 async function requireAdmin(req) {
   const token = bearerToken(req);
   if (!token) {
-    throw Object.assign(new Error("Missing bearer token."), { statusCode: 401 });
+    throw Object.assign(new Error("Missing bearer token."), {
+      statusCode: 401,
+    });
   }
 
   const supabaseAdmin = getSupabaseAdmin();
@@ -92,6 +94,7 @@ function mapWaitlistRow(row, invite) {
     linkedin: row.linkedin,
     website: row.website,
     projectUrl: row.project_url,
+    source: row.source || "Website Waitlist",
     status: row.status,
     activatedAt: row.activated_at,
     activatedBy: row.activated_by,
@@ -126,7 +129,9 @@ async function listWaitlist(req) {
   if (error) throw error;
 
   const rows = data || [];
-  const inviteIds = [...new Set(rows.map((row) => row.invite_id).filter(Boolean))];
+  const inviteIds = [
+    ...new Set(rows.map((row) => row.invite_id).filter(Boolean)),
+  ];
   let invitesById = new Map();
 
   if (inviteIds.length > 0) {
@@ -148,8 +153,7 @@ async function listWaitlist(req) {
   return { waitlist };
 }
 
-async function activateWaitlistSignup(req, rawId) {
-  const context = await requireAdmin(req);
+async function activateWaitlistSignupWithContext(req, rawId, context) {
   const id = Number(rawId);
 
   if (!Number.isInteger(id) || id <= 0) {
@@ -178,7 +182,9 @@ async function activateWaitlistSignup(req, rawId) {
   }
 
   const token = newInviteToken();
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  const expiresAt = new Date(
+    Date.now() + 1000 * 60 * 60 * 24 * 30,
+  ).toISOString();
   const inviteUrl = `${appBaseUrl(req)}/invite/${token}`;
   const { data: invite, error: inviteError } = await supabaseAdmin
     .from("invites")
@@ -203,7 +209,10 @@ async function activateWaitlistSignup(req, rawId) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to send invite email.";
-    await supabaseAdmin.from("invites").update({ status: "revoked" }).eq("id", invite.id);
+    await supabaseAdmin
+      .from("invites")
+      .update({ status: "revoked" })
+      .eq("id", invite.id);
     await supabaseAdmin
       .from("waitlist_signups")
       .update({
@@ -234,6 +243,60 @@ async function activateWaitlistSignup(req, rawId) {
   return { waitlistSignup: mapWaitlistRow(updated, invite) };
 }
 
+async function activateWaitlistSignup(req, rawId) {
+  const context = await requireAdmin(req);
+  return activateWaitlistSignupWithContext(req, rawId, context);
+}
+
+async function activateWaitlistBatch(req, rawIds) {
+  const context = await requireAdmin(req);
+
+  if (!Array.isArray(rawIds)) {
+    throw Object.assign(new Error("ids must be an array."), {
+      statusCode: 400,
+    });
+  }
+
+  const ids = [...new Set(rawIds.map((id) => Number(id)))];
+  if (
+    ids.length === 0 ||
+    ids.length > 50 ||
+    ids.some((id) => !Number.isInteger(id) || id <= 0)
+  ) {
+    throw Object.assign(
+      new Error("Provide 1 to 50 valid waitlist signup ids."),
+      {
+        statusCode: 400,
+      },
+    );
+  }
+
+  const results = [];
+  for (const id of ids) {
+    try {
+      const { waitlistSignup } = await activateWaitlistSignupWithContext(
+        req,
+        id,
+        context,
+      );
+      results.push({ id, ok: true, waitlistSignup });
+    } catch (error) {
+      results.push({
+        id,
+        ok: false,
+        error:
+          error instanceof Error ? error.message : "Failed to activate signup.",
+      });
+    }
+  }
+
+  return {
+    results,
+    activatedCount: results.filter((result) => result.ok).length,
+    failedCount: results.filter((result) => !result.ok).length,
+  };
+}
+
 function sendError(res, error) {
   const statusCode = error.statusCode || 500;
   res.status(statusCode).json({
@@ -242,6 +305,7 @@ function sendError(res, error) {
 }
 
 module.exports = {
+  activateWaitlistBatch,
   activateWaitlistSignup,
   listWaitlist,
   sendError,

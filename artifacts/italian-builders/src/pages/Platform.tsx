@@ -3,6 +3,8 @@ import { useLocation, useParams } from "wouter";
 import {
   ArrowRight,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Eye,
   ExternalLink,
@@ -66,6 +68,7 @@ const maxLookingForMessageLength = 200;
 const maxProfileSkills = 12;
 const maxProfileLookingFor = 8;
 const maxProfileLanguages = 8;
+const waitlistPageSize = 30;
 const profileSkillOptions = [
   "AI",
   "APIs",
@@ -428,9 +431,7 @@ function StatusMessage({
         ? "border-amber-500/40 bg-amber-950/25 text-amber-100"
         : "border-zinc-800 bg-zinc-900 text-zinc-300";
   return (
-    <div
-      className={`rounded-sm border p-3 text-sm ${toneClass}`}
-    >
+    <div className={`rounded-sm border p-3 text-sm ${toneClass}`}>
       <div className="flex items-start gap-3">
         {tone !== "neutral" && (
           <AlertTriangle className="mt-0.5 shrink-0" size={16} />
@@ -558,7 +559,10 @@ function tagKey(value: string) {
   return value.trim().toLowerCase();
 }
 
-function uniqueTags(values?: string[] | null, maxItems = Number.MAX_SAFE_INTEGER) {
+function uniqueTags(
+  values?: string[] | null,
+  maxItems = Number.MAX_SAFE_INTEGER,
+) {
   const seen = new Set<string>();
   const tags: string[] = [];
   for (const value of values ?? []) {
@@ -1022,8 +1026,14 @@ function RequireAuth({
       <PageShell>
         <HeroBlock
           eyebrow={{ tech: "CONFIGURATION", friendly: "Configuration" }}
-          title={{ tech: "BACKEND_CONFIG_MISSING", friendly: "The community backend is not configured." }}
-          copy={{ tech: "Configure the auth and data API environment variables to enable private routes.", friendly: "Configure the app backend to enable member-only pages." }}
+          title={{
+            tech: "BACKEND_CONFIG_MISSING",
+            friendly: "The community backend is not configured.",
+          }}
+          copy={{
+            tech: "Configure the auth and data API environment variables to enable private routes.",
+            friendly: "Configure the app backend to enable member-only pages.",
+          }}
         />
       </PageShell>
     );
@@ -1045,7 +1055,11 @@ function RequireAuth({
         <HeroBlock
           eyebrow={{ tech: "AUTH_REQUIRED", friendly: "Members" }}
           title={{ tech: "SESSION_REQUIRED", friendly: "Sign in to continue." }}
-          copy={{ tech: "Private routes require an approved Italian Builders member session.", friendly: "Private pages are available to invited Italian Builders members." }}
+          copy={{
+            tech: "Private routes require an approved Italian Builders member session.",
+            friendly:
+              "Private pages are available to invited Italian Builders members.",
+          }}
         />
         <section className="container mx-auto max-w-xl px-4 py-12 md:px-6">
           <SignInPanel />
@@ -1059,8 +1073,15 @@ function RequireAuth({
       <PageShell>
         <HeroBlock
           eyebrow={{ tech: "ADMIN_GATE", friendly: "Admin" }}
-          title={{ tech: "ADMIN_SCOPE_REQUIRED", friendly: "Admin access required." }}
-          copy={{ tech: "Only owner and admin roles can mutate invites, members and shared workstreams.", friendly: "Only platform admins and owners can manage invites, members and community projects." }}
+          title={{
+            tech: "ADMIN_SCOPE_REQUIRED",
+            friendly: "Admin access required.",
+          }}
+          copy={{
+            tech: "Only owner and admin roles can mutate invites, members and shared workstreams.",
+            friendly:
+              "Only platform admins and owners can manage invites, members and community projects.",
+          }}
         />
         <section className="container mx-auto px-4 py-12 md:px-6">
           <StatusMessage
@@ -1246,24 +1267,24 @@ export function BuilderProfilePage() {
           { data: projectMemberData },
           { data: memberData },
         ] = await Promise.all([
-            supabase
-              .from("projects")
-              .select(
-                "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id)",
-              )
-              .eq("owner_id", nextProfile.id)
-              .eq("is_public", true)
-              .order("created_at", { ascending: false }),
-            supabase
-              .from("project_members")
-              .select(
-                "*, projects(*, profiles(username, full_name, avatar_url, headline, telegram_handle))",
-              )
-              .eq("profile_id", nextProfile.id),
-            supabase
-              .from("community_project_members")
-              .select("*, community_projects(*)")
-              .eq("profile_id", nextProfile.id),
+          supabase
+            .from("projects")
+            .select(
+              "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id)",
+            )
+            .eq("owner_id", nextProfile.id)
+            .eq("is_public", true)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("project_members")
+            .select(
+              "*, projects(*, profiles(username, full_name, avatar_url, headline, telegram_handle))",
+            )
+            .eq("profile_id", nextProfile.id),
+          supabase
+            .from("community_project_members")
+            .select("*, community_projects(*)")
+            .eq("profile_id", nextProfile.id),
         ]);
         setProjects((projectData as Project[]) ?? []);
         setProjectMemberships((projectMemberData as ProjectMember[]) ?? []);
@@ -1845,7 +1866,8 @@ export function ProjectDetailPage() {
                       {member.profiles?.full_name || "Member"}
                     </p>
                     <p className="text-xs text-zinc-500">
-                      {member.role || (techLabels ? "ROLE_PENDING" : "Contributor")}
+                      {member.role ||
+                        (techLabels ? "ROLE_PENDING" : "Contributor")}
                     </p>
                     {member.contribution_note && (
                       <p className="mt-1 text-xs leading-relaxed text-zinc-500">
@@ -3135,8 +3157,15 @@ export function InvitePage() {
     <PageShell>
       <HeroBlock
         eyebrow={{ tech: "INVITE_TOKEN", friendly: "Invite" }}
-        title={{ tech: "Accept invite token.", friendly: "Accept your Italian Builders invite." }}
-        copy={{ tech: "Authenticate or create the invited account, then complete the public profile record.", friendly: "Sign in or create your account, then complete the profile fields needed for your public page." }}
+        title={{
+          tech: "Accept invite token.",
+          friendly: "Accept your Italian Builders invite.",
+        }}
+        copy={{
+          tech: "Authenticate or create the invited account, then complete the public profile record.",
+          friendly:
+            "Sign in or create your account, then complete the profile fields needed for your public page.",
+        }}
       />
       <section className="container mx-auto grid gap-6 px-4 py-12 md:px-6 lg:grid-cols-[380px_1fr]">
         <div className="space-y-4">
@@ -3148,7 +3177,10 @@ export function InvitePage() {
                 {techLabels ? "INVITE_FOUND" : "Invite found"}
               </h2>
               <p className="text-sm text-zinc-500">
-                {techLabels ? "Target" : "For"} {invite.email || invite.telegram_handle || (techLabels ? "invited_node" : "invited member")}
+                {techLabels ? "Target" : "For"}{" "}
+                {invite.email ||
+                  invite.telegram_handle ||
+                  (techLabels ? "invited_node" : "invited member")}
               </p>
             </Card>
           ) : (
@@ -3171,7 +3203,10 @@ export function InvitePage() {
           />
         ) : (
           <Card className="flex items-center gap-3 p-6 text-sm text-zinc-500">
-            <Lock size={18} /> {techLabels ? "Authenticate with the invited account to complete onboarding." : "Sign in with the invited account to complete onboarding."}
+            <Lock size={18} />{" "}
+            {techLabels
+              ? "Authenticate with the invited account to complete onboarding."
+              : "Sign in with the invited account to complete onboarding."}
           </Card>
         )}
       </section>
@@ -3230,42 +3265,70 @@ export function DashboardPage() {
         <PageShell>
           <HeroBlock
             eyebrow={{ tech: "MEMBER_CONSOLE", friendly: "Dashboard" }}
-            title={techLabels ? "Member control plane." : `Welcome${profile?.full_name ? `, ${profile.full_name}` : ""}.`}
-            copy={{ tech: "Manage profile records, personal artifacts and community assignments.", friendly: "Manage your profile, personal projects and community project assignments." }}
+            title={
+              techLabels
+                ? "Member control plane."
+                : `Welcome${profile?.full_name ? `, ${profile.full_name}` : ""}.`
+            }
+            copy={{
+              tech: "Manage profile records, personal artifacts and community assignments.",
+              friendly:
+                "Manage your profile, personal projects and community project assignments.",
+            }}
           />
           <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-2 md:px-6 xl:grid-cols-5">
             <a href="/dashboard/profile" className="dt-card p-5">
-              <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "PROFILE_RECORD" : "Profile"}</h2>
+              <h2 className="mb-2 font-bold text-zinc-100">
+                {techLabels ? "PROFILE_RECORD" : "Profile"}
+              </h2>
               <p className="text-sm text-zinc-500">
-                {techLabels ? "Edit public profile metadata and endpoints." : "Edit public profile and social links."}
+                {techLabels
+                  ? "Edit public profile metadata and endpoints."
+                  : "Edit public profile and social links."}
               </p>
             </a>
             <a href="/dashboard/projects" className="dt-card p-5">
-              <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "ARTIFACTS" : "Projects"}</h2>
+              <h2 className="mb-2 font-bold text-zinc-100">
+                {techLabels ? "ARTIFACTS" : "Projects"}
+              </h2>
               <p className="text-sm text-zinc-500">
-                {techLabels ? "Create, edit and publish personal artifact records." : "Create, edit and publish personal projects."}
+                {techLabels
+                  ? "Create, edit and publish personal artifact records."
+                  : "Create, edit and publish personal projects."}
               </p>
             </a>
             <a href="/dashboard/contributions" className="dt-card p-5">
-              <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "CONTRIBUTION_ROLES" : "Contribution roles"}</h2>
+              <h2 className="mb-2 font-bold text-zinc-100">
+                {techLabels ? "CONTRIBUTION_ROLES" : "Contribution roles"}
+              </h2>
               <p className="text-sm text-zinc-500">
-                {techLabels ? "Set role metadata for invited project records." : "Add your role on projects where you are listed as a contributor."}
+                {techLabels
+                  ? "Set role metadata for invited project records."
+                  : "Add your role on projects where you are listed as a contributor."}
               </p>
             </a>
             {profile?.username && (
               <a href={`/builders/${profile.username}`} className="dt-card p-5">
-                <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "PUBLIC_RENDER" : "Public page"}</h2>
+                <h2 className="mb-2 font-bold text-zinc-100">
+                  {techLabels ? "PUBLIC_RENDER" : "Public page"}
+                </h2>
                 <p className="text-sm text-zinc-500">
-                  {techLabels ? "Open the public profile render." : "Open your link-in-bio profile."}
+                  {techLabels
+                    ? "Open the public profile render."
+                    : "Open your link-in-bio profile."}
                 </p>
               </a>
             )}
             {(profile?.platform_role === "admin" ||
               profile?.platform_role === "owner") && (
               <a href="/admin" className="dt-card p-5">
-                <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "ADMIN_CONSOLE" : "Admin"}</h2>
+                <h2 className="mb-2 font-bold text-zinc-100">
+                  {techLabels ? "ADMIN_CONSOLE" : "Admin"}
+                </h2>
                 <p className="text-sm text-zinc-500">
-                  {techLabels ? "Invites, members and shared workstreams." : "Invites, members and community projects."}
+                  {techLabels
+                    ? "Invites, members and shared workstreams."
+                    : "Invites, members and community projects."}
                 </p>
               </a>
             )}
@@ -3285,8 +3348,15 @@ export function DashboardProfilePage() {
         <PageShell>
           <HeroBlock
             eyebrow={{ tech: "PROFILE_RECORD", friendly: "Profile" }}
-            title={{ tech: "Edit profile record.", friendly: "Edit your public profile." }}
-            copy={{ tech: "This record powers the public builder render and artifact attribution.", friendly: "This information powers your public builder page and project attribution." }}
+            title={{
+              tech: "Edit profile record.",
+              friendly: "Edit your public profile.",
+            }}
+            copy={{
+              tech: "This record powers the public builder render and artifact attribution.",
+              friendly:
+                "This information powers your public builder page and project attribution.",
+            }}
           />
           <section className="container mx-auto px-4 py-12 md:px-6">
             {profile ? (
@@ -3297,7 +3367,9 @@ export function DashboardProfilePage() {
                   {techLabels ? "INVITE_REQUIRED" : "Invite required"}
                 </h2>
                 <p className="mb-5 text-sm leading-relaxed text-zinc-500">
-                  {techLabels ? "Auth account exists, but member approval is invite-gated. Open the invite link to mint the profile record." : "Your auth account exists, but this platform is invite-only. Open your invite link to complete approval and create your profile."}
+                  {techLabels
+                    ? "Auth account exists, but member approval is invite-gated. Open the invite link to mint the profile record."
+                    : "Your auth account exists, but this platform is invite-only. Open your invite link to complete approval and create your profile."}
                 </p>
                 <a
                   href="/join"
@@ -3599,7 +3671,9 @@ function ProjectEditor({
           return;
         }
       }
-      navigate(project ? "/dashboard/projects" : `/dashboard/projects/${projectId}`);
+      navigate(
+        project ? "/dashboard/projects" : `/dashboard/projects/${projectId}`,
+      );
     } catch (submitError) {
       setError(getError(submitError) || "Project could not be saved.");
     } finally {
@@ -3672,7 +3746,13 @@ function ProjectEditor({
             disabled={fetchingOgImage || !preferredProjectUrl()}
             onClick={() => importOpenGraphImage()}
           >
-            {fetchingOgImage ? techLabels ? "IMPORTING..." : "Importing..." : techLabels ? "IMPORT_OG_IMAGE" : "Use Open Graph image"}
+            {fetchingOgImage
+              ? techLabels
+                ? "IMPORTING..."
+                : "Importing..."
+              : techLabels
+                ? "IMPORT_OG_IMAGE"
+                : "Use Open Graph image"}
           </Button>
           <StatusMessage message={ogImageMessage} />
         </div>
@@ -3797,7 +3877,11 @@ function ProjectEditor({
                           event.target.value,
                         )
                       }
-                      placeholder={techLabels ? "Request context payload." : "Short context for people who might help."}
+                      placeholder={
+                        techLabels
+                          ? "Request context payload."
+                          : "Short context for people who might help."
+                      }
                     />
                     <p className="text-right text-[11px] font-mono text-zinc-600">
                       {item.message.length}/{maxLookingForMessageLength}
@@ -3831,7 +3915,13 @@ function ProjectEditor({
             className="mt-3 h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
             disabled={saving}
           >
-            {saving ? techLabels ? "SAVING..." : "Saving..." : techLabels ? "SAVE_ARTIFACT" : "Save project"}
+            {saving
+              ? techLabels
+                ? "SAVING..."
+                : "Saving..."
+              : techLabels
+                ? "SAVE_ARTIFACT"
+                : "Save project"}
           </Button>
         </div>
       </form>
@@ -3902,7 +3992,9 @@ function ProjectContributorsPanel({
           : "Invite existing community members by handle. Each contributor can add their own role from the dashboard."}
       </p>
       <form onSubmit={invite} className="mb-6 space-y-3">
-        <Field label={{ tech: "COMMUNITY_HANDLE", friendly: "Community handle" }}>
+        <Field
+          label={{ tech: "COMMUNITY_HANDLE", friendly: "Community handle" }}
+        >
           <Input
             className={inputClass}
             value={handle}
@@ -3914,7 +4006,8 @@ function ProjectContributorsPanel({
         <StatusMessage message={message} />
         <ActionableErrorMessage message={error} />
         <Button className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500">
-          <UserPlus size={15} /> {techLabels ? "INVITE_MEMBER" : "Invite contributor"}
+          <UserPlus size={15} />{" "}
+          {techLabels ? "INVITE_MEMBER" : "Invite contributor"}
         </Button>
       </form>
       <div className="space-y-3">
@@ -3930,11 +4023,13 @@ function ProjectContributorsPanel({
             >
               <div>
                 <p className="font-semibold text-zinc-100">
-                  {member.profiles?.full_name || (techLabels ? "MEMBER_NODE" : "Member")}
+                  {member.profiles?.full_name ||
+                    (techLabels ? "MEMBER_NODE" : "Member")}
                 </p>
                 <p className="text-xs text-zinc-500">
                   @{member.profiles?.username || "handle"} ·{" "}
-                  {member.role || (techLabels ? "ROLE_PENDING" : "role pending")}
+                  {member.role ||
+                    (techLabels ? "ROLE_PENDING" : "role pending")}
                 </p>
                 {member.contribution_note && (
                   <p className="mt-1 text-xs leading-relaxed text-zinc-500">
@@ -3999,8 +4094,15 @@ function DashboardProjectsInner({ userId }: { userId: string }) {
     <PageShell>
       <HeroBlock
         eyebrow={{ tech: "ARTIFACTS", friendly: "Projects" }}
-        title={{ tech: "Manage artifact records.", friendly: "Manage your personal projects." }}
-        copy={{ tech: "Artifacts can render publicly on your profile or remain private drafts.", friendly: "Projects can be public on your profile, or private drafts in your dashboard." }}
+        title={{
+          tech: "Manage artifact records.",
+          friendly: "Manage your personal projects.",
+        }}
+        copy={{
+          tech: "Artifacts can render publicly on your profile or remain private drafts.",
+          friendly:
+            "Projects can be public on your profile, or private drafts in your dashboard.",
+        }}
         action={
           <a
             href="/dashboard/projects/new"
@@ -4016,7 +4118,11 @@ function DashboardProjectsInner({ userId }: { userId: string }) {
         ) : projects.length === 0 ? (
           <EmptyState
             title={{ tech: "NO_ARTIFACTS", friendly: "No projects yet" }}
-            copy={{ tech: "Create the first artifact record for your public profile.", friendly: "Create your first project to add it to your public profile." }}
+            copy={{
+              tech: "Create the first artifact record for your public profile.",
+              friendly:
+                "Create your first project to add it to your public profile.",
+            }}
           />
         ) : (
           <div className="space-y-3">
@@ -4029,8 +4135,15 @@ function DashboardProjectsInner({ userId }: { userId: string }) {
                   <h2 className="font-bold text-zinc-100">{project.name}</h2>
                   <p className="text-sm text-zinc-500">
                     {project.status} ·{" "}
-                    {project.is_public ? techLabels ? "public_record" : "public" : techLabels ? "private_draft" : "private"} ·{" "}
-                    {project.project_members?.length ?? 0} {techLabels ? "contributors" : "contributors"}
+                    {project.is_public
+                      ? techLabels
+                        ? "public_record"
+                        : "public"
+                      : techLabels
+                        ? "private_draft"
+                        : "private"}{" "}
+                    · {project.project_members?.length ?? 0}{" "}
+                    {techLabels ? "contributors" : "contributors"}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -4113,8 +4226,15 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
     <PageShell>
       <HeroBlock
         eyebrow={{ tech: "CONTRIBUTION_ROLES", friendly: "Contribution roles" }}
-        title={{ tech: "Annotate project membership.", friendly: "Add your role on shared projects." }}
-        copy={{ tech: "These role vectors appear on project pages and your public profile.", friendly: "These roles appear on project pages and on your public profile." }}
+        title={{
+          tech: "Annotate project membership.",
+          friendly: "Add your role on shared projects.",
+        }}
+        copy={{
+          tech: "These role vectors appear on project pages and your public profile.",
+          friendly:
+            "These roles appear on project pages and on your public profile.",
+        }}
       />
       <section className="container mx-auto space-y-8 px-4 py-12 md:px-6">
         {loading ? (
@@ -4122,7 +4242,9 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
         ) : (
           <>
             <ContributionSection
-              title={techLabels ? "PERSONAL_PROJECT_INVITES" : "Project invitations"}
+              title={
+                techLabels ? "PERSONAL_PROJECT_INVITES" : "Project invitations"
+              }
               error={projectError}
               empty={
                 techLabels
@@ -4140,7 +4262,10 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
                   key={member.id}
                   id={member.id}
                   table="project_members"
-                  title={member.projects?.name || (techLabels ? "ARTIFACT_RECORD" : "Project")}
+                  title={
+                    member.projects?.name ||
+                    (techLabels ? "ARTIFACT_RECORD" : "Project")
+                  }
                   href={
                     member.projects?.slug
                       ? `/projects/${member.projects.slug}`
@@ -4159,7 +4284,11 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
             </ContributionSection>
 
             <ContributionSection
-              title={techLabels ? "COMMUNITY_ASSIGNMENTS" : "Community project assignments"}
+              title={
+                techLabels
+                  ? "COMMUNITY_ASSIGNMENTS"
+                  : "Community project assignments"
+              }
               error={communityError}
               empty={
                 techLabels
@@ -4168,7 +4297,9 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
               }
               emptyAction={
                 <InlineActionLink href="/community-projects">
-                  {techLabels ? "BROWSE_WORKSTREAMS" : "Browse community projects"}
+                  {techLabels
+                    ? "BROWSE_WORKSTREAMS"
+                    : "Browse community projects"}
                 </InlineActionLink>
               }
             >
@@ -4177,7 +4308,10 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
                   key={member.id}
                   id={member.id}
                   table="community_project_members"
-                  title={member.community_projects?.name || (techLabels ? "WORKSTREAM_RECORD" : "Community project")}
+                  title={
+                    member.community_projects?.name ||
+                    (techLabels ? "WORKSTREAM_RECORD" : "Community project")
+                  }
                   href={
                     member.community_projects?.slug
                       ? `/community-projects/${member.community_projects.slug}`
@@ -4295,7 +4429,9 @@ function ContributionRoleCard({
             placeholder="Frontend, founder, maintainer..."
           />
         </Field>
-        <Field label={{ tech: "CONTRIBUTION_NOTE", friendly: "Contribution note" }}>
+        <Field
+          label={{ tech: "CONTRIBUTION_NOTE", friendly: "Contribution note" }}
+        >
           <Textarea
             className={`${textareaClass} min-h-20`}
             value={nextNote}
@@ -4312,7 +4448,13 @@ function ContributionRoleCard({
           className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
           disabled={saving}
         >
-          {saving ? techLabels ? "SAVING..." : "Saving..." : techLabels ? "SAVE_ROLE" : "Save role"}
+          {saving
+            ? techLabels
+              ? "SAVING..."
+              : "Saving..."
+            : techLabels
+              ? "SAVE_ROLE"
+              : "Save role"}
         </Button>
       </form>
     </Card>
@@ -4357,7 +4499,9 @@ function ProjectEditorLoader({
     setProject((data as Project | null) ?? null);
     const { data: memberData } = await supabase
       .from("project_members")
-      .select("*, profiles!project_members_profile_id_fkey(username, full_name, avatar_url, headline)")
+      .select(
+        "*, profiles!project_members_profile_id_fkey(username, full_name, avatar_url, headline)",
+      )
       .eq("project_id", projectId)
       .order("created_at", { ascending: true });
     setMembers((memberData as ProjectMember[]) ?? []);
@@ -4372,8 +4516,20 @@ function ProjectEditorLoader({
     <PageShell>
       <HeroBlock
         eyebrow={{ tech: "ARTIFACT_EDITOR", friendly: "Project editor" }}
-        title={project ? techLabels ? "Edit artifact record." : "Edit project." : techLabels ? "New artifact record." : "New project."}
-        copy={{ tech: "Add the artifact fields rendered on your profile and the public registry.", friendly: "Add the project details that should appear on your profile and the public project directory." }}
+        title={
+          project
+            ? techLabels
+              ? "Edit artifact record."
+              : "Edit project."
+            : techLabels
+              ? "New artifact record."
+              : "New project."
+        }
+        copy={{
+          tech: "Add the artifact fields rendered on your profile and the public registry.",
+          friendly:
+            "Add the project details that should appear on your profile and the public project directory.",
+        }}
       />
       <section className="container mx-auto px-4 py-12 md:px-6">
         {loading ? (
@@ -4405,29 +4561,48 @@ export function AdminPage() {
         <PageShell>
           <HeroBlock
             eyebrow={{ tech: "ADMIN_CONSOLE", friendly: "Admin" }}
-            title={{ tech: "Platform operations.", friendly: "Platform operations." }}
-            copy={{ tech: "Manage invite tokens, member records and shared workstream assignments.", friendly: "Manage invites, members and community project assignments." }}
+            title={{
+              tech: "Platform operations.",
+              friendly: "Platform operations.",
+            }}
+            copy={{
+              tech: "Manage invite tokens, member records and shared workstream assignments.",
+              friendly:
+                "Manage invites, members and community project assignments.",
+            }}
           />
           <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-2 md:px-6 xl:grid-cols-4">
             <a href="/admin/waitlist" className="dt-card p-5">
               <UserPlus className="mb-4 text-blue-400" size={20} />
-              <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "WAITLIST_QUEUE" : "Waitlist"}</h2>
+              <h2 className="mb-2 font-bold text-zinc-100">
+                {techLabels ? "WAITLIST_QUEUE" : "Waitlist"}
+              </h2>
               <p className="text-sm text-zinc-500">
-                {techLabels ? "Review queued access requests and activate invite emails." : "Review access requests and activate people from the waitlist."}
+                {techLabels
+                  ? "Review queued access requests and activate invite emails."
+                  : "Review access requests and activate people from the waitlist."}
               </p>
             </a>
             <a href="/admin/invites" className="dt-card p-5">
               <UserPlus className="mb-4 text-blue-400" size={20} />
-              <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "INVITE_TOKENS" : "Invites"}</h2>
+              <h2 className="mb-2 font-bold text-zinc-100">
+                {techLabels ? "INVITE_TOKENS" : "Invites"}
+              </h2>
               <p className="text-sm text-zinc-500">
-                {techLabels ? "Create, copy and revoke invite tokens." : "Create, copy and revoke invite links."}
+                {techLabels
+                  ? "Create, copy and revoke invite tokens."
+                  : "Create, copy and revoke invite links."}
               </p>
             </a>
             <a href="/admin/members" className="dt-card p-5">
               <Search className="mb-4 text-blue-400" size={20} />
-              <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "MEMBER_RECORDS" : "Members"}</h2>
+              <h2 className="mb-2 font-bold text-zinc-100">
+                {techLabels ? "MEMBER_RECORDS" : "Members"}
+              </h2>
               <p className="text-sm text-zinc-500">
-                {techLabels ? "Review profile records and public renders." : "Review profiles and open public pages."}
+                {techLabels
+                  ? "Review profile records and public renders."
+                  : "Review profiles and open public pages."}
               </p>
             </a>
             <a href="/admin/community-projects" className="dt-card p-5">
@@ -4436,7 +4611,9 @@ export function AdminPage() {
                 {techLabels ? "SHARED_WORKSTREAMS" : "Community projects"}
               </h2>
               <p className="text-sm text-zinc-500">
-                {techLabels ? "Create shared workstreams and assign nodes." : "Create projects and assign contributors."}
+                {techLabels
+                  ? "Create shared workstreams and assign nodes."
+                  : "Create projects and assign contributors."}
               </p>
             </a>
           </section>
@@ -4455,8 +4632,11 @@ function AdminWaitlistInner() {
   const [waitlist, setWaitlist] = useState<WaitlistSignup[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | "pending" | "active">("pending");
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [activatingId, setActivatingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [batchActivating, setBatchActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function adminApi<T>(path: string, init?: RequestInit): Promise<T> {
@@ -4502,6 +4682,7 @@ function AdminWaitlistInner() {
         "/api/admin/waitlist",
       );
       setWaitlist(data.waitlist);
+      setSelectedIds([]);
     } catch (err) {
       setError(getError(err));
     } finally {
@@ -4513,19 +4694,29 @@ function AdminWaitlistInner() {
     load();
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [query, status]);
+
   async function activate(signup: WaitlistSignup) {
     setActivatingId(signup.id);
     setError(null);
     try {
       const data = await adminApi<{ waitlistSignup: WaitlistSignup }>(
-        `/api/admin/waitlist/${signup.id}/activate`,
-        { method: "POST" },
+        "/api/admin/waitlist/activate",
+        { method: "POST", body: JSON.stringify({ id: signup.id }) },
       );
+      if (data.waitlistSignup.status !== "active") {
+        throw new Error(
+          "Activation did not complete. The signup is still pending.",
+        );
+      }
       setWaitlist((current) =>
         current.map((item) =>
           item.id === signup.id ? data.waitlistSignup : item,
         ),
       );
+      setSelectedIds((current) => current.filter((id) => id !== signup.id));
     } catch (err) {
       setError(getError(err));
       await load();
@@ -4534,31 +4725,133 @@ function AdminWaitlistInner() {
     }
   }
 
-  const pendingCount = waitlist.filter((item) => item.status === "pending").length;
-  const activeCount = waitlist.filter((item) => item.status === "active").length;
+  const pendingCount = waitlist.filter(
+    (item) => item.status === "pending",
+  ).length;
+  const activeCount = waitlist.filter(
+    (item) => item.status === "active",
+  ).length;
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = waitlist.filter((item) => {
     const matchesStatus = status === "all" || item.status === status;
     const matchesQuery = normalizedQuery
-      ? `${item.name} ${item.email} ${item.role} ${item.building ?? ""} ${item.telegramHandle ?? ""} ${item.xHandle ?? ""} ${item.linkedin ?? ""} ${item.website ?? ""} ${item.projectUrl ?? ""}`
+      ? `${item.name} ${item.email} ${item.role} ${item.building ?? ""} ${item.telegramHandle ?? ""} ${item.xHandle ?? ""} ${item.linkedin ?? ""} ${item.website ?? ""} ${item.projectUrl ?? ""} ${item.source ?? ""}`
           .toLowerCase()
           .includes(normalizedQuery)
       : true;
     return matchesStatus && matchesQuery;
   });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / waitlistPageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * waitlistPageSize;
+  const pageEnd = Math.min(pageStart + waitlistPageSize, filtered.length);
+  const paginated = filtered.slice(pageStart, pageEnd);
+  const pagePendingIds = paginated
+    .filter((item) => item.status === "pending")
+    .map((item) => item.id);
+  const selectedPendingIds = selectedIds.filter((id) =>
+    waitlist.some((item) => item.id === id && item.status === "pending"),
+  );
+  const allPagePendingSelected =
+    pagePendingIds.length > 0 &&
+    pagePendingIds.every((id) => selectedIds.includes(id));
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  function toggleSignup(id: number) {
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((currentId) => currentId !== id)
+        : [...current, id],
+    );
+  }
+
+  function togglePagePending() {
+    setSelectedIds((current) => {
+      if (allPagePendingSelected) {
+        return current.filter((id) => !pagePendingIds.includes(id));
+      }
+      return [...new Set([...current, ...pagePendingIds])];
+    });
+  }
+
+  function goToPage(nextPage: number) {
+    setPage(Math.min(Math.max(nextPage, 1), totalPages));
+  }
+
+  async function activateSelected() {
+    if (selectedPendingIds.length === 0) return;
+    setBatchActivating(true);
+    setError(null);
+    try {
+      const data = await adminApi<{
+        results: Array<{
+          id: number;
+          ok: boolean;
+          waitlistSignup?: WaitlistSignup;
+          error?: string;
+        }>;
+        activatedCount: number;
+        failedCount: number;
+      }>("/api/admin/waitlist/activate-batch", {
+        method: "POST",
+        body: JSON.stringify({ ids: selectedPendingIds }),
+      });
+
+      const updatedById = new Map(
+        data.results
+          .filter((result) => result.ok && result.waitlistSignup)
+          .map((result) => [
+            result.id,
+            result.waitlistSignup as WaitlistSignup,
+          ]),
+      );
+      setWaitlist((current) =>
+        current.map((item) => updatedById.get(item.id) ?? item),
+      );
+      setSelectedIds((current) => current.filter((id) => !updatedById.has(id)));
+
+      if (data.failedCount > 0) {
+        const failed = data.results
+          .filter((result) => !result.ok)
+          .map((result) => `#${result.id}: ${result.error ?? "failed"}`)
+          .join("; ");
+        setError(
+          `${data.activatedCount} invited, ${data.failedCount} failed. ${failed}`,
+        );
+        await load();
+      }
+    } catch (err) {
+      setError(getError(err));
+      await load();
+    } finally {
+      setBatchActivating(false);
+    }
+  }
 
   return (
     <PageShell>
       <HeroBlock
         eyebrow={{ tech: "ADMIN_WAITLIST", friendly: "Admin waitlist" }}
-        title={{ tech: "Activate queued builders.", friendly: "Activate waitlist users." }}
-        copy={{ tech: "Review access requests, mint invite tokens and trigger Supabase Auth invite emails.", friendly: "Review people on the waitlist, activate them and send the invite email automatically." }}
+        title={{
+          tech: "Activate queued builders.",
+          friendly: "Activate waitlist users.",
+        }}
+        copy={{
+          tech: "Review access requests, mint invite tokens and trigger Supabase Auth invite emails.",
+          friendly:
+            "Review people on the waitlist, activate them and send the invite email automatically.",
+        }}
       />
       <section className="container mx-auto space-y-6 px-4 py-12 md:px-6">
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
           <Input
             className={inputClass}
-            placeholder={techLabels ? "Search waitlist queue..." : "Search waitlist..."}
+            placeholder={
+              techLabels ? "Search waitlist queue..." : "Search waitlist..."
+            }
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -4581,9 +4874,62 @@ function AdminWaitlistInner() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
-          <AdminMetric label={techLabels ? "PENDING_QUEUE" : "Pending"} value={pendingCount} />
-          <AdminMetric label={techLabels ? "ACTIVE_INVITES" : "Active"} value={activeCount} />
-          <AdminMetric label={techLabels ? "TOTAL_SIGNUPS" : "Total"} value={waitlist.length} />
+          <AdminMetric
+            label={techLabels ? "PENDING_QUEUE" : "Pending"}
+            value={pendingCount}
+          />
+          <AdminMetric
+            label={techLabels ? "ACTIVE_INVITES" : "Active"}
+            value={activeCount}
+          />
+          <AdminMetric
+            label={techLabels ? "TOTAL_SIGNUPS" : "Total"}
+            value={waitlist.length}
+          />
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-sm border border-zinc-800 bg-zinc-950 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-zinc-100">
+              {techLabels ? "BATCH_INVITES" : "Batch invitations"}
+            </p>
+            <p className="text-xs text-zinc-500">
+              {selectedPendingIds.length} selected pending user
+              {selectedPendingIds.length === 1 ? "" : "s"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex h-9 items-center gap-2 rounded-sm border border-zinc-800 bg-transparent px-3 text-xs font-semibold text-zinc-200 hover:bg-zinc-900">
+              <input
+                type="checkbox"
+                checked={allPagePendingSelected}
+                disabled={pagePendingIds.length === 0 || batchActivating}
+                className="size-4 rounded border-zinc-700 bg-zinc-950 accent-blue-500 disabled:cursor-not-allowed"
+                onChange={togglePagePending}
+              />
+              {allPagePendingSelected
+                ? techLabels
+                  ? "CLEAR_PAGE"
+                  : "Clear page"
+                : techLabels
+                  ? "SELECT_PAGE"
+                  : "Select all"}
+            </label>
+            <Button
+              type="button"
+              disabled={selectedPendingIds.length === 0 || batchActivating}
+              className="h-9 rounded-sm bg-blue-600 px-3 text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={activateSelected}
+            >
+              {batchActivating
+                ? techLabels
+                  ? "INVITING..."
+                  : "Inviting..."
+                : techLabels
+                  ? `APPROVE_ALL (${selectedPendingIds.length})`
+                  : `Approve all (${selectedPendingIds.length} selected)`}
+            </Button>
+          </div>
         </div>
 
         <ActionableErrorMessage message={error} />
@@ -4592,64 +4938,115 @@ function AdminWaitlistInner() {
           <SkeletonList />
         ) : filtered.length === 0 ? (
           <EmptyState
-            title={{ tech: "NO_WAITLIST_ROWS", friendly: "No waitlist users found" }}
-            copy={{ tech: "No queued access request matches the current filter.", friendly: "No waitlist entries match the current filter." }}
+            title={{
+              tech: "NO_WAITLIST_ROWS",
+              friendly: "No waitlist users found",
+            }}
+            copy={{
+              tech: "No queued access request matches the current filter.",
+              friendly: "No waitlist entries match the current filter.",
+            }}
           />
         ) : (
           <div className="space-y-3">
-            {filtered.map((signup) => (
+            {paginated.map((signup) => (
               <Card
                 key={signup.id}
                 className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between"
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-semibold text-zinc-100">{signup.name}</h2>
-                    <span
-                      className={`rounded-sm border px-2 py-0.5 text-[11px] font-mono uppercase ${
-                        signup.status === "active"
-                          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                          : "border-blue-500/40 bg-blue-500/10 text-blue-300"
-                      }`}
-                    >
-                      {signup.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-zinc-500">
-                    {signup.email} · {signup.role}
-                  </p>
-                  {signup.telegramHandle && (
-                    <p className="mt-1 text-sm text-zinc-500">
-                      Telegram {signup.telegramHandle}
-                    </p>
-                  )}
-                  {signup.building && (
-                    <p className="mt-2 max-w-3xl text-sm text-zinc-400">
-                      {signup.building}
-                    </p>
-                  )}
-                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-zinc-500">
-                    <span>
-                      {techLabels ? "joined_at" : "Joined"}{" "}
-                      {new Date(signup.createdAt).toLocaleDateString()}
-                    </span>
-                    {signup.inviteEmailSentAt && (
-                      <span>
-                        {techLabels ? "email_sent_at" : "Email sent"}{" "}
-                        {new Date(signup.inviteEmailSentAt).toLocaleDateString()}
+                <div className="flex min-w-0 flex-1 gap-3">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${signup.name}`}
+                    checked={selectedIds.includes(signup.id)}
+                    disabled={
+                      signup.status !== "pending" ||
+                      batchActivating ||
+                      activatingId === signup.id
+                    }
+                    className="mt-1 size-4 shrink-0 rounded border-zinc-700 bg-zinc-950 accent-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                    onChange={() => toggleSignup(signup.id)}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="font-semibold text-zinc-100">
+                        {signup.name}
+                      </h2>
+                      <span
+                        className={`rounded-sm border px-2 py-0.5 text-[11px] font-mono uppercase ${
+                          signup.status === "active"
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                            : "border-blue-500/40 bg-blue-500/10 text-blue-300"
+                        }`}
+                      >
+                        {signup.status}
                       </span>
+                    </div>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {signup.email} · {signup.role}
+                    </p>
+                    {signup.telegramHandle && (
+                      <p className="mt-1 text-sm text-zinc-500">
+                        Telegram {signup.telegramHandle}
+                      </p>
                     )}
-                    {signup.inviteStatus && (
-                      <span>{techLabels ? "invite_status" : "Invite"} {signup.inviteStatus}</span>
+                    {signup.building && (
+                      <p className="mt-2 max-w-3xl text-sm text-zinc-400">
+                        {signup.building}
+                      </p>
                     )}
+                    <div className="mt-3 flex flex-wrap gap-3 text-xs text-zinc-500">
+                      <span>
+                        {techLabels ? "joined_at" : "Joined"}{" "}
+                        {new Date(signup.createdAt).toLocaleDateString()}
+                      </span>
+                      {signup.inviteEmailSentAt && (
+                        <span>
+                          {techLabels ? "email_sent_at" : "Email sent"}{" "}
+                          {new Date(
+                            signup.inviteEmailSentAt,
+                          ).toLocaleDateString()}
+                        </span>
+                      )}
+                      {signup.inviteStatus && (
+                        <span>
+                          {techLabels ? "invite_status" : "Invite"}{" "}
+                          {signup.inviteStatus}
+                        </span>
+                      )}
+                      <span>
+                        {techLabels ? "source" : "Source"}{" "}
+                        {signup.source || "Website Waitlist"}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <ExternalLinkItem
+                        href={signup.linkedin}
+                        label="LinkedIn"
+                        icon={Linkedin}
+                      />
+                      <ExternalLinkItem
+                        href={signup.website}
+                        label="Website"
+                        icon={Globe}
+                      />
+                      <ExternalLinkItem
+                        href={signup.projectUrl}
+                        label="Project"
+                        icon={ExternalLink}
+                      />
+                      <ExternalLinkItem
+                        href={
+                          signup.xHandle
+                            ? `https://x.com/${signup.xHandle.replace(/^@/, "")}`
+                            : null
+                        }
+                        label="X"
+                        icon={Twitter}
+                      />
+                    </div>
+                    <ActionableErrorMessage message={signup.inviteEmailError} />
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <ExternalLinkItem href={signup.linkedin} label="LinkedIn" icon={Linkedin} />
-                    <ExternalLinkItem href={signup.website} label="Website" icon={Globe} />
-                    <ExternalLinkItem href={signup.projectUrl} label="Project" icon={ExternalLink} />
-                    <ExternalLinkItem href={signup.xHandle ? `https://x.com/${signup.xHandle.replace(/^@/, "")}` : null} label="X" icon={Twitter} />
-                  </div>
-                  <ActionableErrorMessage message={signup.inviteEmailError} />
                 </div>
                 <div className="flex gap-2 lg:justify-end">
                   {signup.inviteToken && (
@@ -4668,7 +5065,9 @@ function AdminWaitlistInner() {
                   )}
                   <Button
                     type="button"
-                    disabled={signup.status === "active" || activatingId === signup.id}
+                    disabled={
+                      signup.status === "active" || activatingId === signup.id
+                    }
                     className="h-9 rounded-sm bg-blue-600 px-3 text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={() => activate(signup)}
                   >
@@ -4687,6 +5086,37 @@ function AdminWaitlistInner() {
                 </div>
               </Card>
             ))}
+            <div className="flex flex-col gap-3 rounded-sm border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Showing {filtered.length === 0 ? 0 : pageStart + 1}-{pageEnd} of{" "}
+                {filtered.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={currentPage === 1}
+                  className="h-9 rounded-sm border-zinc-800 bg-transparent px-3 text-zinc-200 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => goToPage(currentPage - 1)}
+                >
+                  <ChevronLeft size={14} />
+                  {techLabels ? "PREV" : "Previous"}
+                </Button>
+                <span className="min-w-24 text-center text-xs font-mono uppercase tracking-wider text-zinc-500">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={currentPage === totalPages}
+                  className="h-9 rounded-sm border-zinc-800 bg-transparent px-3 text-zinc-200 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => goToPage(currentPage + 1)}
+                >
+                  {techLabels ? "NEXT" : "Next"}
+                  <ChevronRight size={14} />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </section>
@@ -4768,8 +5198,15 @@ function AdminInvitesInner({ userId }: { userId: string }) {
     <PageShell>
       <HeroBlock
         eyebrow={{ tech: "ADMIN_INVITES", friendly: "Admin invites" }}
-        title={{ tech: "Mint invite tokens.", friendly: "Invite members one by one." }}
-        copy={{ tech: "Create secure invite tokens with email or Telegram metadata, then copy the route manually.", friendly: "Create secure invite links with email and/or Telegram handle, then copy the link to send manually." }}
+        title={{
+          tech: "Mint invite tokens.",
+          friendly: "Invite members one by one.",
+        }}
+        copy={{
+          tech: "Create secure invite tokens with email or Telegram metadata, then copy the route manually.",
+          friendly:
+            "Create secure invite links with email and/or Telegram handle, then copy the link to send manually.",
+        }}
       />
       <section className="container mx-auto grid gap-6 px-4 py-12 md:px-6 lg:grid-cols-[360px_1fr]">
         <Card className="p-6">
@@ -4873,12 +5310,18 @@ function AdminMembersInner() {
       <HeroBlock
         eyebrow={{ tech: "ADMIN_MEMBERS", friendly: "Admin members" }}
         title={{ tech: "Member records.", friendly: "Member profiles." }}
-        copy={{ tech: "Review profile records and open public renders.", friendly: "Review member records and open their public profile pages." }}
+        copy={{
+          tech: "Review profile records and open public renders.",
+          friendly:
+            "Review member records and open their public profile pages.",
+        }}
       />
       <section className="container mx-auto px-4 py-12 md:px-6">
         <Input
           className={`${inputClass} mb-6`}
-          placeholder={techLabels ? "Search member records..." : "Search members..."}
+          placeholder={
+            techLabels ? "Search member records..." : "Search members..."
+          }
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -4976,9 +5419,19 @@ function AdminCommunityProjectsInner() {
   return (
     <PageShell>
       <HeroBlock
-        eyebrow={{ tech: "ADMIN_WORKSTREAMS", friendly: "Admin community projects" }}
-        title={{ tech: "Manage shared workstreams.", friendly: "Manage shared projects." }}
-        copy={{ tech: "Create shared workstream records and assign member nodes for public profile rendering.", friendly: "Create community projects and assign contributors to make the work appear on public profiles." }}
+        eyebrow={{
+          tech: "ADMIN_WORKSTREAMS",
+          friendly: "Admin community projects",
+        }}
+        title={{
+          tech: "Manage shared workstreams.",
+          friendly: "Manage shared projects.",
+        }}
+        copy={{
+          tech: "Create shared workstream records and assign member nodes for public profile rendering.",
+          friendly:
+            "Create community projects and assign contributors to make the work appear on public profiles.",
+        }}
         action={
           <a
             href="/admin/community-projects/new"
@@ -4999,7 +5452,8 @@ function AdminCommunityProjectsInner() {
                 <h2 className="font-semibold text-zinc-100">{project.name}</h2>
                 <p className="text-sm text-zinc-500">
                   {project.status} ·{" "}
-                  {project.community_project_members?.length ?? 0} {techLabels ? "assigned_nodes" : "contributors"}
+                  {project.community_project_members?.length ?? 0}{" "}
+                  {techLabels ? "assigned_nodes" : "contributors"}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -5069,7 +5523,9 @@ function CommunityProjectEditorLoader({
     if (projectId && projectId !== "new") {
       const { data: memberData } = await supabase
         .from("community_project_members")
-        .select("*, profiles!community_project_members_profile_id_fkey(username, full_name, avatar_url, headline)")
+        .select(
+          "*, profiles!community_project_members_profile_id_fkey(username, full_name, avatar_url, headline)",
+        )
         .eq("community_project_id", projectId);
       setMembers((memberData as CommunityProjectMember[]) ?? []);
     }
@@ -5083,9 +5539,24 @@ function CommunityProjectEditorLoader({
   return (
     <PageShell>
       <HeroBlock
-        eyebrow={{ tech: "WORKSTREAM_EDITOR", friendly: "Community project editor" }}
-        title={project ? techLabels ? "Edit workstream record." : "Edit community project." : techLabels ? "New workstream record." : "New community project."}
-        copy={{ tech: "Admins can create shared workstreams and assign member nodes with role metadata.", friendly: "Admins can create shared projects and assign members with a role and contribution note." }}
+        eyebrow={{
+          tech: "WORKSTREAM_EDITOR",
+          friendly: "Community project editor",
+        }}
+        title={
+          project
+            ? techLabels
+              ? "Edit workstream record."
+              : "Edit community project."
+            : techLabels
+              ? "New workstream record."
+              : "New community project."
+        }
+        copy={{
+          tech: "Admins can create shared workstreams and assign member nodes with role metadata.",
+          friendly:
+            "Admins can create shared projects and assign members with a role and contribution note.",
+        }}
       />
       <section className="container mx-auto grid gap-6 px-4 py-12 md:px-6 lg:grid-cols-[1fr_380px]">
         {loading ? (
@@ -5256,7 +5727,13 @@ function CommunityProjectEditor({
             className="mt-3 h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
             disabled={saving}
           >
-            {saving ? techLabels ? "SAVING..." : "Saving..." : techLabels ? "SAVE_WORKSTREAM" : "Save community project"}
+            {saving
+              ? techLabels
+                ? "SAVING..."
+                : "Saving..."
+              : techLabels
+                ? "SAVE_WORKSTREAM"
+                : "Save community project"}
           </Button>
         </div>
       </form>
@@ -5315,7 +5792,9 @@ function AssignmentPanel({
 
   return (
     <Card className="p-6">
-      <h2 className="mb-4 text-xl font-bold text-zinc-100">{techLabels ? "ASSIGN_MEMBER_NODES" : "Assign members"}</h2>
+      <h2 className="mb-4 text-xl font-bold text-zinc-100">
+        {techLabels ? "ASSIGN_MEMBER_NODES" : "Assign members"}
+      </h2>
       <form onSubmit={assign} className="mb-6 space-y-3">
         <Field label={{ tech: "MEMBER_NODE", friendly: "Member" }}>
           <select
@@ -5324,7 +5803,9 @@ function AssignmentPanel({
             onChange={(event) => setProfileId(event.target.value)}
             required
           >
-            <option value="">{techLabels ? "select_member_node" : "Select member"}</option>
+            <option value="">
+              {techLabels ? "select_member_node" : "Select member"}
+            </option>
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
                 {profile.full_name} (@{profile.username})
@@ -5340,7 +5821,9 @@ function AssignmentPanel({
             placeholder="Maintainer, designer..."
           />
         </Field>
-        <Field label={{ tech: "CONTRIBUTION_NOTE", friendly: "Contribution note" }}>
+        <Field
+          label={{ tech: "CONTRIBUTION_NOTE", friendly: "Contribution note" }}
+        >
           <Textarea
             className={textareaClass}
             value={note}
@@ -5354,7 +5837,9 @@ function AssignmentPanel({
       </form>
       <div className="space-y-3">
         {members.length === 0 ? (
-          <p className="text-sm text-zinc-500">{techLabels ? "NO_ASSIGNED_NODES" : "No members assigned."}</p>
+          <p className="text-sm text-zinc-500">
+            {techLabels ? "NO_ASSIGNED_NODES" : "No members assigned."}
+          </p>
         ) : (
           members.map((member) => (
             <div
@@ -5363,10 +5848,12 @@ function AssignmentPanel({
             >
               <div>
                 <p className="font-semibold text-zinc-100">
-                  {member.profiles?.full_name || (techLabels ? "MEMBER_NODE" : "Member")}
+                  {member.profiles?.full_name ||
+                    (techLabels ? "MEMBER_NODE" : "Member")}
                 </p>
                 <p className="text-xs text-zinc-500">
-                  {member.role || (techLabels ? "CONTRIBUTOR_ROLE" : "Contributor")}
+                  {member.role ||
+                    (techLabels ? "CONTRIBUTOR_ROLE" : "Contributor")}
                 </p>
               </div>
               <Button

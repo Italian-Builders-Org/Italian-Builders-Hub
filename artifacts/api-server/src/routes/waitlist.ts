@@ -1,7 +1,10 @@
 import { Router, type IRouter } from "express";
 import { sql } from "drizzle-orm";
 import { db, waitlistTable } from "@workspace/db";
-import { CreateWaitlistSignupBody, GetWaitlistCountResponse } from "@workspace/api-zod";
+import {
+  CreateWaitlistSignupBody,
+  GetWaitlistCountResponse,
+} from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -44,6 +47,7 @@ router.post("/waitlist", async (req, res): Promise<void> => {
         linkedin: emptyToNull(linkedin),
         website: emptyToNull(website),
         projectUrl: emptyToNull(projectUrl),
+        source: "Website Waitlist",
       })
       .returning();
 
@@ -58,6 +62,7 @@ router.post("/waitlist", async (req, res): Promise<void> => {
       linkedin: row.linkedin,
       website: row.website,
       projectUrl: row.projectUrl,
+      source: row.source,
       status: row.status,
       activatedAt: row.activatedAt?.toISOString() ?? null,
       activatedBy: row.activatedBy,

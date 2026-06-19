@@ -212,6 +212,8 @@ components:
           type: ["string", "null"]
         projectUrl:
           type: ["string", "null"]
+        source:
+          type: string
         createdAt:
           type: string
     WaitlistCount:

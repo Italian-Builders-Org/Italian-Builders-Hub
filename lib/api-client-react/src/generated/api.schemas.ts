@@ -46,6 +46,7 @@ export interface WaitlistSignup {
   website?: string | null;
   /** @nullable */
   projectUrl?: string | null;
+  source?: string;
   createdAt: string;
 }
 
@@ -92,9 +93,8 @@ export interface DirectoryStats {
 }
 
 export type ListProjectsParams = {
-/**
- * Filter projects by category.
- */
-category?: string;
+  /**
+   * Filter projects by category.
+   */
+  category?: string;
 };
-

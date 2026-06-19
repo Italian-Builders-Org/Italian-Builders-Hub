@@ -1449,13 +1449,6 @@ export function Join() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!supabase) {
-      setErrorMsg(
-        "The community backend is not configured yet. Please try again later.",
-      );
-      return;
-    }
-
     setIsSubmitting(true);
     setErrorMsg("");
     const formData = new FormData(e.currentTarget);
@@ -1466,34 +1459,42 @@ export function Join() {
       return val ? val.trim() : null;
     };
 
-    const { error } = await supabase.from("waitlist_signups").insert({
-      name: String(formData.get("name") ?? "").trim(),
-      email: String(formData.get("email") ?? "")
-        .trim()
-        .toLowerCase(),
-      role: String(formData.get("role") ?? "").trim(),
-      building: getValue("building"),
-      telegram_handle: getValue("telegram"),
-      x_handle: getValue("twitter"),
-      linkedin: getValue("linkedin"),
-      website: getValue("website"),
-      project_url: getValue("project"),
-    });
-
-    setIsSubmitting(false);
-
-    if (error) {
-      if (error.code === "23505") {
-        setSubmitted(true);
-        return;
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: String(formData.get("name") ?? "").trim(),
+          email: String(formData.get("email") ?? "")
+            .trim()
+            .toLowerCase(),
+          role: String(formData.get("role") ?? "").trim(),
+          building: getValue("building"),
+          telegramHandle: getValue("telegram"),
+          xHandle: getValue("twitter"),
+          linkedin: getValue("linkedin"),
+          website: getValue("website"),
+          projectUrl: getValue("project"),
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok) {
+        throw new Error(
+          payload?.error || "Could not submit the form. Please try again.",
+        );
       }
+      setSubmitted(true);
+    } catch (error) {
       setErrorMsg(
-        error.message || "Could not submit the form. Please try again.",
+        error instanceof Error
+          ? error.message
+          : "Could not submit the form. Please try again.",
       );
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setSubmitted(true);
   };
 
   return (
@@ -1563,12 +1564,12 @@ export function Join() {
                     <CheckCircle2 size={24} className="text-blue-400" />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">
-                    {techLabels ? "REQUEST_QUEUED" : "You're on the list."}
+                    {techLabels ? "VERIFY_EMAIL_SENT" : "Check your email."}
                   </h3>
                   <p className={`${helperTextClass} mb-8 max-w-xs`}>
                     {techLabels
-                      ? "Your builder record is queued for launch updates."
-                      : "We'll keep you updated as Italian Builders grows."}
+                      ? "Confirm the verification link before your builder record enters the queue."
+                      : "Open the verification link we sent you. After that, your request will be added to the waitlist."}
                   </p>
                   <Button
                     variant="outline"
@@ -1586,8 +1587,8 @@ export function Join() {
                     </h3>
                     <p className={smallHelperClass}>
                       {techLabels
-                        ? "Create a pending builder record."
-                        : "Tell us who you are and what you're building."}
+                        ? "Verify email before creating a pending builder record."
+                        : "Tell us who you are and what you're building. We'll verify your email before adding you."}
                     </p>
                   </div>
 
