@@ -755,9 +755,10 @@ function ExternalLinkItem({
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300"
+      className="flex w-full items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-blue-400 hover:border-blue-500/50 hover:text-blue-300"
     >
-      <Icon size={14} /> {label}
+      <Icon size={14} className="shrink-0" />
+      <span className="min-w-0 truncate">{label}</span>
     </a>
   );
 }
@@ -1971,6 +1972,8 @@ export function ProjectsDirectoryPage() {
 export function ProjectDetailPage() {
   const { techLabels } = useTechLabels();
   const params = useParams<{ slug: string }>();
+  const { user, loading: sessionLoading } = useSupabaseSession();
+  const { isAdmin } = useMyProfile(user?.id);
   const [project, setProject] = useState<Project | null>(null);
   const [selectedLookingFor, setSelectedLookingFor] =
     useState<ProjectLookingFor | null>(null);
@@ -1978,6 +1981,7 @@ export function ProjectDetailPage() {
 
   useEffect(() => {
     async function load() {
+      if (sessionLoading) return;
       if (!supabase || !params.slug) {
         setLoading(false);
         return;
@@ -1988,13 +1992,12 @@ export function ProjectDetailPage() {
           "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(*, profiles!project_members_profile_id_fkey(username, full_name, avatar_url, headline))",
         )
         .eq("slug", params.slug)
-        .eq("is_public", true)
         .maybeSingle();
       setProject((data as Project | null) ?? null);
       setLoading(false);
     }
     load();
-  }, [params.slug]);
+  }, [params.slug, sessionLoading, user?.id]);
 
   if (loading)
     return (
@@ -2019,6 +2022,10 @@ export function ProjectDetailPage() {
     );
 
   const lookingFor = cleanLookingForItems(project.looking_for);
+  const canEditProject = user?.id === project.owner_id || isAdmin;
+  const hasProjectLinks = Boolean(
+    project.website_url || project.demo_url || project.github_url,
+  );
 
   return (
     <PageShell>
@@ -2040,9 +2047,20 @@ export function ProjectDetailPage() {
             : "A project from the Italian Builders community.")
         }
         action={
-          <span className="rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs font-mono uppercase text-zinc-400">
-            {project.status}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex h-10 items-center rounded-sm border border-zinc-800 bg-zinc-900 px-3 text-xs font-mono uppercase text-zinc-400">
+              {project.status}
+            </span>
+            {canEditProject && (
+              <a
+                href={`/dashboard/projects/${project.id}`}
+                className="inline-flex h-10 items-center gap-2 rounded-sm bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500"
+              >
+                <PencilLine size={15} />
+                {techLabels ? "EDIT_ARTIFACT" : "Edit project"}
+              </a>
+            )}
+          </div>
         }
       />
       <section className="container mx-auto grid gap-6 px-4 py-12 md:px-6 lg:grid-cols-[1fr_320px]">
@@ -2152,32 +2170,26 @@ export function ProjectDetailPage() {
               </div>
             </Card>
           )}
-          <Card className="p-6">
-            <h2 className="mb-4 text-xl font-bold text-zinc-100">
-              {techLabels ? "EXTERNAL_ENDPOINTS" : "Links"}
-            </h2>
-            <div className="space-y-3">
-              <ExternalLinkItem
-                href={project.website_url}
-                label="Website"
-                icon={Globe}
-              />
-              <ExternalLinkItem href={project.demo_url} label="Demo" />
-              <ExternalLinkItem
-                href={project.github_url}
-                label="GitHub"
-                icon={Github}
-              />
-              {project.profiles?.username && (
-                <a
-                  href={`/builders/${project.profiles.username}`}
-                  className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300"
-                >
-                  {techLabels ? "OWNER_PROFILE" : "Builder profile"}
-                </a>
-              )}
-            </div>
-          </Card>
+          {hasProjectLinks && (
+            <Card className="p-6">
+              <h2 className="mb-4 text-xl font-bold text-zinc-100">
+                {techLabels ? "EXTERNAL_ENDPOINTS" : "Links"}
+              </h2>
+              <div className="space-y-3">
+                <ExternalLinkItem
+                  href={project.website_url}
+                  label="Website"
+                  icon={Globe}
+                />
+                <ExternalLinkItem href={project.demo_url} label="Demo" />
+                <ExternalLinkItem
+                  href={project.github_url}
+                  label="GitHub"
+                  icon={Github}
+                />
+              </div>
+            </Card>
+          )}
         </aside>
       </section>
     </PageShell>
