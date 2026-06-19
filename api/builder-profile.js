@@ -83,7 +83,7 @@ module.exports = async function handler(req, res) {
   const pagePath = username ? `/builders/${username}` : "/builders";
   const imagePath = username
     ? `/api/og-profile-image?username=${encodeURIComponent(username)}`
-    : "/opengraph.jpg";
+    : "/opengraph.png";
   const html = injectMetadata(readIndexHtml(), {
     title,
     description,

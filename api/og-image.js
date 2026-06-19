@@ -1,4 +1,10 @@
-const BUCKET = process.env.VITE_SUPABASE_MEDIA_BUCKET || "italian-builders-media";
+const {
+  assertMediaInput,
+  createObjectKey,
+  uploadR2Object,
+  verifySupabaseUser,
+} = require("./_r2-storage");
+
 const MAX_HTML_BYTES = 750_000;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
@@ -60,10 +66,6 @@ function fileExtension(contentType, imageUrl) {
   return fromPath && fromPath.length <= 8 ? fromPath : "jpg";
 }
 
-function randomId() {
-  return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
 async function readLimited(response, limit) {
   const reader = response.body?.getReader();
   if (!reader) {
@@ -102,24 +104,18 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!supabaseUrl || !supabaseKey) {
-    res.status(500).json({ error: "Supabase is not configured." });
-    return;
-  }
-
   const authorization = headerValue(req.headers.authorization);
-  if (!authorization?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Authentication required." });
-    return;
-  }
 
   try {
+    const user = await verifySupabaseUser(authorization);
     const body = parseBody(req.body);
     const pageUrl = normalizeHttpUrl(body.url);
     const userId = String(body.userId || "").trim();
     if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new Error("Valid user id is required.");
+    if (user.id !== userId) {
+      res.status(403).json({ error: "You can only import images for your own account." });
+      return;
+    }
 
     const pageResponse = await fetch(pageUrl, {
       headers: {
@@ -168,30 +164,29 @@ module.exports = async function handler(req, res) {
 
     const imageBytes = await readLimited(imageResponse, MAX_IMAGE_BYTES);
     const extension = fileExtension(contentType, imageUrl);
-    const objectPath = `${userId}/projects/og-${randomId()}.${extension}`;
-    const baseSupabaseUrl = supabaseUrl.replace(/\/$/, "");
-    const uploadUrl = `${baseSupabaseUrl}/storage/v1/object/${BUCKET}/${objectPath}`;
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "POST",
-      headers: {
-        apikey: supabaseKey,
-        authorization,
-        "content-type": contentType,
-        "cache-control": "3600",
-        "x-upsert": "false",
-      },
-      body: Buffer.from(imageBytes),
+    assertMediaInput({
+      folder: "projects",
+      contentType,
+      size: imageBytes.byteLength,
     });
 
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      res.status(uploadResponse.status).json({ error: errorText || "Could not upload Open Graph image." });
-      return;
-    }
+    const objectPath = createObjectKey({
+      userId,
+      folder: "projects",
+      fileName: `og.${extension}`,
+      contentType,
+      prefix: "og",
+    });
+    const publicUrl = await uploadR2Object({
+      objectKey: objectPath,
+      body: imageBytes,
+      contentType,
+    });
 
-    const publicUrl = `${baseSupabaseUrl}/storage/v1/object/public/${BUCKET}/${objectPath}`;
     res.status(200).json({ imageUrl: publicUrl, sourceImageUrl: imageUrl.toString() });
   } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : "Could not import Open Graph image." });
+    res.status(error.statusCode || 400).json({
+      error: error instanceof Error ? error.message : "Could not import Open Graph image.",
+    });
   }
 };

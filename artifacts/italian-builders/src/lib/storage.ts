@@ -1,8 +1,5 @@
 import { supabase } from "@/lib/supabase";
 
-export const SUPABASE_MEDIA_BUCKET =
-  (import.meta.env.VITE_SUPABASE_MEDIA_BUCKET as string | undefined) || "italian-builders-media";
-
 const MAX_MEDIA_BYTES = 10 * 1024 * 1024;
 
 const allowedMediaTypes = new Set([
@@ -15,18 +12,18 @@ const allowedMediaTypes = new Set([
 ]);
 
 export const storageMode = {
-  hasSupabaseStorage: Boolean(supabase),
-  bucket: SUPABASE_MEDIA_BUCKET,
+  hasAuthenticatedUploads: Boolean(supabase),
+  publicBaseUrl: (import.meta.env.VITE_R2_PUBLIC_BASE_URL as string | undefined) || "",
 };
 
 export function mediaFieldHelp(kind: "avatar" | "cover" | "project") {
   const label = kind === "avatar" ? "avatar" : kind === "cover" ? "cover image" : "project image";
 
-  if (storageMode.hasSupabaseStorage) {
-    return `Upload a ${label}. Files are stored in Supabase Storage now and can be migrated to Cloudflare R2 later.`;
+  if (storageMode.hasAuthenticatedUploads) {
+    return `Upload a ${label}. Files are stored in Cloudflare R2.`;
   }
 
-  return `Upload is unavailable because Supabase is not configured in this environment.`;
+  return `Upload is unavailable because Supabase Auth is not configured in this environment.`;
 }
 
 function safeExtension(file: File) {
@@ -62,18 +59,47 @@ export async function uploadMediaFile({
     throw new Error("Files must be 10 MB or smaller.");
   }
 
-  const extension = safeExtension(file);
-  const objectPath = `${userId}/${folder}/${crypto.randomUUID()}.${extension}`;
-  const { error } = await supabase.storage
-    .from(SUPABASE_MEDIA_BUCKET)
-    .upload(objectPath, file, {
-      cacheControl: "3600",
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const sessionUserId = data.session?.user.id;
+
+  if (!token || !sessionUserId) {
+    throw new Error("Sign in again before uploading media.");
+  }
+
+  if (sessionUserId !== userId) {
+    throw new Error("You can only upload media for your own account.");
+  }
+
+  const uploadRequest = await fetch("/api/media-upload-url", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      folder,
+      fileName: file.name || `upload.${safeExtension(file)}`,
       contentType: file.type,
-      upsert: false,
-    });
+      size: file.size,
+    }),
+  });
 
-  if (error) throw error;
+  const uploadData = await uploadRequest.json().catch(() => null);
 
-  const { data } = supabase.storage.from(SUPABASE_MEDIA_BUCKET).getPublicUrl(objectPath);
-  return data.publicUrl;
+  if (!uploadRequest.ok) {
+    throw new Error(uploadData?.error || "Could not prepare media upload.");
+  }
+
+  const uploadResponse = await fetch(uploadData.uploadUrl, {
+    method: "PUT",
+    headers: uploadData.headers,
+    body: file,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Could not upload media to Cloudflare R2.");
+  }
+
+  return uploadData.publicUrl as string;
 }

@@ -8,6 +8,7 @@ Required for the Vite app:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_R2_PUBLIC_BASE_URL`
 
 Required for database migrations:
 
@@ -19,7 +20,7 @@ For this Supabase project, the direct host did not resolve locally, while the po
 postgresql://postgres.<project-ref>:<password>@aws-0-eu-west-1.pooler.supabase.com:6543/postgres?sslmode=require
 ```
 
-Required only when R2 uploads are implemented server-side:
+Required for media uploads through Cloudflare R2:
 
 - `R2_ACCOUNT_ID`
 - `R2_BUCKET_NAME`
@@ -29,7 +30,7 @@ Required only when R2 uploads are implemented server-side:
 - `R2_PUBLIC_BASE_URL`
 - `VITE_R2_PUBLIC_BASE_URL`
 
-The current production media path uses Supabase Storage through the `italian-builders-media` bucket. Profile images, cover images, personal project images, and community project images are uploaded by authenticated users to a folder scoped by their user id. R2 remains a later migration target.
+The production media path uses Cloudflare R2 through short-lived signed upload URLs. Profile images, cover images, personal project images, and community project images are uploaded by authenticated users to a folder scoped by their Supabase user id. Supabase remains the source of truth for Auth and Postgres rows; R2 stores only the media objects and the database stores their public URLs.
 
 ## Supabase Schema
 
@@ -48,7 +49,7 @@ It creates:
 - `community_project_members`
 - `waitlist_signups`
 - `admin_emails`
-- Supabase Storage bucket `italian-builders-media`
+- Cloudflare R2 bucket for uploaded media
 
 RLS is enabled on all tables. Public users can read public profiles and public projects. Members can manage their own profile and personal projects. Admins and owners can manage invites, members, community projects, and assignments.
 
