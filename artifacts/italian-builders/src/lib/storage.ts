@@ -23,7 +23,7 @@ export function mediaFieldHelp(kind: "avatar" | "cover" | "project") {
     return `Upload a ${label}. Files are stored in Cloudflare R2.`;
   }
 
-  return `Upload is unavailable because Supabase Auth is not configured in this environment.`;
+  return `Upload is unavailable because authentication is not configured in this environment.`;
 }
 
 function safeExtension(file: File) {
@@ -48,7 +48,7 @@ export async function uploadMediaFile({
   folder: "profile" | "projects" | "community-projects";
 }) {
   if (!supabase) {
-    throw new Error("Supabase is not configured.");
+    throw new Error("Media uploads are not configured.");
   }
 
   if (!allowedMediaTypes.has(file.type)) {

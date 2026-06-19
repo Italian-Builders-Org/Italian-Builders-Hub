@@ -503,7 +503,7 @@ function SignInPanel({
     setMessage(null);
 
     if (!supabase) {
-      setError("Supabase is not configured in this deployment.");
+      setError("The community backend is not configured in this deployment.");
       setSaving(false);
       return;
     }
@@ -644,8 +644,8 @@ function RequireAuth({
       <PageShell>
         <HeroBlock
           eyebrow={{ tech: "CONFIGURATION", friendly: "Configuration" }}
-          title={{ tech: "SUPABASE_CONFIG_MISSING", friendly: "Supabase is not configured." }}
-          copy={{ tech: "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to enable private routes.", friendly: "Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to use private routes." }}
+          title={{ tech: "BACKEND_CONFIG_MISSING", friendly: "The community backend is not configured." }}
+          copy={{ tech: "Configure the auth and data API environment variables to enable private routes.", friendly: "Configure the app backend to enable member-only pages." }}
         />
       </PageShell>
     );

@@ -1,29 +1,43 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch as ToggleSwitch } from "@/components/ui/switch";
 import {
-  Menu, X, ArrowRight, Twitter, Linkedin, Globe, Link as LinkIcon,
-  CheckCircle2, ChevronRight, ChevronLeft, ChevronUp, MapPin,
-  Terminal, Activity, Database, Server, Code2, LogOut, UserCircle
+  Menu,
+  X,
+  ArrowRight,
+  Twitter,
+  Linkedin,
+  Globe,
+  Link as LinkIcon,
+  CheckCircle2,
+  ChevronRight,
+  ChevronLeft,
+  ChevronUp,
+  MapPin,
+  Terminal,
+  Activity,
+  Database,
+  Server,
+  Code2,
+  LogOut,
+  UserCircle,
 } from "lucide-react";
 import {
-  useListBuilders, getListBuildersQueryKey,
-  useListProjects, getListProjectsQueryKey,
-  useListOsProjects, getListOsProjectsQueryKey,
-  useGetDirectoryStats, getGetDirectoryStatsQueryKey,
-} from "@workspace/api-client-react";
-import {
-  STATIC_BUILDERS,
-  STATIC_DIRECTORY_STATS,
-  STATIC_OS_PROJECTS,
-  STATIC_PROJECTS,
-  hasItems,
-  isDirectoryStats,
-} from "@/data/directory";
-import { type Profile, supabase, useSupabaseSession } from "@/lib/supabase";
+  type CommunityProject,
+  type Profile,
+  type Project,
+  supabase,
+  useSupabaseSession,
+} from "@/lib/supabase";
 
 // --- Static Data ---
 
@@ -31,27 +45,34 @@ const WHO_FOR = [
   {
     title: "Builders",
     description: "People building products, startups and businesses.",
-    icon: Terminal
+    icon: Terminal,
   },
   {
     title: "Contributors",
     description: "Developers, designers, marketers and operators.",
-    icon: Code2
+    icon: Code2,
   },
   {
     title: "Supporters",
     description: "Mentors, advisors and people helping the ecosystem grow.",
-    icon: Activity
+    icon: Activity,
   },
   {
     title: "Investors",
     description: "Angels, scouts and people looking for emerging talent.",
-    icon: Database
-  }
+    icon: Database,
+  },
 ];
 
 const ROLES = [
-  "Builder", "Developer", "Designer", "Founder", "Investor", "Student", "Supporter", "Other"
+  "Builder",
+  "Developer",
+  "Designer",
+  "Founder",
+  "Investor",
+  "Student",
+  "Supporter",
+  "Other",
 ];
 
 const CITY_COORDS: Record<string, [number, number]> = {
@@ -83,10 +104,6 @@ const MAP_PIN_COLOR = "#3b82f6";
 const MAP_PIN_OUTLINE = "rgba(239, 246, 255, 0.88)";
 const MAP_PIN_RING = "rgba(15, 23, 42, 0.72)";
 
-const OS_PROJECT_ICONS: Record<string, React.FC<any>> = {
-  Database, Code2, Server
-};
-
 // --- Sub-components ---
 
 type TechLabelsContextValue = {
@@ -102,11 +119,16 @@ const TechLabelsContext = React.createContext<TechLabelsContextValue>({
 export function TechLabelProvider({ children }: { children: React.ReactNode }) {
   const [techLabels, setTechLabels] = useState(() => {
     if (typeof window === "undefined") return true;
-    return window.localStorage.getItem("italian-builders-label-mode") !== "friendly";
+    return (
+      window.localStorage.getItem("italian-builders-label-mode") !== "friendly"
+    );
   });
 
   useEffect(() => {
-    window.localStorage.setItem("italian-builders-label-mode", techLabels ? "tech" : "friendly");
+    window.localStorage.setItem(
+      "italian-builders-label-mode",
+      techLabels ? "tech" : "friendly",
+    );
   }, [techLabels]);
 
   return (
@@ -124,7 +146,9 @@ function TechLabelToggle({ compact = false }: { compact?: boolean }) {
   const { techLabels, setTechLabels } = useTechLabels();
 
   return (
-    <label className={`flex items-center gap-2 text-zinc-400 ${compact ? "justify-between" : ""}`}>
+    <label
+      className={`flex items-center gap-2 text-zinc-400 ${compact ? "justify-between" : ""}`}
+    >
       <span className="text-[10px] font-mono uppercase tracking-wider">
         {techLabels ? "Community labels" : "Friendly labels"}
       </span>
@@ -138,10 +162,19 @@ function TechLabelToggle({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function HeaderAuthControls({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
+function HeaderAuthControls({
+  mobile = false,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
   const { techLabels } = useTechLabels();
   const { user, loading } = useSupabaseSession();
-  const [profile, setProfile] = useState<Pick<Profile, "username" | "full_name" | "avatar_url" | "platform_role"> | null>(null);
+  const [profile, setProfile] = useState<Pick<
+    Profile,
+    "username" | "full_name" | "avatar_url" | "platform_role"
+  > | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +191,12 @@ function HeaderAuthControls({ mobile = false, onNavigate }: { mobile?: boolean; 
         .maybeSingle();
 
       if (!cancelled) {
-        setProfile((data as Pick<Profile, "username" | "full_name" | "avatar_url" | "platform_role"> | null) ?? null);
+        setProfile(
+          (data as Pick<
+            Profile,
+            "username" | "full_name" | "avatar_url" | "platform_role"
+          > | null) ?? null,
+        );
       }
     }
     loadProfile();
@@ -185,29 +223,54 @@ function HeaderAuthControls({ mobile = false, onNavigate }: { mobile?: boolean; 
 
   if (!user) {
     return (
-      <div className={mobile ? "flex flex-col gap-3" : "flex items-center gap-3"}>
-        <a href="/dashboard" onClick={onNavigate} className={linkClass}>{techLabels ? "SIGN_IN" : "Sign in"}</a>
-        <a href="/join" onClick={onNavigate} className={primaryClass}>{techLabels ? "REQUEST_ACCESS" : "Join waitlist"}</a>
+      <div
+        className={mobile ? "flex flex-col gap-3" : "flex items-center gap-3"}
+      >
+        <a href="/dashboard" onClick={onNavigate} className={linkClass}>
+          {techLabels ? "SIGN_IN" : "Sign in"}
+        </a>
+        <a href="/join" onClick={onNavigate} className={primaryClass}>
+          {techLabels ? "REQUEST_ACCESS" : "Join waitlist"}
+        </a>
       </div>
     );
   }
 
-  const isAdmin = profile?.platform_role === "admin" || profile?.platform_role === "owner";
-  const profileHref = profile?.username ? `/builders/${profile.username}` : "/dashboard/profile";
+  const isAdmin =
+    profile?.platform_role === "admin" || profile?.platform_role === "owner";
+  const profileHref = profile?.username
+    ? `/builders/${profile.username}`
+    : "/dashboard/profile";
 
   return (
     <div className={mobile ? "flex flex-col gap-3" : "flex items-center gap-2"}>
-      <a href={profileHref} onClick={onNavigate} className={`${linkClass} gap-2`}>
+      <a
+        href={profileHref}
+        onClick={onNavigate}
+        className={`${linkClass} gap-2`}
+      >
         {profile?.avatar_url ? (
-          <img src={profile.avatar_url} alt="" className="h-5 w-5 rounded-sm border border-zinc-700 object-cover" />
+          <img
+            src={profile.avatar_url}
+            alt=""
+            className="h-5 w-5 rounded-sm border border-zinc-700 object-cover"
+          />
         ) : (
           <UserCircle size={15} />
         )}
         {techLabels ? "PROFILE" : "Profile"}
       </a>
-      <a href="/dashboard/profile" onClick={onNavigate} className={linkClass}>{techLabels ? "EDIT_PROFILE" : "Edit profile"}</a>
-      <a href="/dashboard" onClick={onNavigate} className={primaryClass}>{techLabels ? "CONSOLE" : "Dashboard"}</a>
-      {isAdmin && <a href="/admin" onClick={onNavigate} className={linkClass}>{techLabels ? "ADMIN" : "Admin"}</a>}
+      <a href="/dashboard/profile" onClick={onNavigate} className={linkClass}>
+        {techLabels ? "EDIT_PROFILE" : "Edit profile"}
+      </a>
+      <a href="/dashboard" onClick={onNavigate} className={primaryClass}>
+        {techLabels ? "CONSOLE" : "Dashboard"}
+      </a>
+      {isAdmin && (
+        <a href="/admin" onClick={onNavigate} className={linkClass}>
+          {techLabels ? "ADMIN" : "Admin"}
+        </a>
+      )}
       <button type="button" onClick={signOut} className={`${linkClass} gap-2`}>
         <LogOut size={14} /> {techLabels ? "SIGN_OUT" : "Sign out"}
       </button>
@@ -228,16 +291,24 @@ export function Header() {
           <div className="w-6 h-6 bg-white text-zinc-900 flex items-center justify-center font-mono text-xs font-bold leading-none">
             IT
           </div>
-          <span className={`font-semibold text-sm tracking-tight text-zinc-100 ${techLabels ? "uppercase" : ""}`}>
+          <span
+            className={`font-semibold text-sm tracking-tight text-zinc-100 ${techLabels ? "uppercase" : ""}`}
+          >
             {techLabels ? "Italian Builders" : "Italian Builders"}
           </span>
         </a>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-6">
-          <a href="/builders" className={navLabelClass}>{techLabels ? "/builders" : "Builders"}</a>
-          <a href="/projects" className={navLabelClass}>{techLabels ? "/projects" : "Projects"}</a>
-          <a href="/community-projects" className={navLabelClass}>{techLabels ? "/community-projects" : "Community projects"}</a>
+          <a href="/builders" className={navLabelClass}>
+            {techLabels ? "/builders" : "Builders"}
+          </a>
+          <a href="/projects" className={navLabelClass}>
+            {techLabels ? "/projects" : "Projects"}
+          </a>
+          <a href="/community-projects" className={navLabelClass}>
+            {techLabels ? "/community-projects" : "Community projects"}
+          </a>
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
@@ -258,13 +329,34 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-zinc-800 bg-zinc-950 px-4 py-4 space-y-4">
           <nav className="flex flex-col space-y-3">
-            <a href="/builders" onClick={() => setMobileMenuOpen(false)} className={mobileNavClass}>{techLabels ? "/builders" : "Builders"}</a>
-            <a href="/projects" onClick={() => setMobileMenuOpen(false)} className={mobileNavClass}>{techLabels ? "/projects" : "Projects"}</a>
-            <a href="/community-projects" onClick={() => setMobileMenuOpen(false)} className={mobileNavClass}>{techLabels ? "/community-projects" : "Community projects"}</a>
+            <a
+              href="/builders"
+              onClick={() => setMobileMenuOpen(false)}
+              className={mobileNavClass}
+            >
+              {techLabels ? "/builders" : "Builders"}
+            </a>
+            <a
+              href="/projects"
+              onClick={() => setMobileMenuOpen(false)}
+              className={mobileNavClass}
+            >
+              {techLabels ? "/projects" : "Projects"}
+            </a>
+            <a
+              href="/community-projects"
+              onClick={() => setMobileMenuOpen(false)}
+              className={mobileNavClass}
+            >
+              {techLabels ? "/community-projects" : "Community projects"}
+            </a>
           </nav>
           <div className="pt-4 border-t border-zinc-800 flex flex-col gap-3">
             <TechLabelToggle compact />
-            <HeaderAuthControls mobile onNavigate={() => setMobileMenuOpen(false)} />
+            <HeaderAuthControls
+              mobile
+              onNavigate={() => setMobileMenuOpen(false)}
+            />
           </div>
         </div>
       )}
@@ -306,11 +398,7 @@ function validCoordinate(lat?: number | null, lng?: number | null) {
 }
 
 function cityKey(value?: string | null) {
-  return value
-    ?.split(",")[0]
-    ?.trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
+  return value?.split(",")[0]?.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 function fallbackCoordsForLocation(
@@ -328,7 +416,9 @@ function fallbackCoordsForLocation(
   return null;
 }
 
-function profileMapCoords(profile: Pick<Profile, "latitude" | "longitude" | "city" | "location">) {
+function profileMapCoords(
+  profile: Pick<Profile, "latitude" | "longitude" | "city" | "location">,
+) {
   if (validCoordinate(profile.latitude, profile.longitude)) {
     return [profile.latitude, profile.longitude] as [number, number];
   }
@@ -347,48 +437,114 @@ function profileToMapBuilder(profile: Profile): HomeMapBuilder | null {
     location: profile.location || profile.city || profile.country || "Italy",
     avatarUrl: profile.avatar_url || "/images/avatar-1.png",
     highlight: profile.bio || "Building in the Italian Builders community.",
-    tags: profile.skills?.length ? profile.skills.slice(0, 3) : [profile.role || "Builder"].filter(Boolean),
+    tags: profile.skills?.length
+      ? profile.skills.slice(0, 3)
+      : [profile.role || "Builder"].filter(Boolean),
     lat: coords[0],
     lng: coords[1],
   };
 }
 
-function staticBuilderToMapBuilder(builder: (typeof STATIC_BUILDERS)[number]): HomeMapBuilder | null {
-  const coords = fallbackCoordsForLocation(builder.location, builder.location);
-  if (!coords) return null;
-
-  return {
-    ...builder,
-    id: builder.id,
-    username: undefined,
-    lat: coords[0],
-    lng: coords[1],
+type HomeDatabaseContent = {
+  profiles: Profile[];
+  projects: Project[];
+  communityProjects: CommunityProject[];
+  counts: {
+    builders: number;
+    projects: number;
+    communityProjects: number;
   };
+  loading: boolean;
+  error: string | null;
+};
+
+const emptyHomeDatabaseContent: HomeDatabaseContent = {
+  profiles: [],
+  projects: [],
+  communityProjects: [],
+  counts: {
+    builders: 0,
+    projects: 0,
+    communityProjects: 0,
+  },
+  loading: true,
+  error: null,
+};
+
+function getSupabaseErrorMessage(
+  error: { message?: string } | null | undefined,
+) {
+  return error?.message ?? null;
 }
 
-function useHomeMapBuilders() {
-  const [builders, setBuilders] = useState<HomeMapBuilder[]>([]);
-  const [loading, setLoading] = useState(Boolean(supabase));
+function useHomeDatabaseContent() {
+  const [content, setContent] = useState<HomeDatabaseContent>(
+    emptyHomeDatabaseContent,
+  );
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       if (!supabase) {
-        setLoading(false);
+        setContent({
+          ...emptyHomeDatabaseContent,
+          loading: false,
+          error: "Database is not configured for this environment.",
+        });
         return;
       }
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("visibility", "public")
-        .order("created_at", { ascending: false })
-        .limit(80);
+      const [profileResponse, projectResponse, communityProjectResponse] =
+        await Promise.all([
+          supabase
+            .from("profiles")
+            .select("*", { count: "exact" })
+            .eq("visibility", "public")
+            .order("created_at", { ascending: false })
+            .limit(80),
+          supabase
+            .from("projects")
+            .select(
+              "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id)",
+              { count: "exact" },
+            )
+            .eq("is_public", true)
+            .order("created_at", { ascending: false })
+            .limit(24),
+          supabase
+            .from("community_projects")
+            .select("*, community_project_members(id)", { count: "exact" })
+            .eq("is_public", true)
+            .order("created_at", { ascending: false })
+            .limit(12),
+        ]);
 
       if (cancelled) return;
-      setBuilders(((data as Profile[] | null) ?? []).map(profileToMapBuilder).filter(Boolean) as HomeMapBuilder[]);
-      setLoading(false);
+
+      const error =
+        getSupabaseErrorMessage(profileResponse.error) ||
+        getSupabaseErrorMessage(projectResponse.error) ||
+        getSupabaseErrorMessage(communityProjectResponse.error);
+
+      const profiles = (profileResponse.data as Profile[] | null) ?? [];
+      const projects = (projectResponse.data as Project[] | null) ?? [];
+      const communityProjects =
+        (communityProjectResponse.data as CommunityProject[] | null) ?? [];
+
+      setContent({
+        profiles,
+        projects,
+        communityProjects,
+        counts: {
+          builders: profileResponse.count ?? profiles.length,
+          projects: projectResponse.count ?? projects.length,
+          communityProjects:
+            communityProjectResponse.count ?? communityProjects.length,
+        },
+        loading: false,
+        error,
+      });
     }
 
     load();
@@ -397,7 +553,80 @@ function useHomeMapBuilders() {
     };
   }, []);
 
-  return { builders, loading };
+  return content;
+}
+
+function profileRole(profile: Profile) {
+  return profile.headline || profile.role || "Builder";
+}
+
+function profileLocationLabel(profile: Profile) {
+  return profile.location || profile.city || profile.country || "Italy";
+}
+
+function profileTags(profile: Profile) {
+  const tags = profile.skills?.length
+    ? profile.skills
+    : [profile.role, profile.city].filter(Boolean);
+  return tags.slice(0, 3) as string[];
+}
+
+function formatCount(value: number) {
+  return new Intl.NumberFormat("en").format(value);
+}
+
+function statusColor(status: string) {
+  switch (status) {
+    case "revenue":
+    case "completed":
+      return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+    case "live":
+    case "active":
+      return "bg-blue-500/10 text-blue-400 border-blue-500/30";
+    case "beta":
+      return "bg-indigo-500/10 text-indigo-400 border-indigo-500/30";
+    case "idea":
+    case "building":
+    case "proposed":
+      return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+    case "paused":
+      return "bg-zinc-500/10 text-zinc-400 border-zinc-500/30";
+    default:
+      return "bg-zinc-500/10 text-zinc-400 border-zinc-500/30";
+  }
+}
+
+function communityProjectIcon(project: CommunityProject) {
+  const category = project.category?.toLowerCase() ?? "";
+  if (category.includes("data") || category.includes("directory"))
+    return Database;
+  if (category.includes("infra") || category.includes("server")) return Server;
+  if (project.status === "active") return Activity;
+  return Code2;
+}
+
+function communityProjectColor(project: CommunityProject) {
+  if (project.status === "completed") return "text-emerald-400";
+  if (project.status === "active") return "text-blue-400";
+  if (project.status === "paused") return "text-zinc-400";
+  return "text-amber-400";
+}
+
+function DatabaseStatusBanner({ error }: { error: string | null }) {
+  const { techLabels } = useTechLabels();
+  if (!error) return null;
+
+  return (
+    <section className="bg-zinc-950 border-b border-zinc-800">
+      <div className="container mx-auto px-4 md:px-6 py-4">
+        <div className="dt-card border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+          {techLabels
+            ? `DATABASE_READ_WARNING: ${error}`
+            : `Database read warning: ${error}`}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function BuilderGlobe({
@@ -437,7 +666,16 @@ function BuilderGlobe({
   };
 
   const activeRing = (builder: HomeMapBuilder | null): GlobePoint[] => {
-    return builder ? [{ lat: builder.lat, lng: builder.lng, color: MAP_PIN_RING, radius: 0.12 }] : [];
+    return builder
+      ? [
+          {
+            lat: builder.lat,
+            lng: builder.lng,
+            color: MAP_PIN_RING,
+            radius: 0.12,
+          },
+        ]
+      : [];
   };
 
   useEffect(() => {
@@ -460,117 +698,155 @@ function BuilderGlobe({
     let frame = 0;
     let disposed = false;
 
-    Promise.all([import("three"), import("three-globe")]).then(([THREE, threeGlobeModule]) => {
-      if (disposed) return;
-
-      const ThreeGlobe = threeGlobeModule.default;
-      scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(18, 1, 0.1, 1200);
-      camera.position.set(0, 0, 160);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setClearColor(0x000000, 0);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      host.appendChild(renderer.domElement);
-
-      const globe = new ThreeGlobe({ waitForGlobeReady: false, animateIn: false })
-        .showAtmosphere(true)
-        .atmosphereColor("#3b82f6")
-        .atmosphereAltitude(0.11)
-        .globeCurvatureResolution(2)
-        .pointsData(pointData(buildersRef.current, activeBuilderRef.current))
-        .pointLat("lat")
-        .pointLng("lng")
-        .pointColor("color")
-        .pointAltitude(0.013)
-        .pointRadius("radius")
-        .pointResolution(16)
-        .pointsMerge(false)
-        .pointsTransitionDuration(600)
-        .ringsData(activeRing(activeBuilderRef.current))
-        .ringLat("lat")
-        .ringLng("lng")
-        .ringColor("color")
-        .ringMaxRadius(0.95)
-        .ringPropagationSpeed(0.38)
-        .ringRepeatPeriod(1400)
-        .polygonsData([])
-        .polygonCapColor((feature: any) => (feature.properties?.ISO_A2 === "IT" ? MAP_ITALY_COLOR : MAP_COUNTRY_COLOR))
-        .polygonSideColor((feature: any) => (feature.properties?.ISO_A2 === "IT" ? "rgba(37, 99, 235, 0.18)" : "rgba(30, 58, 104, 0.1)"))
-        .polygonStrokeColor((feature: any) => (feature.properties?.ISO_A2 === "IT" ? MAP_ITALY_STROKE : "rgba(0, 0, 0, 0)"))
-        .polygonAltitude((feature: any) => (feature.properties?.ISO_A2 === "IT" ? 0.007 : 0.004))
-        .polygonCapCurvatureResolution(1);
-
-      globeRef.current = globe;
-      scene.add(globe);
-
-      globe.globeMaterial(new THREE.MeshBasicMaterial({ color: MAP_OCEAN_COLOR }));
-
-      const ambient = new THREE.AmbientLight(0xb8c5d9, 2.2);
-      const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
-      keyLight.position.set(-90, 80, 140);
-      const rimLight = new THREE.DirectionalLight(0x3b82f6, 1.6);
-      rimLight.position.set(120, -40, -80);
-      scene.add(ambient, keyLight, rimLight);
-
-      const italyCoords = globe.getCoords(42.85, 12.45, 0);
-      const italyVector = new THREE.Vector3(italyCoords.x, italyCoords.y, italyCoords.z).normalize();
-      const italyTargetVector = new THREE.Vector3(0, 0.02, 1).normalize();
-      const baseQuaternion = new THREE.Quaternion().setFromUnitVectors(italyVector, italyTargetVector);
-      const scrollQuaternion = new THREE.Quaternion();
-      const driftQuaternion = new THREE.Quaternion();
-      const xAxis = new THREE.Vector3(1, 0, 0);
-      const yAxis = new THREE.Vector3(0, 1, 0);
-
-      const resize = () => {
-        const width = host.clientWidth || 720;
-        const height = host.clientHeight || 520;
-        renderer.setSize(width, height);
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-      };
-
-      const updateScroll = () => {
-        const panel = host.closest("[data-globe-panel]");
-        const rect = panel?.getBoundingClientRect() ?? host.getBoundingClientRect();
-        const viewport = window.innerHeight || 1;
-        const centerDelta = (rect.top + rect.height / 2 - viewport / 2) / viewport;
-        targetScroll = Math.max(-1, Math.min(1, centerDelta));
-      };
-
-      const animate = () => {
+    Promise.all([import("three"), import("three-globe")]).then(
+      ([THREE, threeGlobeModule]) => {
         if (disposed) return;
-        easedScroll += (targetScroll - easedScroll) * 0.06;
-        const scrollAmount = Math.abs(easedScroll);
-        const time = performance.now() * 0.00035;
 
-        scrollQuaternion.setFromAxisAngle(xAxis, easedScroll * 0.045);
-        driftQuaternion.setFromAxisAngle(yAxis, Math.sin(time) * 0.018);
-        globe.quaternion.copy(scrollQuaternion).multiply(driftQuaternion).multiply(baseQuaternion);
-        camera.position.z = 160 + scrollAmount * 105;
+        const ThreeGlobe = threeGlobeModule.default;
+        scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(18, 1, 0.1, 1200);
+        camera.position.set(0, 0, 160);
 
-        renderer.render(scene, camera);
-        frame = requestAnimationFrame(animate);
-      };
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setClearColor(0x000000, 0);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        host.appendChild(renderer.domElement);
 
-      fetch(EUROPE_GEOJSON_URL)
-        .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`GeoJSON ${res.status}`))))
-        .then((europe) => {
-          if (disposed) return;
-          globe.polygonsData(europe.features ?? []);
+        const globe = new ThreeGlobe({
+          waitForGlobeReady: false,
+          animateIn: false,
         })
-        .catch(() => {
-          globe.polygonsData([]);
-        });
+          .showAtmosphere(true)
+          .atmosphereColor("#3b82f6")
+          .atmosphereAltitude(0.11)
+          .globeCurvatureResolution(2)
+          .pointsData(pointData(buildersRef.current, activeBuilderRef.current))
+          .pointLat("lat")
+          .pointLng("lng")
+          .pointColor("color")
+          .pointAltitude(0.013)
+          .pointRadius("radius")
+          .pointResolution(16)
+          .pointsMerge(false)
+          .pointsTransitionDuration(600)
+          .ringsData(activeRing(activeBuilderRef.current))
+          .ringLat("lat")
+          .ringLng("lng")
+          .ringColor("color")
+          .ringMaxRadius(0.95)
+          .ringPropagationSpeed(0.38)
+          .ringRepeatPeriod(1400)
+          .polygonsData([])
+          .polygonCapColor((feature: any) =>
+            feature.properties?.ISO_A2 === "IT"
+              ? MAP_ITALY_COLOR
+              : MAP_COUNTRY_COLOR,
+          )
+          .polygonSideColor((feature: any) =>
+            feature.properties?.ISO_A2 === "IT"
+              ? "rgba(37, 99, 235, 0.18)"
+              : "rgba(30, 58, 104, 0.1)",
+          )
+          .polygonStrokeColor((feature: any) =>
+            feature.properties?.ISO_A2 === "IT"
+              ? MAP_ITALY_STROKE
+              : "rgba(0, 0, 0, 0)",
+          )
+          .polygonAltitude((feature: any) =>
+            feature.properties?.ISO_A2 === "IT" ? 0.007 : 0.004,
+          )
+          .polygonCapCurvatureResolution(1);
 
-      resizeObserver = new ResizeObserver(resize);
-      resizeObserver.observe(host);
-      window.addEventListener("scroll", updateScroll, { passive: true });
-      removeScrollListener = () => window.removeEventListener("scroll", updateScroll);
-      resize();
-      updateScroll();
-      animate();
-    });
+        globeRef.current = globe;
+        scene.add(globe);
+
+        globe.globeMaterial(
+          new THREE.MeshBasicMaterial({ color: MAP_OCEAN_COLOR }),
+        );
+
+        const ambient = new THREE.AmbientLight(0xb8c5d9, 2.2);
+        const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
+        keyLight.position.set(-90, 80, 140);
+        const rimLight = new THREE.DirectionalLight(0x3b82f6, 1.6);
+        rimLight.position.set(120, -40, -80);
+        scene.add(ambient, keyLight, rimLight);
+
+        const italyCoords = globe.getCoords(42.85, 12.45, 0);
+        const italyVector = new THREE.Vector3(
+          italyCoords.x,
+          italyCoords.y,
+          italyCoords.z,
+        ).normalize();
+        const italyTargetVector = new THREE.Vector3(0, 0.02, 1).normalize();
+        const baseQuaternion = new THREE.Quaternion().setFromUnitVectors(
+          italyVector,
+          italyTargetVector,
+        );
+        const scrollQuaternion = new THREE.Quaternion();
+        const driftQuaternion = new THREE.Quaternion();
+        const xAxis = new THREE.Vector3(1, 0, 0);
+        const yAxis = new THREE.Vector3(0, 1, 0);
+
+        const resize = () => {
+          const width = host.clientWidth || 720;
+          const height = host.clientHeight || 520;
+          renderer.setSize(width, height);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+        };
+
+        const updateScroll = () => {
+          const panel = host.closest("[data-globe-panel]");
+          const rect =
+            panel?.getBoundingClientRect() ?? host.getBoundingClientRect();
+          const viewport = window.innerHeight || 1;
+          const centerDelta =
+            (rect.top + rect.height / 2 - viewport / 2) / viewport;
+          targetScroll = Math.max(-1, Math.min(1, centerDelta));
+        };
+
+        const animate = () => {
+          if (disposed) return;
+          easedScroll += (targetScroll - easedScroll) * 0.06;
+          const scrollAmount = Math.abs(easedScroll);
+          const time = performance.now() * 0.00035;
+
+          scrollQuaternion.setFromAxisAngle(xAxis, easedScroll * 0.045);
+          driftQuaternion.setFromAxisAngle(yAxis, Math.sin(time) * 0.018);
+          globe.quaternion
+            .copy(scrollQuaternion)
+            .multiply(driftQuaternion)
+            .multiply(baseQuaternion);
+          camera.position.z = 160 + scrollAmount * 105;
+
+          renderer.render(scene, camera);
+          frame = requestAnimationFrame(animate);
+        };
+
+        fetch(EUROPE_GEOJSON_URL)
+          .then((res) =>
+            res.ok
+              ? res.json()
+              : Promise.reject(new Error(`GeoJSON ${res.status}`)),
+          )
+          .then((europe) => {
+            if (disposed) return;
+            globe.polygonsData(europe.features ?? []);
+          })
+          .catch(() => {
+            globe.polygonsData([]);
+          });
+
+        resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(host);
+        window.addEventListener("scroll", updateScroll, { passive: true });
+        removeScrollListener = () =>
+          window.removeEventListener("scroll", updateScroll);
+        resize();
+        updateScroll();
+        animate();
+      },
+    );
 
     return () => {
       disposed = true;
@@ -589,27 +865,24 @@ function BuilderGlobe({
   return <div ref={hostRef} className="h-full w-full overflow-hidden" />;
 }
 
-function Hero() {
-  const { data: buildersData } = useListBuilders({ query: { queryKey: getListBuildersQueryKey() } });
-  const { data: statsData } = useGetDirectoryStats({ query: { queryKey: getGetDirectoryStatsQueryKey() } });
-  const { builders: databaseBuilders, loading: mapLoading } = useHomeMapBuilders();
-  const fallbackBuilders = (hasItems(buildersData) ? buildersData : STATIC_BUILDERS)
-    .map(staticBuilderToMapBuilder)
-    .filter(Boolean) as HomeMapBuilder[];
-  const builders = databaseBuilders.length > 0 ? databaseBuilders : fallbackBuilders;
-  const uniqueCities = Array.from(new Set(builders.map((builder) => builder.location).filter(Boolean)));
-  const stats =
-    databaseBuilders.length > 0
-      ? {
-          builders: String(databaseBuilders.length),
-          regions: "1",
-          cities: String(uniqueCities.length),
-        }
-      : isDirectoryStats(statsData)
-        ? statsData
-        : STATIC_DIRECTORY_STATS;
+function Hero({ content }: { content: HomeDatabaseContent }) {
+  const builders = useMemo(
+    () =>
+      content.profiles
+        .map(profileToMapBuilder)
+        .filter(Boolean) as HomeMapBuilder[],
+    [content.profiles],
+  );
+  const stats = [
+    { label: "Builders", value: formatCount(content.counts.builders) },
+    { label: "Projects", value: formatCount(content.counts.projects) },
+    {
+      label: "Initiatives",
+      value: formatCount(content.counts.communityProjects),
+    },
+  ];
   const { techLabels } = useTechLabels();
-  
+
   const [active, setActive] = useState(0);
 
   useEffect(() => {
@@ -625,13 +898,10 @@ function Hero() {
   }, [active, builders.length]);
 
   const current = builders.length > 0 ? builders[active] : null;
-  const avatarStack = builders.slice(0, 3);
-  const builderCountLabel =
-    databaseBuilders.length > 0
-      ? `${databaseBuilders.length} mapped builders`
-      : mapLoading
-        ? "Loading builders..."
-        : "Demo builders across Italy";
+  const avatarStack = content.profiles.slice(0, 3);
+  const builderCountLabel = content.loading
+    ? "Loading builders..."
+    : `${formatCount(content.counts.builders)} builders indexed`;
 
   return (
     <section className="relative pt-20 pb-24 md:pt-28 md:pb-32 border-b border-zinc-800 overflow-hidden bg-zinc-950">
@@ -642,26 +912,43 @@ function Hero() {
         <div className="flex flex-col lg:flex-row gap-12 xl:gap-16 items-center">
           <div className="flex-1 lg:flex-[0.9] max-w-2xl">
             <h1 className="text-4xl md:text-6xl font-bold text-zinc-50 mb-6 leading-[1.1] tracking-tight">
-              The home of Italian Builders.<br />
-              <span className="text-blue-500">Connecting the people who build.</span>
+              The home of Italian Builders.
+              <br />
+              <span className="text-blue-500">
+                Connecting the people who build.
+              </span>
             </h1>
 
             <p className="text-base md:text-lg text-zinc-400 mb-8 max-w-xl leading-relaxed">
-              Italian Builders exists to help founders, developers, designers and makers discover each other, share projects and create opportunities.
-              <br /><br />
-              From AI and open source to SaaS, mobile apps and startups, what unites us is not what we build, but the fact that we choose to build.
+              Italian Builders exists to help founders, developers, designers
+              and makers discover each other, share projects and create
+              opportunities.
+              <br />
+              <br />
+              From AI and open source to SaaS, mobile apps and startups, what
+              unites us is not what we build, but the fact that we choose to
+              build.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
-              <a href="#join" className="inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-12 px-6 bg-blue-600 hover:bg-blue-500 text-white font-mono uppercase text-xs dt-button rounded-sm w-full sm:w-auto">
-                {techLabels ? "REQUEST_ACCESS" : "Join Waitlist"} <ArrowRight size={16} className="ml-2" />
+              <a
+                href="#join"
+                className="inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-12 px-6 bg-blue-600 hover:bg-blue-500 text-white font-mono uppercase text-xs dt-button rounded-sm w-full sm:w-auto"
+              >
+                {techLabels ? "REQUEST_ACCESS" : "Join Waitlist"}{" "}
+                <ArrowRight size={16} className="ml-2" />
               </a>
             </div>
 
             <div className="flex items-center gap-4 text-xs font-mono text-zinc-400">
               <div className="flex -space-x-1">
-                {avatarStack.map((b, i) => (
-                  <img key={i} src={b.avatarUrl} className="w-6 h-6 border border-zinc-700 rounded-sm" alt="Builder" />
+                {avatarStack.map((profile) => (
+                  <img
+                    key={profile.id}
+                    src={profile.avatar_url || "/images/avatar-1.png"}
+                    className="w-6 h-6 border border-zinc-700 rounded-sm object-cover"
+                    alt={profile.full_name}
+                  />
                 ))}
               </div>
               <div className="h-4 w-px bg-zinc-700" />
@@ -674,19 +961,28 @@ function Hero() {
               <div className="absolute inset-0 dt-grid-bg opacity-40 pointer-events-none" />
 
               <div className="flex items-center justify-between mb-3 relative z-10">
-                <span className="text-[10px] font-mono text-zinc-500 uppercase">{techLabels ? "NODE_MAP" : "Builder map"}</span>
+                <span className="text-[10px] font-mono text-zinc-500 uppercase">
+                  {techLabels ? "NODE_MAP" : "Builder map"}
+                </span>
                 <span className="text-[10px] font-mono text-blue-400 uppercase flex items-center gap-1">
                   <MapPin size={10} /> Italia
                 </span>
               </div>
 
-              <div data-globe-panel className="relative h-[330px] w-full sm:h-[420px] lg:h-[520px] xl:h-[590px]">
+              <div
+                data-globe-panel
+                className="relative h-[330px] w-full sm:h-[420px] lg:h-[520px] xl:h-[590px]"
+              >
                 <BuilderGlobe builders={builders} activeBuilder={current} />
 
                 {current && (
                   <div className="absolute bottom-2 left-2 right-2 z-10">
                     <div className="dt-card bg-zinc-950/80 backdrop-blur-sm p-2.5 flex items-center gap-3">
-                      <img src={current.avatarUrl} alt={current.name} className="w-8 h-8 object-cover border border-zinc-700 grayscale rounded-sm" />
+                      <img
+                        src={current.avatarUrl}
+                        alt={current.name}
+                        className="w-8 h-8 object-cover border border-zinc-700 grayscale rounded-sm"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
@@ -698,7 +994,9 @@ function Hero() {
                               {current.name}
                             </a>
                           ) : (
-                            <span className="truncate text-xs font-bold text-zinc-100">{current.name}</span>
+                            <span className="truncate text-xs font-bold text-zinc-100">
+                              {current.name}
+                            </span>
                           )}
                         </div>
                         <div className="text-[10px] font-mono text-zinc-500 truncate">
@@ -714,14 +1012,17 @@ function Hero() {
               </div>
 
               <div className="grid grid-cols-3 gap-px mt-3 dt-border bg-zinc-800 relative z-10">
-                {[
-                  { label: "Builders", value: stats.builders },
-                  { label: "Regions", value: stats.regions },
-                  { label: "Cities", value: stats.cities },
-                ].map((stat) => (
-                  <div key={stat.label} className="bg-zinc-950 px-3 py-2.5 text-center">
-                    <div className="text-sm font-bold text-zinc-100">{stat.value}</div>
-                    <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">{stat.label}</div>
+                {stats.map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="bg-zinc-950 px-3 py-2.5 text-center"
+                  >
+                    <div className="text-sm font-bold text-zinc-100">
+                      {stat.value}
+                    </div>
+                    <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">
+                      {stat.label}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -733,45 +1034,58 @@ function Hero() {
   );
 }
 
-export function FeaturedBuilders() {
+export function FeaturedBuilders({
+  profiles,
+  loading,
+}: {
+  profiles: Profile[];
+  loading: boolean;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { data: buildersData } = useListBuilders({ query: { queryKey: getListBuildersQueryKey() } });
-  const builders = hasItems(buildersData) ? buildersData : STATIC_BUILDERS;
   const { techLabels } = useTechLabels();
 
   const now = new Date();
   const dayOfYear = Math.floor(
-    (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000
+    (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000,
   );
-  
-  // Safe offset calculation
-  const offset = builders.length > 0 ? dayOfYear % builders.length : 0;
-  const todaysBuilders = builders.length > 0 
-    ? [...builders.slice(offset), ...builders.slice(0, offset)] 
-    : [];
 
-  const formattedDate = now.toISOString().split('T')[0];
+  // Safe offset calculation
+  const offset = profiles.length > 0 ? dayOfYear % profiles.length : 0;
+  const todaysBuilders =
+    profiles.length > 0
+      ? [...profiles.slice(offset), ...profiles.slice(0, offset)]
+      : [];
+
+  const formattedDate = now.toISOString().split("T")[0];
 
   const scroll = (dir: "left" | "right") => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollBy({ left: dir === "left" ? -320 : 320, behavior: "smooth" });
+    scrollRef.current.scrollBy({
+      left: dir === "left" ? -320 : 320,
+      behavior: "smooth",
+    });
   };
 
-  if (!builders || builders.length === 0) {
-    return null; // or loading state
-  }
-
   return (
-    <section id="builders" className="py-20 bg-zinc-950 border-b border-zinc-800">
+    <section
+      id="builders"
+      className="py-20 bg-zinc-950 border-b border-zinc-800"
+    >
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div className="max-w-2xl">
             <div className="text-xs font-mono text-blue-400 mb-2 font-semibold tracking-wider">
-              {techLabels ? `DAILY_BUILDER_SET --date=${formattedDate}` : "Featured builders"}
+              {techLabels
+                ? `DAILY_BUILDER_SET --date=${formattedDate}`
+                : "Featured builders"}
             </div>
-            <h2 className="text-3xl font-bold text-zinc-50 mb-2">Builder Highlights</h2>
+            <h2 className="text-3xl font-bold text-zinc-50 mb-2">
+              Builder Highlights
+            </h2>
             <p className="text-sm text-zinc-500 font-mono">
-              {techLabels ? "Active nodes building products, startups and experiments across Italy." : "People building products, startups and experiments across Italy."}
+              {techLabels
+                ? "Active nodes building products, startups and experiments across Italy."
+                : "People building products, startups and experiments across Italy."}
             </p>
           </div>
           <div className="hidden md:flex items-center gap-2">
@@ -791,83 +1105,125 @@ export function FeaturedBuilders() {
         </div>
 
         <div className="relative">
-          <div
-            ref={scrollRef}
-            className="flex gap-4 overflow-x-auto dt-scrollbar snap-x snap-mandatory scroll-smooth pb-4"
-          >
-            {todaysBuilders.map((builder, i) => (
-              <div
-                key={`${builder.id}-${i}`}
-                className="snap-start flex-shrink-0 w-80 dt-card p-5 flex flex-col group"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={builder.avatarUrl}
-                      alt={builder.name}
-                      className="w-10 h-10 object-cover border border-zinc-700 grayscale rounded-sm"
-                    />
-                    <div>
-                      <h3 className="font-bold text-sm text-zinc-100">{builder.name}</h3>
-                      <div className="text-xs font-mono text-zinc-500">
-                        {builder.role}
+          {loading ? (
+            <div className="dt-card p-6 text-sm font-mono text-zinc-500">
+              {techLabels ? "LOADING_BUILDERS..." : "Loading builders..."}
+            </div>
+          ) : todaysBuilders.length === 0 ? (
+            <div className="dt-card p-6 text-sm font-mono text-zinc-500">
+              {techLabels ? "NO_PUBLIC_PROFILES" : "No public builders yet."}
+            </div>
+          ) : (
+            <div
+              ref={scrollRef}
+              className="flex gap-4 overflow-x-auto dt-scrollbar snap-x snap-mandatory scroll-smooth pb-4"
+            >
+              {todaysBuilders.map((profile, i) => (
+                <div
+                  key={`${profile.id}-${i}`}
+                  className="snap-start flex-shrink-0 w-80 dt-card p-5 flex flex-col group"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={profile.avatar_url || "/images/avatar-1.png"}
+                        alt={profile.full_name}
+                        className="w-10 h-10 object-cover border border-zinc-700 grayscale rounded-sm"
+                      />
+                      <div>
+                        <h3 className="font-bold text-sm text-zinc-100">
+                          {profile.full_name}
+                        </h3>
+                        <div className="text-xs font-mono text-zinc-500">
+                          {profileRole(profile)}
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-1 text-[10px] font-mono text-zinc-500 uppercase">
+                      <MapPin size={10} /> {profileLocationLabel(profile)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-[10px] font-mono text-zinc-500 uppercase">
-                    <MapPin size={10} /> {builder.location}
+
+                  <div className="text-sm text-zinc-300 leading-relaxed mb-4 flex-grow border-l-2 border-zinc-700 pl-3">
+                    "
+                    {profile.bio ||
+                      "Building in the Italian Builders community."}
+                    "
                   </div>
-                </div>
 
-                <div className="text-sm text-zinc-300 leading-relaxed mb-4 flex-grow border-l-2 border-zinc-700 pl-3">
-                  "{builder.highlight}"
-                </div>
+                  <div className="flex flex-wrap gap-1.5 mb-5 mt-auto">
+                    {profileTags(profile).map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-1.5 py-0.5 border border-zinc-800 bg-zinc-900 text-[10px] font-mono font-medium text-zinc-400 uppercase rounded-sm"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
 
-                <div className="flex flex-wrap gap-1.5 mb-5 mt-auto">
-                  {builder.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-1.5 py-0.5 border border-zinc-800 bg-zinc-900 text-[10px] font-mono font-medium text-zinc-400 uppercase rounded-sm"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="w-full justify-between h-8 rounded-sm border border-zinc-800 text-xs font-mono uppercase bg-zinc-900 hover:bg-zinc-800 hover:text-zinc-100 text-zinc-400"
+                  >
+                    <a href={`/builders/${profile.username}`}>
+                      {techLabels ? "OPEN_PROFILE" : "View profile"}
+                      <ArrowRight
+                        size={14}
+                        className="text-zinc-500 group-hover:text-zinc-200 transition-colors"
+                      />
+                    </a>
+                  </Button>
                 </div>
-
-                <Button
-                  variant="ghost"
-                  className="w-full justify-between h-8 rounded-sm border border-zinc-800 text-xs font-mono uppercase bg-zinc-900 hover:bg-zinc-800 hover:text-zinc-100 text-zinc-400"
-                >
-                  {techLabels ? "OPEN_PROFILE" : "View profile"}
-                  <ArrowRight size={14} className="text-zinc-500 group-hover:text-zinc-200 transition-colors" />
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
   );
 }
 
-export function BuilderProjects() {
+export function BuilderProjects({
+  projects,
+  loading,
+}: {
+  projects: Project[];
+  loading: boolean;
+}) {
   // Use category filter query if active !== "All"
   const [active, setActive] = useState("All");
   const [showAll, setShowAll] = useState(false);
   const { techLabels } = useTechLabels();
-  
-  // We'll fetch all projects to extract categories, then use the filtered ones for display
-  const { data: projectsData } = useListProjects(undefined, { query: { queryKey: getListProjectsQueryKey() } });
-  const allProjects = hasItems(projectsData) ? projectsData : STATIC_PROJECTS;
-  
-  const categories = ["All", "AI", "SaaS", "B2B", "B2C", "Open Source", "Developer Tools", "Mobile", "Crypto"];
-  
-  const filtered = active === "All" ? allProjects : allProjects.filter((p) => p.category === active);
+
+  const categories = useMemo(
+    () =>
+      [
+        "All",
+        ...Array.from(
+          new Set(projects.map((project) => project.category).filter(Boolean)),
+        ),
+      ] as string[],
+    [projects],
+  );
+
+  useEffect(() => {
+    if (active !== "All" && !categories.includes(active)) {
+      setActive("All");
+    }
+  }, [active, categories]);
+
+  const filtered =
+    active === "All" ? projects : projects.filter((p) => p.category === active);
   const visible = showAll ? filtered : filtered.slice(0, 6);
   const hasMore = filtered.length > visible.length;
 
   return (
-    <section id="projects" className="py-20 bg-zinc-900/40 border-b border-zinc-800">
+    <section
+      id="projects"
+      className="py-20 bg-zinc-900/40 border-b border-zinc-800"
+    >
       <div className="container mx-auto px-4 md:px-6">
         <div className="mb-8">
           <div className="text-xs font-mono text-blue-400 mb-2 font-semibold tracking-wider">
@@ -877,7 +1233,8 @@ export function BuilderProjects() {
             {techLabels ? "Member Artifacts" : "Community Projects"}
           </h2>
           <p className="text-sm text-zinc-500 font-mono max-w-2xl">
-            Discover products, startups, side projects and experiments created by members of the community.
+            Discover products, startups, side projects and experiments created
+            by members of the community.
           </p>
         </div>
 
@@ -886,7 +1243,10 @@ export function BuilderProjects() {
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => { setActive(cat); setShowAll(false); }}
+              onClick={() => {
+                setActive(cat);
+                setShowAll(false);
+              }}
               className={`px-3 py-1 text-xs font-mono uppercase border transition-colors flex-shrink-0 rounded-sm ${
                 active === cat
                   ? "bg-blue-600 text-white border-blue-600"
@@ -898,37 +1258,82 @@ export function BuilderProjects() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visible.map((project, i) => (
-            <div key={`${project.id}-${i}`} className="group dt-card flex flex-col">
-              <div className="aspect-[16/9] w-full bg-zinc-900 border-b border-zinc-800 relative overflow-hidden">
-                 <img src={project.imageUrl} alt={project.name} className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300" />
-                 <div className="absolute top-2 right-2">
-                    <span className={`px-2 py-1 text-[10px] font-mono font-bold uppercase border rounded-sm ${project.statusColor} backdrop-blur-sm`}>
+        {loading ? (
+          <div className="dt-card p-6 text-sm font-mono text-zinc-500">
+            {techLabels ? "LOADING_ARTIFACTS..." : "Loading projects..."}
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="dt-card p-6 text-sm font-mono text-zinc-500">
+            {techLabels ? "NO_PUBLIC_ARTIFACTS" : "No public projects yet."}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {visible.map((project) => (
+              <a
+                key={project.id}
+                href={`/projects/${project.slug}`}
+                className="group dt-card flex flex-col"
+              >
+                <div className="aspect-[16/9] w-full bg-zinc-900 border-b border-zinc-800 relative overflow-hidden">
+                  {project.image_url ? (
+                    <img
+                      src={project.image_url}
+                      alt={project.name}
+                      className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300"
+                    />
+                  ) : (
+                    <div className="dt-grid-bg h-full opacity-50" />
+                  )}
+                  <div className="absolute top-2 right-2">
+                    <span
+                      className={`px-2 py-1 text-[10px] font-mono font-bold uppercase border rounded-sm ${statusColor(project.status)} backdrop-blur-sm`}
+                    >
                       {project.status}
                     </span>
-                 </div>
-              </div>
-
-              <div className="p-4 flex flex-col flex-grow">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-base text-zinc-100 leading-none">{project.name}</h3>
-                  <span className="text-[10px] font-mono text-zinc-500 border border-zinc-800 px-1.5 py-0.5 bg-zinc-900 rounded-sm">{project.category}</span>
-                </div>
-
-                <p className="text-sm text-zinc-400 mb-4 line-clamp-2">{project.description}</p>
-
-                <div className="mt-auto pt-3 border-t border-zinc-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <img src={project.avatarUrl} alt={project.builder} className="w-5 h-5 rounded-sm border border-zinc-700 grayscale" />
-                    <span className="text-xs font-mono text-zinc-300">{project.builder}</span>
                   </div>
-                  <ArrowRight size={14} className="text-zinc-600 group-hover:text-blue-400 transition-colors" />
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+
+                <div className="p-4 flex flex-col flex-grow">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-base text-zinc-100 leading-none">
+                      {project.name}
+                    </h3>
+                    {project.category && (
+                      <span className="text-[10px] font-mono text-zinc-500 border border-zinc-800 px-1.5 py-0.5 bg-zinc-900 rounded-sm">
+                        {project.category}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-sm text-zinc-400 mb-4 line-clamp-2">
+                    {project.tagline ||
+                      project.description ||
+                      "A project from the Italian Builders community."}
+                  </p>
+
+                  <div className="mt-auto pt-3 border-t border-zinc-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={
+                          project.profiles?.avatar_url || "/images/avatar-1.png"
+                        }
+                        alt={project.profiles?.full_name || "Builder"}
+                        className="w-5 h-5 rounded-sm border border-zinc-700 grayscale"
+                      />
+                      <span className="text-xs font-mono text-zinc-300">
+                        {project.profiles?.full_name || "Builder"}
+                      </span>
+                    </div>
+                    <ArrowRight
+                      size={14}
+                      className="text-zinc-600 group-hover:text-blue-400 transition-colors"
+                    />
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
 
         {hasMore && (
           <div className="mt-10 flex justify-center border-t border-zinc-800 pt-10">
@@ -937,7 +1342,8 @@ export function BuilderProjects() {
               variant="outline"
               className="h-10 px-6 border-zinc-800 text-zinc-300 text-xs font-mono uppercase bg-zinc-950 hover:bg-zinc-900 hover:text-zinc-100 rounded-sm"
             >
-              {techLabels ? "LOAD_MORE_ARTIFACTS" : "Show more projects"} <ChevronUp className="ml-2 rotate-180" size={14} />
+              {techLabels ? "LOAD_MORE_ARTIFACTS" : "Show more projects"}{" "}
+              <ChevronUp className="ml-2 rotate-180" size={14} />
             </Button>
           </div>
         )}
@@ -946,51 +1352,95 @@ export function BuilderProjects() {
   );
 }
 
-export function CommunityProjects() {
-  const { data: osProjectsData } = useListOsProjects({ query: { queryKey: getListOsProjectsQueryKey() } });
-  const osProjects = hasItems(osProjectsData) ? osProjectsData : STATIC_OS_PROJECTS;
+export function CommunityProjects({
+  projects,
+  loading,
+}: {
+  projects: CommunityProject[];
+  loading: boolean;
+}) {
   const { techLabels } = useTechLabels();
 
   return (
-    <section id="os-projects" className="py-20 bg-zinc-950 border-b border-zinc-800">
+    <section
+      id="os-projects"
+      className="py-20 bg-zinc-950 border-b border-zinc-800"
+    >
       <div className="container mx-auto px-4 md:px-6">
         <div className="mb-10 text-center max-w-2xl mx-auto">
           <div className="text-xs font-mono text-blue-400 mb-2 font-semibold tracking-wider">
             {techLabels ? "SHARED_WORKSTREAMS" : "Community initiatives"}
           </div>
-          <h2 className="text-3xl font-bold text-zinc-50 mb-3">Community Initiatives</h2>
+          <h2 className="text-3xl font-bold text-zinc-50 mb-3">
+            Community Initiatives
+          </h2>
           <p className="text-sm text-zinc-500 font-mono">
-            {techLabels ? "Shared execution tracks for discovery, collaboration and builder growth." : "Projects created together to help builders connect, collaborate and grow."}
+            {techLabels
+              ? "Shared execution tracks for discovery, collaboration and builder growth."
+              : "Projects created together to help builders connect, collaborate and grow."}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {osProjects.map((project, i) => {
-            const Icon = OS_PROJECT_ICONS[project.icon] || Code2;
-            return (
-              <div key={project.id} className="dt-card p-5 group flex flex-col hover:border-blue-500/50 transition-colors">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-8 h-8 rounded-sm bg-zinc-900 border border-zinc-800 flex items-center justify-center ${project.color} group-hover:border-blue-500/40 transition-colors`}>
-                    <Icon size={16} />
+        {loading ? (
+          <div className="dt-card p-6 text-sm font-mono text-zinc-500">
+            {techLabels
+              ? "LOADING_WORKSTREAMS..."
+              : "Loading community projects..."}
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="dt-card p-6 text-sm font-mono text-zinc-500">
+            {techLabels
+              ? "NO_SHARED_WORKSTREAMS"
+              : "No community initiatives yet."}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {projects.map((project) => {
+              const Icon = communityProjectIcon(project);
+              const memberCount =
+                project.community_project_members?.length ?? 0;
+              return (
+                <a
+                  key={project.id}
+                  href={`/community-projects/${project.slug}`}
+                  className="dt-card p-5 group flex flex-col hover:border-blue-500/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div
+                      className={`w-8 h-8 rounded-sm bg-zinc-900 border border-zinc-800 flex items-center justify-center ${communityProjectColor(project)} group-hover:border-blue-500/40 transition-colors`}
+                    >
+                      <Icon size={16} />
+                    </div>
+                    <span className="text-[10px] font-mono border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-zinc-500 uppercase rounded-sm">
+                      {project.status}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-mono border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-zinc-500 uppercase rounded-sm">
-                    {project.status}
-                  </span>
-                </div>
 
-                <h3 className="font-bold text-base text-zinc-100 mb-2">{project.title}</h3>
-                <p className="text-sm text-zinc-400 mb-6 flex-grow">{project.description}</p>
+                  <h3 className="font-bold text-base text-zinc-100 mb-2">
+                    {project.name}
+                  </h3>
+                  <p className="text-sm text-zinc-400 mb-6 flex-grow">
+                    {project.tagline ||
+                      project.description ||
+                      "Community initiative from Italian Builders."}
+                  </p>
 
-                <div className="flex items-center justify-between text-xs font-mono text-zinc-500 pt-4 border-t border-zinc-800">
-                  <span className="uppercase">{project.category}</span>
-                  <a href="#" className="text-blue-400 hover:text-blue-300 font-semibold group-hover:underline flex items-center gap-1">
-                    {techLabels ? "OPEN_PROJECT" : "View project"} <ArrowRight size={12} />
-                  </a>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                  <div className="flex items-center justify-between text-xs font-mono text-zinc-500 pt-4 border-t border-zinc-800">
+                    <span className="uppercase">
+                      {project.category || "Community"}
+                    </span>
+                    <span className="text-blue-400 font-semibold group-hover:underline flex items-center gap-1">
+                      {techLabels
+                        ? `MEMBERS=${memberCount}`
+                        : `${memberCount} contributors`}{" "}
+                      <ArrowRight size={12} />
+                    </span>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -1023,14 +1473,16 @@ export function Join() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!supabase) {
-      setErrorMsg("Supabase is not configured yet. Please try again later.");
+      setErrorMsg(
+        "The community backend is not configured yet. Please try again later.",
+      );
       return;
     }
 
     setIsSubmitting(true);
     setErrorMsg("");
     const formData = new FormData(e.currentTarget);
-    
+
     // Map empty optional fields to undefined
     const getValue = (key: string) => {
       const val = formData.get(key)?.toString();
@@ -1039,7 +1491,9 @@ export function Join() {
 
     const { error } = await supabase.from("waitlist_signups").insert({
       name: String(formData.get("name") ?? "").trim(),
-      email: String(formData.get("email") ?? "").trim().toLowerCase(),
+      email: String(formData.get("email") ?? "")
+        .trim()
+        .toLowerCase(),
       role: String(formData.get("role") ?? "").trim(),
       building: getValue("building"),
       x_handle: getValue("twitter"),
@@ -1055,7 +1509,9 @@ export function Join() {
         setSubmitted(true);
         return;
       }
-      setErrorMsg(error.message || "Could not submit the form. Please try again.");
+      setErrorMsg(
+        error.message || "Could not submit the form. Please try again.",
+      );
       return;
     }
 
@@ -1063,16 +1519,20 @@ export function Join() {
   };
 
   return (
-    <section id="join" className="py-24 bg-zinc-900 text-zinc-300 border-t-4 border-blue-600">
+    <section
+      id="join"
+      className="py-24 bg-zinc-900 text-zinc-300 border-t-4 border-blue-600"
+    >
       <div className="container mx-auto px-4 md:px-6 max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.86fr)_minmax(500px,1.14fr)] gap-16 lg:gap-14 xl:gap-16 items-start">
-
           <div>
             <div className="text-xs font-mono text-blue-400 mb-4 font-semibold tracking-wider uppercase flex items-center gap-2">
               <span>{techLabels ? "ACCESS_MATRIX" : "Who can join"}</span>
               {typeof waitlistCount === "number" && (
                 <span className="bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-sm text-[10px]">
-                  {techLabels ? `${waitlistCount} queued` : `${waitlistCount} waiting`}
+                  {techLabels
+                    ? `${waitlistCount} queued`
+                    : `${waitlistCount} waiting`}
                 </span>
               )}
             </div>
@@ -1094,8 +1554,12 @@ export function Join() {
                       <Icon size={14} className="text-zinc-300" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-white mb-1">{item.title}</h4>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{item.description}</p>
+                      <h4 className="text-sm font-bold text-white mb-1">
+                        {item.title}
+                      </h4>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        {item.description}
+                      </p>
                     </div>
                   </div>
                 );
@@ -1106,12 +1570,12 @@ export function Join() {
           <div className="bg-zinc-800 border border-zinc-700 p-6 sm:p-8 lg:p-9 rounded-sm dt-card relative overflow-hidden">
             {/* Terminal styling decorative top */}
             <div className="absolute top-0 left-0 right-0 h-6 bg-zinc-900 border-b border-zinc-700 flex items-center px-3 gap-1.5">
-               <div className="w-2 h-2 rounded-full bg-red-500/80"></div>
-               <div className="w-2 h-2 rounded-full bg-amber-500/80"></div>
-               <div className="w-2 h-2 rounded-full bg-green-500/80"></div>
-               <span className="ml-2 text-[10px] font-mono text-zinc-500">
+              <div className="w-2 h-2 rounded-full bg-red-500/80"></div>
+              <div className="w-2 h-2 rounded-full bg-amber-500/80"></div>
+              <div className="w-2 h-2 rounded-full bg-green-500/80"></div>
+              <span className="ml-2 text-[10px] font-mono text-zinc-500">
                 {techLabels ? "ACCESS_REQUEST.form" : "Join request"}
-               </span>
+              </span>
             </div>
 
             <div className="mt-4">
@@ -1143,19 +1607,28 @@ export function Join() {
                       {techLabels ? "ACCESS_REQUEST" : "Join the Waitlist"}
                     </h3>
                     <p className={smallHelperClass}>
-                      {techLabels ? "Create a pending builder record." : "Tell us who you are and what you're building."}
+                      {techLabels
+                        ? "Create a pending builder record."
+                        : "Tell us who you are and what you're building."}
                     </p>
                   </div>
 
                   {errorMsg && (
                     <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-sm mb-4">
-                      <p className={`text-xs text-red-400 ${techLabels ? "font-mono" : "font-medium"}`}>{techLabels ? "ERR:" : "Problem:"} {errorMsg}</p>
+                      <p
+                        className={`text-xs text-red-400 ${techLabels ? "font-mono" : "font-medium"}`}
+                      >
+                        {techLabels ? "ERR:" : "Problem:"} {errorMsg}
+                      </p>
                     </div>
                   )}
 
-                    <div className="space-y-3">
+                  <div className="space-y-3">
                     <div className="space-y-1">
-                      <Label htmlFor="name" className={formLabelClass}>{techLabels ? "FULL_NAME" : "Name"} <span className="text-blue-400">*</span></Label>
+                      <Label htmlFor="name" className={formLabelClass}>
+                        {techLabels ? "FULL_NAME" : "Name"}{" "}
+                        <span className="text-blue-400">*</span>
+                      </Label>
                       <Input
                         id="name"
                         name="name"
@@ -1166,7 +1639,10 @@ export function Join() {
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="email" className={formLabelClass}>{techLabels ? "EMAIL_ADDRESS" : "Email"} <span className="text-blue-400">*</span></Label>
+                      <Label htmlFor="email" className={formLabelClass}>
+                        {techLabels ? "EMAIL_ADDRESS" : "Email"}{" "}
+                        <span className="text-blue-400">*</span>
+                      </Label>
                       <Input
                         id="email"
                         name="email"
@@ -1178,14 +1654,26 @@ export function Join() {
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="role" className={formLabelClass}>{techLabels ? "ROLE_VECTOR" : "Role"} <span className="text-blue-400">*</span></Label>
+                      <Label htmlFor="role" className={formLabelClass}>
+                        {techLabels ? "ROLE_VECTOR" : "Role"}{" "}
+                        <span className="text-blue-400">*</span>
+                      </Label>
                       <Select required defaultValue={ROLES[0]} name="role">
-                        <SelectTrigger id="role" className={`bg-zinc-900 border-zinc-700 text-zinc-100 h-9 text-sm rounded-sm focus:ring-1 focus:ring-blue-500 ${techLabels ? "font-mono" : ""}`}>
+                        <SelectTrigger
+                          id="role"
+                          className={`bg-zinc-900 border-zinc-700 text-zinc-100 h-9 text-sm rounded-sm focus:ring-1 focus:ring-blue-500 ${techLabels ? "font-mono" : ""}`}
+                        >
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-800 border-zinc-700 text-zinc-100 rounded-sm">
-                          {ROLES.map(role => (
-                            <SelectItem key={role} value={role} className={`focus:bg-zinc-700 focus:text-white text-xs ${techLabels ? "font-mono" : ""}`}>{role}</SelectItem>
+                          {ROLES.map((role) => (
+                            <SelectItem
+                              key={role}
+                              value={role}
+                              className={`focus:bg-zinc-700 focus:text-white text-xs ${techLabels ? "font-mono" : ""}`}
+                            >
+                              {role}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -1193,7 +1681,12 @@ export function Join() {
 
                     <div className="space-y-1">
                       <Label htmlFor="building" className={formLabelClass}>
-                        {techLabels ? "BUILD_CONTEXT" : "What are you building?"} <span className="text-zinc-600">{techLabels ? "(optional)" : "(optional)"}</span>
+                        {techLabels
+                          ? "BUILD_CONTEXT"
+                          : "What are you building?"}{" "}
+                        <span className="text-zinc-600">
+                          {techLabels ? "(optional)" : "(optional)"}
+                        </span>
                       </Label>
                       <Input
                         id="building"
@@ -1205,49 +1698,105 @@ export function Join() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label htmlFor="twitter" className={formLabelClass}>{techLabels ? "X_HANDLE (optional)" : "X (optional)"}</Label>
+                        <Label htmlFor="twitter" className={formLabelClass}>
+                          {techLabels ? "X_HANDLE (optional)" : "X (optional)"}
+                        </Label>
                         <div className="relative">
-                          <Twitter size={14} className="absolute left-2.5 top-2.5 text-zinc-500" />
-                          <Input id="twitter" name="twitter" placeholder="@username" className={iconInputClass} />
+                          <Twitter
+                            size={14}
+                            className="absolute left-2.5 top-2.5 text-zinc-500"
+                          />
+                          <Input
+                            id="twitter"
+                            name="twitter"
+                            placeholder="@username"
+                            className={iconInputClass}
+                          />
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="linkedin" className={formLabelClass}>{techLabels ? "LINKEDIN_URL (optional)" : "LinkedIn (optional)"}</Label>
+                        <Label htmlFor="linkedin" className={formLabelClass}>
+                          {techLabels
+                            ? "LINKEDIN_URL (optional)"
+                            : "LinkedIn (optional)"}
+                        </Label>
                         <div className="relative">
-                          <Linkedin size={14} className="absolute left-2.5 top-2.5 text-zinc-500" />
-                          <Input id="linkedin" name="linkedin" placeholder="in/username" className={iconInputClass} />
+                          <Linkedin
+                            size={14}
+                            className="absolute left-2.5 top-2.5 text-zinc-500"
+                          />
+                          <Input
+                            id="linkedin"
+                            name="linkedin"
+                            placeholder="in/username"
+                            className={iconInputClass}
+                          />
                         </div>
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="website" className={formLabelClass}>{techLabels ? "WEBSITE_URL (optional)" : "Website (optional)"}</Label>
+                      <Label htmlFor="website" className={formLabelClass}>
+                        {techLabels
+                          ? "WEBSITE_URL (optional)"
+                          : "Website (optional)"}
+                      </Label>
                       <div className="relative">
-                        <Globe size={14} className="absolute left-2.5 top-2.5 text-zinc-500" />
-                        <Input id="website" name="website" type="url" placeholder="https://..." className={iconInputClass} />
+                        <Globe
+                          size={14}
+                          className="absolute left-2.5 top-2.5 text-zinc-500"
+                        />
+                        <Input
+                          id="website"
+                          name="website"
+                          type="url"
+                          placeholder="https://..."
+                          className={iconInputClass}
+                        />
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="project" className={formLabelClass}>{techLabels ? "PROJECT_URL (optional)" : "Project URL (optional)"}</Label>
+                      <Label htmlFor="project" className={formLabelClass}>
+                        {techLabels
+                          ? "PROJECT_URL (optional)"
+                          : "Project URL (optional)"}
+                      </Label>
                       <div className="relative">
-                        <LinkIcon size={14} className="absolute left-2.5 top-2.5 text-zinc-500" />
-                        <Input id="project" name="project" type="url" placeholder="https://..." className={iconInputClass} />
+                        <LinkIcon
+                          size={14}
+                          className="absolute left-2.5 top-2.5 text-zinc-500"
+                        />
+                        <Input
+                          id="project"
+                          name="project"
+                          type="url"
+                          placeholder="https://..."
+                          className={iconInputClass}
+                        />
                       </div>
                     </div>
                   </div>
 
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={isSubmitting}
                     className={buttonLabelClass}
                   >
                     {isSubmitting
-                      ? techLabels ? "SUBMITTING..." : "Submitting..."
-                      : techLabels ? "SUBMIT_ACCESS_REQUEST" : "Join the Community"}
+                      ? techLabels
+                        ? "SUBMITTING..."
+                        : "Submitting..."
+                      : techLabels
+                        ? "SUBMIT_ACCESS_REQUEST"
+                        : "Join the Community"}
                   </Button>
-                  <p className={`text-[10px] text-center text-zinc-500 mt-3 ${techLabels ? "font-mono" : ""}`}>
-                    {techLabels ? "Used only for access and launch updates." : "We'll use this to keep you updated."}
+                  <p
+                    className={`text-[10px] text-center text-zinc-500 mt-3 ${techLabels ? "font-mono" : ""}`}
+                  >
+                    {techLabels
+                      ? "Used only for access and launch updates."
+                      : "We'll use this to keep you updated."}
                   </p>
                 </form>
               )}
@@ -1265,13 +1814,17 @@ export function Footer() {
   return (
     <footer className="bg-zinc-950 border-t border-zinc-900 pt-12 pb-8 text-zinc-400">
       <div className="container mx-auto px-4 md:px-6">
-        <div className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 ${techLabels ? "font-mono text-xs" : "text-sm"}`}>
+        <div
+          className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 ${techLabels ? "font-mono text-xs" : "text-sm"}`}
+        >
           <div className="col-span-2 lg:col-span-2">
             <div className="flex items-center gap-2 mb-4 text-white">
               <div className="w-5 h-5 bg-white text-zinc-900 flex items-center justify-center text-[10px] font-bold">
                 IT
               </div>
-              <span className={`font-semibold ${techLabels ? "uppercase tracking-wider" : ""}`}>
+              <span
+                className={`font-semibold ${techLabels ? "uppercase tracking-wider" : ""}`}
+              >
                 {techLabels ? "Italian Builders" : "Italian Builders"}
               </span>
             </div>
@@ -1281,45 +1834,112 @@ export function Footer() {
                 : "Connecting people who build. A community for builders, founders, developers, designers and creators across Italy."}
             </p>
             <div className="flex gap-4">
-              <a href="https://x.com/italianbldrs" target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-white transition-colors" aria-label="X">
+              <a
+                href="https://x.com/italianbldrs"
+                target="_blank"
+                rel="noreferrer"
+                className="text-zinc-500 hover:text-white transition-colors"
+                aria-label="X"
+              >
                 <Twitter size={16} />
               </a>
-              <a href="https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all" target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-white transition-colors" aria-label="LinkedIn">
+              <a
+                href="https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all"
+                target="_blank"
+                rel="noreferrer"
+                className="text-zinc-500 hover:text-white transition-colors"
+                aria-label="LinkedIn"
+              >
                 <Linkedin size={16} />
               </a>
             </div>
           </div>
 
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase tracking-wider">Platform</h4>
+            <h4 className="text-white font-bold mb-4 uppercase tracking-wider">
+              Platform
+            </h4>
             <ul className="space-y-2">
-              <li><a href="/builders" className="hover:text-white transition-colors">Directory</a></li>
-              <li><a href="/projects" className="hover:text-white transition-colors">Showcase</a></li>
-              <li><a href="/community-projects" className="hover:text-white transition-colors">{techLabels ? "/community-projects" : "Community projects"}</a></li>
+              <li>
+                <a
+                  href="/builders"
+                  className="hover:text-white transition-colors"
+                >
+                  Directory
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/projects"
+                  className="hover:text-white transition-colors"
+                >
+                  Showcase
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/community-projects"
+                  className="hover:text-white transition-colors"
+                >
+                  {techLabels ? "/community-projects" : "Community projects"}
+                </a>
+              </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase tracking-wider">Resources</h4>
+            <h4 className="text-white font-bold mb-4 uppercase tracking-wider">
+              Resources
+            </h4>
             <ul className="space-y-2">
-              <li><a href="#" className="hover:text-white transition-colors">Mission</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Guidelines</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Changelog</a></li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Mission
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Guidelines
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Changelog
+                </a>
+              </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase tracking-wider">Legal</h4>
+            <h4 className="text-white font-bold mb-4 uppercase tracking-wider">
+              Legal
+            </h4>
             <ul className="space-y-2">
-              <li><a href="#" className="hover:text-white transition-colors">{techLabels ? "PRIVACY_POLICY" : "Privacy policy"}</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">{techLabels ? "TERMS_OF_SERVICE" : "Terms of service"}</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">{techLabels ? "CONTACT_ENDPOINT" : "Contact us"}</a></li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  {techLabels ? "PRIVACY_POLICY" : "Privacy policy"}
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  {techLabels ? "TERMS_OF_SERVICE" : "Terms of service"}
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  {techLabels ? "CONTACT_ENDPOINT" : "Contact us"}
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className={`pt-6 border-t border-zinc-900 flex flex-col md:flex-row items-center justify-between gap-4 ${techLabels ? "font-mono text-[10px]" : "text-xs"}`}>
-          <p className="text-zinc-600">© {new Date().getFullYear()} ITALIAN BUILDERS. ALL RIGHTS RESERVED.</p>
+        <div
+          className={`pt-6 border-t border-zinc-900 flex flex-col md:flex-row items-center justify-between gap-4 ${techLabels ? "font-mono text-[10px]" : "text-xs"}`}
+        >
+          <p className="text-zinc-600">
+            © {new Date().getFullYear()} ITALIAN BUILDERS. ALL RIGHTS RESERVED.
+          </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
             <a
               href="/dashboard"
@@ -1338,14 +1958,26 @@ export function Footer() {
 // --- Main Page Component ---
 
 export default function Home() {
+  const homeContent = useHomeDatabaseContent();
+
   return (
     <div className="dark-technical-theme min-h-screen">
       <Header />
       <main>
-        <Hero />
-        <FeaturedBuilders />
-        <BuilderProjects />
-        <CommunityProjects />
+        <Hero content={homeContent} />
+        <DatabaseStatusBanner error={homeContent.error} />
+        <FeaturedBuilders
+          profiles={homeContent.profiles}
+          loading={homeContent.loading}
+        />
+        <BuilderProjects
+          projects={homeContent.projects}
+          loading={homeContent.loading}
+        />
+        <CommunityProjects
+          projects={homeContent.communityProjects}
+          loading={homeContent.loading}
+        />
         <Join />
       </main>
       <Footer />

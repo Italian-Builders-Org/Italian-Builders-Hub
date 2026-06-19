@@ -254,7 +254,7 @@ async function verifySupabaseUser(authorization) {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase is not configured.");
+    throw new Error("Authentication is not configured.");
   }
 
   const response = await fetch(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/user`, {
