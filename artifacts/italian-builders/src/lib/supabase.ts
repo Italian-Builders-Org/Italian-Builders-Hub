@@ -28,6 +28,8 @@ export type Profile = {
   location: string | null;
   city: string | null;
   country: string;
+  latitude: number | null;
+  longitude: number | null;
   telegram_handle: string | null;
   email: string | null;
   email_public: boolean;
@@ -74,6 +76,20 @@ export type Project = {
   created_at: string;
   updated_at: string;
   profiles?: Pick<Profile, "username" | "full_name" | "avatar_url" | "headline" | "telegram_handle"> | null;
+  project_members?: ProjectMember[];
+};
+
+export type ProjectMember = {
+  id: string;
+  project_id: string;
+  profile_id: string;
+  role: string | null;
+  contribution_note: string | null;
+  invited_by: string | null;
+  created_at: string;
+  updated_at: string;
+  profiles?: Pick<Profile, "username" | "full_name" | "avatar_url" | "headline"> | null;
+  projects?: Project | null;
 };
 
 export type CommunityProject = {
@@ -102,7 +118,9 @@ export type CommunityProjectMember = {
   contribution_note: string | null;
   assigned_by: string | null;
   created_at: string;
+  updated_at?: string;
   profiles?: Pick<Profile, "username" | "full_name" | "avatar_url" | "headline"> | null;
+  community_projects?: CommunityProject | null;
 };
 
 export type Invite = {

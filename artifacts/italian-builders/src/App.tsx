@@ -20,6 +20,7 @@ import {
   CommunityProjectDetailPage,
   CommunityProjectsDirectoryPage,
   DashboardPage,
+  DashboardContributionsPage,
   DashboardProfilePage,
   DashboardProjectsPage,
   InvitePage,
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/os-projects" component={OpenSourcePage} />
       <Route path="/invite/:token" component={InvitePage} />
       <Route path="/dashboard" component={DashboardPage} />
+      <Route path="/dashboard/contributions" component={DashboardContributionsPage} />
       <Route path="/dashboard/profile" component={DashboardProfilePage} />
       <Route path="/dashboard/projects" component={DashboardProjectsPage} />
       <Route path="/dashboard/projects/new" component={ProjectEditorPage} />

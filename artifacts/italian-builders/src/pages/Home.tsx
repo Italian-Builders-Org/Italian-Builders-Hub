@@ -55,16 +55,23 @@ const ROLES = [
 ];
 
 const CITY_COORDS: Record<string, [number, number]> = {
-  Milano: [45.4642, 9.19],
-  Torino: [45.0703, 7.6869],
-  Bologna: [44.4949, 11.3426],
-  Roma: [41.9028, 12.4964],
-  Napoli: [40.8518, 14.2681],
-  Firenze: [43.7696, 11.2558],
-  Verona: [45.4384, 10.9916],
-  Palermo: [38.1157, 13.3615],
-  Genova: [44.4056, 8.9463],
-  Padova: [45.4064, 11.8768],
+  milano: [45.4642, 9.19],
+  milan: [45.4642, 9.19],
+  torino: [45.0703, 7.6869],
+  turin: [45.0703, 7.6869],
+  bologna: [44.4949, 11.3426],
+  roma: [41.9028, 12.4964],
+  rome: [41.9028, 12.4964],
+  napoli: [40.8518, 14.2681],
+  naples: [40.8518, 14.2681],
+  firenze: [43.7696, 11.2558],
+  florence: [43.7696, 11.2558],
+  verona: [45.4384, 10.9916],
+  palermo: [38.1157, 13.3615],
+  genova: [44.4056, 8.9463],
+  genoa: [44.4056, 8.9463],
+  padova: [45.4064, 11.8768],
+  padua: [45.4064, 11.8768],
 };
 
 const EUROPE_GEOJSON_URL = "/maps/europe-italy-vector.geojson";
@@ -217,14 +224,14 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm">
       <div className="container mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <a href="/" className="flex items-center gap-3">
           <div className="w-6 h-6 bg-white text-zinc-900 flex items-center justify-center font-mono text-xs font-bold leading-none">
             IT
           </div>
           <span className={`font-semibold text-sm tracking-tight text-zinc-100 ${techLabels ? "uppercase" : ""}`}>
             {techLabels ? "Italian Builders" : "Italian Builders"}
           </span>
-        </div>
+        </a>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-6">
@@ -272,32 +279,173 @@ type GlobePoint = {
   radius: number;
 };
 
-function BuilderGlobe({ activeBuilder }: { activeBuilder: any | null }) {
+type HomeMapBuilder = {
+  id: string | number;
+  name: string;
+  username?: string;
+  role: string;
+  location: string;
+  avatarUrl: string;
+  highlight: string;
+  tags: string[];
+  lat: number;
+  lng: number;
+};
+
+function validCoordinate(lat?: number | null, lng?: number | null) {
+  return (
+    typeof lat === "number" &&
+    typeof lng === "number" &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  );
+}
+
+function cityKey(value?: string | null) {
+  return value
+    ?.split(",")[0]
+    ?.trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function fallbackCoordsForLocation(
+  city?: string | null,
+  location?: string | null,
+) {
+  const directCity = cityKey(city);
+  if (directCity && CITY_COORDS[directCity]) return CITY_COORDS[directCity];
+
+  const directLocation = cityKey(location);
+  if (directLocation && CITY_COORDS[directLocation]) {
+    return CITY_COORDS[directLocation];
+  }
+
+  return null;
+}
+
+function profileMapCoords(profile: Pick<Profile, "latitude" | "longitude" | "city" | "location">) {
+  if (validCoordinate(profile.latitude, profile.longitude)) {
+    return [profile.latitude, profile.longitude] as [number, number];
+  }
+  return fallbackCoordsForLocation(profile.city, profile.location);
+}
+
+function profileToMapBuilder(profile: Profile): HomeMapBuilder | null {
+  const coords = profileMapCoords(profile);
+  if (!coords) return null;
+
+  return {
+    id: profile.id,
+    name: profile.full_name,
+    username: profile.username,
+    role: profile.headline || profile.role || "Builder",
+    location: profile.location || profile.city || profile.country || "Italy",
+    avatarUrl: profile.avatar_url || "/images/avatar-1.png",
+    highlight: profile.bio || "Building in the Italian Builders community.",
+    tags: profile.skills?.length ? profile.skills.slice(0, 3) : [profile.role || "Builder"].filter(Boolean),
+    lat: coords[0],
+    lng: coords[1],
+  };
+}
+
+function staticBuilderToMapBuilder(builder: (typeof STATIC_BUILDERS)[number]): HomeMapBuilder | null {
+  const coords = fallbackCoordsForLocation(builder.location, builder.location);
+  if (!coords) return null;
+
+  return {
+    ...builder,
+    id: builder.id,
+    username: undefined,
+    lat: coords[0],
+    lng: coords[1],
+  };
+}
+
+function useHomeMapBuilders() {
+  const [builders, setBuilders] = useState<HomeMapBuilder[]>([]);
+  const [loading, setLoading] = useState(Boolean(supabase));
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("visibility", "public")
+        .order("created_at", { ascending: false })
+        .limit(80);
+
+      if (cancelled) return;
+      setBuilders(((data as Profile[] | null) ?? []).map(profileToMapBuilder).filter(Boolean) as HomeMapBuilder[]);
+      setLoading(false);
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { builders, loading };
+}
+
+function BuilderGlobe({
+  builders,
+  activeBuilder,
+}: {
+  builders: HomeMapBuilder[];
+  activeBuilder: HomeMapBuilder | null;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<any>(null);
   const activeBuilderRef = useRef(activeBuilder);
+  const buildersRef = useRef(builders);
 
-  const activePoint = (builder: any | null): GlobePoint[] => {
-    const location = builder?.location ? CITY_COORDS[builder.location] : undefined;
-    return location
+  const pointData = (
+    allBuilders: HomeMapBuilder[],
+    active: HomeMapBuilder | null,
+  ): GlobePoint[] => {
+    const base = allBuilders.map((builder) => ({
+      lat: builder.lat,
+      lng: builder.lng,
+      color: builder.id === active?.id ? MAP_PIN_OUTLINE : MAP_PIN_COLOR,
+      radius: builder.id === active?.id ? 0.17 : 0.075,
+    }));
+
+    return active
       ? [
-          { lat: location[0], lng: location[1], color: MAP_PIN_OUTLINE, radius: 0.17 },
-          { lat: location[0], lng: location[1], color: MAP_PIN_COLOR, radius: 0.12 },
+          ...base,
+          {
+            lat: active.lat,
+            lng: active.lng,
+            color: MAP_PIN_COLOR,
+            radius: 0.12,
+          },
         ]
-      : [];
+      : base;
   };
 
-  const activeRing = (builder: any | null): GlobePoint[] => {
-    const location = builder?.location ? CITY_COORDS[builder.location] : undefined;
-    return location ? [{ lat: location[0], lng: location[1], color: MAP_PIN_RING, radius: 0.12 }] : [];
+  const activeRing = (builder: HomeMapBuilder | null): GlobePoint[] => {
+    return builder ? [{ lat: builder.lat, lng: builder.lng, color: MAP_PIN_RING, radius: 0.12 }] : [];
   };
 
   useEffect(() => {
     activeBuilderRef.current = activeBuilder;
-    const pointData = activePoint(activeBuilder);
-    globeRef.current?.pointsData(pointData);
+    buildersRef.current = builders;
+    globeRef.current?.pointsData(pointData(builders, activeBuilder));
     globeRef.current?.ringsData(activeRing(activeBuilder));
-  }, [activeBuilder]);
+  }, [builders, activeBuilder]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -330,7 +478,7 @@ function BuilderGlobe({ activeBuilder }: { activeBuilder: any | null }) {
         .atmosphereColor("#3b82f6")
         .atmosphereAltitude(0.11)
         .globeCurvatureResolution(2)
-        .pointsData(activePoint(activeBuilderRef.current))
+        .pointsData(pointData(buildersRef.current, activeBuilderRef.current))
         .pointLat("lat")
         .pointLng("lng")
         .pointColor("color")
@@ -444,8 +592,22 @@ function BuilderGlobe({ activeBuilder }: { activeBuilder: any | null }) {
 function Hero() {
   const { data: buildersData } = useListBuilders({ query: { queryKey: getListBuildersQueryKey() } });
   const { data: statsData } = useGetDirectoryStats({ query: { queryKey: getGetDirectoryStatsQueryKey() } });
-  const builders = hasItems(buildersData) ? buildersData : STATIC_BUILDERS;
-  const stats = isDirectoryStats(statsData) ? statsData : STATIC_DIRECTORY_STATS;
+  const { builders: databaseBuilders, loading: mapLoading } = useHomeMapBuilders();
+  const fallbackBuilders = (hasItems(buildersData) ? buildersData : STATIC_BUILDERS)
+    .map(staticBuilderToMapBuilder)
+    .filter(Boolean) as HomeMapBuilder[];
+  const builders = databaseBuilders.length > 0 ? databaseBuilders : fallbackBuilders;
+  const uniqueCities = Array.from(new Set(builders.map((builder) => builder.location).filter(Boolean)));
+  const stats =
+    databaseBuilders.length > 0
+      ? {
+          builders: String(databaseBuilders.length),
+          regions: "1",
+          cities: String(uniqueCities.length),
+        }
+      : isDirectoryStats(statsData)
+        ? statsData
+        : STATIC_DIRECTORY_STATS;
   const { techLabels } = useTechLabels();
   
   const [active, setActive] = useState(0);
@@ -458,8 +620,18 @@ function Hero() {
     return () => clearInterval(id);
   }, [builders.length]);
 
+  useEffect(() => {
+    if (active >= builders.length) setActive(0);
+  }, [active, builders.length]);
+
   const current = builders.length > 0 ? builders[active] : null;
   const avatarStack = builders.slice(0, 3);
+  const builderCountLabel =
+    databaseBuilders.length > 0
+      ? `${databaseBuilders.length} mapped builders`
+      : mapLoading
+        ? "Loading builders..."
+        : "Demo builders across Italy";
 
   return (
     <section className="relative pt-20 pb-24 md:pt-28 md:pb-32 border-b border-zinc-800 overflow-hidden bg-zinc-950">
@@ -493,7 +665,7 @@ function Hero() {
                 ))}
               </div>
               <div className="h-4 w-px bg-zinc-700" />
-              <p>500+ builders across Italy</p>
+              <p>{builderCountLabel}</p>
             </div>
           </div>
 
@@ -509,7 +681,7 @@ function Hero() {
               </div>
 
               <div data-globe-panel className="relative h-[330px] w-full sm:h-[420px] lg:h-[520px] xl:h-[590px]">
-                <BuilderGlobe activeBuilder={current} />
+                <BuilderGlobe builders={builders} activeBuilder={current} />
 
                 {current && (
                   <div className="absolute bottom-2 left-2 right-2 z-10">
@@ -518,7 +690,16 @@ function Hero() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-                          <span className="text-xs font-bold text-zinc-100 truncate">{current.name}</span>
+                          {current.username ? (
+                            <a
+                              href={`/builders/${current.username}`}
+                              className="truncate text-xs font-bold text-zinc-100 hover:text-blue-300"
+                            >
+                              {current.name}
+                            </a>
+                          ) : (
+                            <span className="truncate text-xs font-bold text-zinc-100">{current.name}</span>
+                          )}
                         </div>
                         <div className="text-[10px] font-mono text-zinc-500 truncate">
                           {current.role} · {current.location}

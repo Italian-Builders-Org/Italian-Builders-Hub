@@ -32,6 +32,7 @@ import {
   type Profile,
   type Project,
   type ProjectLookingFor,
+  type ProjectMember,
   isSupabaseConfigured,
   joinList,
   newInviteToken,
@@ -86,6 +87,25 @@ function cleanLookingForItems(
     }))
     .filter((item) => item.tag.length > 0)
     .slice(0, maxLookingForItems);
+}
+
+function normalizeCommunityHandle(value: string) {
+  return value
+    .trim()
+    .replace(/^@+/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "");
+}
+
+function splitCommunityHandles(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\s,]+/)
+        .map(normalizeCommunityHandle)
+        .filter(Boolean),
+    ),
+  );
 }
 
 function telegramDeepLink(handle?: string | null, text?: string) {
@@ -822,6 +842,9 @@ export function BuilderProfilePage() {
   const params = useParams<{ username: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectMemberships, setProjectMemberships] = useState<ProjectMember[]>(
+    [],
+  );
   const [assignments, setAssignments] = useState<CommunityProjectMember[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -840,23 +863,32 @@ export function BuilderProfilePage() {
       const nextProfile = profileData as Profile | null;
       setProfile(nextProfile);
       if (nextProfile) {
-        const [{ data: projectData }, { data: memberData }] = await Promise.all(
-          [
+        const [
+          { data: projectData },
+          { data: projectMemberData },
+          { data: memberData },
+        ] = await Promise.all([
             supabase
               .from("projects")
               .select(
-                "*, profiles(username, full_name, avatar_url, headline, telegram_handle)",
+                "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id)",
               )
               .eq("owner_id", nextProfile.id)
               .eq("is_public", true)
               .order("created_at", { ascending: false }),
             supabase
+              .from("project_members")
+              .select(
+                "*, projects(*, profiles(username, full_name, avatar_url, headline, telegram_handle))",
+              )
+              .eq("profile_id", nextProfile.id),
+            supabase
               .from("community_project_members")
               .select("*, community_projects(*)")
               .eq("profile_id", nextProfile.id),
-          ],
-        );
+        ]);
         setProjects((projectData as Project[]) ?? []);
+        setProjectMemberships((projectMemberData as ProjectMember[]) ?? []);
         setAssignments((memberData as CommunityProjectMember[]) ?? []);
       }
       setLoading(false);
@@ -972,6 +1004,42 @@ export function BuilderProfilePage() {
           </Card>
           <Card className="p-6">
             <h2 className="mb-4 text-xl font-bold text-zinc-100">
+              {techLabels ? "PROJECT_COLLABORATIONS" : "Project collaborations"}
+            </h2>
+            {projectMemberships.length === 0 ? (
+              <p className="text-sm text-zinc-500">
+                {techLabels
+                  ? "NO_PROJECT_COLLABORATIONS"
+                  : "No project collaborations yet."}
+              </p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {projectMemberships.map((member) =>
+                  member.projects ? (
+                    <ProjectCard
+                      key={member.id}
+                      project={{
+                        ...member.projects,
+                        project_members: [
+                          {
+                            ...member,
+                            profiles: {
+                              username: profile.username,
+                              full_name: profile.full_name,
+                              avatar_url: profile.avatar_url,
+                              headline: profile.headline,
+                            },
+                          },
+                        ],
+                      }}
+                    />
+                  ) : null,
+                )}
+              </div>
+            )}
+          </Card>
+          <Card className="p-6">
+            <h2 className="mb-4 text-xl font-bold text-zinc-100">
               {techLabels ? "COMMUNITY_ASSIGNMENTS" : "Community projects"}
             </h2>
             {assignments.length === 0 ? (
@@ -1078,6 +1146,7 @@ export function BuilderProfilePage() {
 function ProjectCard({ project }: { project: Project }) {
   const { techLabels } = useTechLabels();
   const lookingFor = cleanLookingForItems(project.looking_for);
+  const contributorCount = project.project_members?.length ?? 0;
   return (
     <a
       href={`/projects/${project.slug}`}
@@ -1118,6 +1187,13 @@ function ProjectCard({ project }: { project: Project }) {
             ))}
           </div>
         )}
+        {contributorCount > 0 && (
+          <p className="mb-4 text-xs font-mono uppercase text-zinc-600">
+            {techLabels
+              ? `CONTRIBUTORS=${contributorCount}`
+              : `${contributorCount} contributor${contributorCount === 1 ? "" : "s"}`}
+          </p>
+        )}
         <span className="mt-auto inline-flex items-center gap-2 text-xs font-mono uppercase text-blue-400">
           {techLabels ? "OPEN_ARTIFACT" : "View project"}{" "}
           <ArrowRight size={12} />
@@ -1143,7 +1219,7 @@ export function ProjectsDirectoryPage() {
       const { data } = await supabase
         .from("projects")
         .select(
-          "*, profiles(username, full_name, avatar_url, headline, telegram_handle)",
+          "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id)",
         )
         .eq("is_public", true)
         .order("created_at", { ascending: false });
@@ -1264,7 +1340,7 @@ export function ProjectDetailPage() {
       const { data } = await supabase
         .from("projects")
         .select(
-          "*, profiles(username, full_name, avatar_url, headline, telegram_handle)",
+          "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(*, profiles(username, full_name, avatar_url, headline))",
         )
         .eq("slug", params.slug)
         .maybeSingle();
@@ -1341,6 +1417,63 @@ export function ProjectDetailPage() {
           </p>
         </Card>
         <aside className="space-y-6">
+          <Card className="p-6">
+            <h2 className="mb-4 text-xl font-bold text-zinc-100">
+              {techLabels ? "PROJECT_MEMBERS" : "Contributors"}
+            </h2>
+            <div className="space-y-3">
+              {project.profiles?.username && (
+                <a
+                  href={`/builders/${project.profiles.username}`}
+                  className="flex gap-3 rounded-sm border border-zinc-800 bg-zinc-900 p-3 hover:border-blue-500/50"
+                >
+                  <img
+                    src={project.profiles.avatar_url || "/images/avatar-1.png"}
+                    alt=""
+                    className="h-9 w-9 rounded-sm border border-zinc-700 object-cover grayscale"
+                  />
+                  <div>
+                    <p className="font-semibold text-zinc-100">
+                      {project.profiles.full_name}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      {techLabels ? "OWNER_NODE" : "Owner"}
+                    </p>
+                  </div>
+                </a>
+              )}
+              {(project.project_members ?? []).map((member) => (
+                <a
+                  key={member.id}
+                  href={
+                    member.profiles?.username
+                      ? `/builders/${member.profiles.username}`
+                      : "/builders"
+                  }
+                  className="flex gap-3 rounded-sm border border-zinc-800 bg-zinc-900 p-3 hover:border-blue-500/50"
+                >
+                  <img
+                    src={member.profiles?.avatar_url || "/images/avatar-1.png"}
+                    alt=""
+                    className="h-9 w-9 rounded-sm border border-zinc-700 object-cover grayscale"
+                  />
+                  <div>
+                    <p className="font-semibold text-zinc-100">
+                      {member.profiles?.full_name || "Member"}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      {member.role || (techLabels ? "ROLE_PENDING" : "Contributor")}
+                    </p>
+                    {member.contribution_note && (
+                      <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+                        {member.contribution_note}
+                      </p>
+                    )}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </Card>
           {lookingFor.length > 0 && (
             <Card className="p-6">
               <h2 className="mb-4 text-xl font-bold text-zinc-100">
@@ -1642,7 +1775,11 @@ export function CommunityProjectDetailPage() {
                 project.community_project_members?.map((member) => (
                   <a
                     key={member.id}
-                    href={`/builders/${member.profiles?.username}`}
+                    href={
+                      member.profiles?.username
+                        ? `/builders/${member.profiles.username}`
+                        : "/builders"
+                    }
                     className="flex gap-3 rounded-sm border border-zinc-800 bg-zinc-900 p-3 hover:border-blue-500/50"
                   >
                     <img
@@ -1690,6 +1827,8 @@ type ProfileFormState = {
   city: string;
   country: string;
   location: string;
+  latitude: string;
+  longitude: string;
   intro_video_url: string;
   visibility: Profile["visibility"];
 };
@@ -1714,9 +1853,18 @@ function profileToForm(profile: Profile | null): ProfileFormState {
     city: profile?.city ?? "",
     country: profile?.country ?? "Italy",
     location: profile?.location ?? "",
+    latitude: profile?.latitude?.toString() ?? "",
+    longitude: profile?.longitude?.toString() ?? "",
     intro_video_url: profile?.intro_video_url ?? "",
     visibility: profile?.visibility ?? "public",
   };
+}
+
+function coordinateValue(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 type ProfileEditorMode = "edit" | "preview";
@@ -1981,6 +2129,50 @@ function ProfileEditorView({
                   placeholder="Milan, Italy"
                 />
               </Field>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label={{ tech: "LATITUDE", friendly: "Latitude" }}
+                  hint={
+                    techLabels
+                      ? "Optional precise map coordinate."
+                      : "Optional. Used for the home page map pin."
+                  }
+                >
+                  <Input
+                    className={inputClass}
+                    type="number"
+                    inputMode="decimal"
+                    min="-90"
+                    max="90"
+                    step="any"
+                    value={form.latitude}
+                    onChange={(event) => update("latitude", event.target.value)}
+                    placeholder="45.4642"
+                  />
+                </Field>
+                <Field
+                  label={{ tech: "LONGITUDE", friendly: "Longitude" }}
+                  hint={
+                    techLabels
+                      ? "Optional precise map coordinate."
+                      : "Optional. Used for the home page map pin."
+                  }
+                >
+                  <Input
+                    className={inputClass}
+                    type="number"
+                    inputMode="decimal"
+                    min="-180"
+                    max="180"
+                    step="any"
+                    value={form.longitude}
+                    onChange={(event) =>
+                      update("longitude", event.target.value)
+                    }
+                    placeholder="9.1900"
+                  />
+                </Field>
+              </div>
               <Field
                 label={{ tech: "TELEGRAM_HANDLE", friendly: "Telegram handle" }}
               >
@@ -2307,6 +2499,8 @@ function ProfileForm({
             city: form.city || null,
             country: form.country || "Italy",
             location: form.location || null,
+            latitude: coordinateValue(form.latitude),
+            longitude: coordinateValue(form.longitude),
             intro_video_url: form.intro_video_url || null,
             visibility: form.visibility,
           })
@@ -2337,6 +2531,8 @@ function ProfileForm({
       city: form.city || null,
       country: form.country || "Italy",
       location: form.location || null,
+      latitude: coordinateValue(form.latitude),
+      longitude: coordinateValue(form.longitude),
       intro_video_url: form.intro_video_url || null,
       visibility: form.visibility,
       onboarding_completed: true,
@@ -2524,7 +2720,7 @@ export function DashboardPage() {
             title={techLabels ? "Member control plane." : `Welcome${profile?.full_name ? `, ${profile.full_name}` : ""}.`}
             copy={{ tech: "Manage profile records, personal artifacts and community assignments.", friendly: "Manage your profile, personal projects and community project assignments." }}
           />
-          <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-2 md:px-6 xl:grid-cols-4">
+          <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-2 md:px-6 xl:grid-cols-5">
             <a href="/dashboard/profile" className="dt-card p-5">
               <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "PROFILE_RECORD" : "Profile"}</h2>
               <p className="text-sm text-zinc-500">
@@ -2535,6 +2731,12 @@ export function DashboardPage() {
               <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "ARTIFACTS" : "Projects"}</h2>
               <p className="text-sm text-zinc-500">
                 {techLabels ? "Create, edit and publish personal artifact records." : "Create, edit and publish personal projects."}
+              </p>
+            </a>
+            <a href="/dashboard/contributions" className="dt-card p-5">
+              <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "CONTRIBUTION_ROLES" : "Contribution roles"}</h2>
+              <p className="text-sm text-zinc-500">
+                {techLabels ? "Set role metadata for invited project records." : "Add your role on projects where you are listed as a contributor."}
               </p>
             </a>
             {profile?.username && (
@@ -2611,6 +2813,7 @@ type ProjectFormState = {
   demo_url: string;
   image_url: string;
   looking_for: ProjectLookingFor[];
+  contributor_handles: string;
   is_open_source: boolean;
   is_public: boolean;
 };
@@ -2628,9 +2831,68 @@ function projectToForm(project: Project | null): ProjectFormState {
     demo_url: project?.demo_url ?? "",
     image_url: project?.image_url ?? "",
     looking_for: cleanLookingForItems(project?.looking_for),
+    contributor_handles: "",
     is_open_source: project?.is_open_source ?? false,
     is_public: project?.is_public ?? true,
   };
+}
+
+async function resolveProjectContributorProfiles(handles: string[]) {
+  if (!supabase || handles.length === 0) return;
+
+  const { data: profiles, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, username")
+    .in("username", handles);
+  if (profileError) throw profileError;
+
+  const profileRows = (profiles as Pick<Profile, "id" | "username">[]) ?? [];
+  const foundHandles = new Set(profileRows.map((profile) => profile.username));
+  const missing = handles.filter((handle) => !foundHandles.has(handle));
+  if (missing.length > 0) {
+    throw new Error(`No public member found for @${missing.join(", @")}.`);
+  }
+
+  return profileRows;
+}
+
+async function inviteProjectMembers({
+  projectId,
+  ownerId,
+  profiles,
+}: {
+  projectId: string;
+  ownerId: string;
+  profiles: Pick<Profile, "id" | "username">[];
+}) {
+  if (!supabase || profiles.length === 0) return;
+
+  const rows = profiles
+    .filter((profile) => profile.id !== ownerId)
+    .map((profile) => ({
+      project_id: projectId,
+      profile_id: profile.id,
+      invited_by: ownerId,
+    }));
+  if (rows.length === 0) return;
+
+  const { error: inviteError } = await supabase
+    .from("project_members")
+    .upsert(rows, { onConflict: "project_id,profile_id" });
+  if (inviteError) throw inviteError;
+}
+
+async function inviteProjectMembersByHandle({
+  projectId,
+  ownerId,
+  handles,
+}: {
+  projectId: string;
+  ownerId: string;
+  handles: string[];
+}) {
+  const profiles = await resolveProjectContributorProfiles(handles);
+  await inviteProjectMembers({ projectId, ownerId, profiles: profiles ?? [] });
 }
 
 function ProjectEditor({
@@ -2769,6 +3031,7 @@ function ProjectEditor({
     event.preventDefault();
     if (!supabase) return;
     setSaving(true);
+    setError(null);
     const payload = {
       owner_id: userId,
       name: form.name,
@@ -2785,12 +3048,40 @@ function ProjectEditor({
       is_open_source: form.is_open_source,
       is_public: form.is_public,
     };
-    const result = project
-      ? await supabase.from("projects").update(payload).eq("id", project.id)
-      : await supabase.from("projects").insert(payload);
-    if (result.error) setError(result.error.message);
-    else navigate("/dashboard/projects");
-    setSaving(false);
+    try {
+      const handles = splitCommunityHandles(form.contributor_handles);
+      const contributorProfiles =
+        handles.length > 0
+          ? await resolveProjectContributorProfiles(handles)
+          : [];
+      const result = project
+        ? await supabase
+            .from("projects")
+            .update(payload)
+            .eq("id", project.id)
+            .select("id")
+            .single()
+        : await supabase.from("projects").insert(payload).select("id").single();
+      if (result.error) {
+        setError(result.error.message);
+        setSaving(false);
+        return;
+      }
+
+      const projectId = (result.data as { id: string } | null)?.id;
+      if (projectId && contributorProfiles && contributorProfiles.length > 0) {
+        await inviteProjectMembers({
+          projectId,
+          ownerId: userId,
+          profiles: contributorProfiles,
+        });
+      }
+      navigate(project ? "/dashboard/projects" : `/dashboard/projects/${projectId}`);
+    } catch (submitError) {
+      setError(getError(submitError) || "Project could not be saved.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -2912,6 +3203,28 @@ function ProjectEditor({
             {techLabels ? "OPEN_SOURCE" : "Open source"}
           </label>
         </div>
+        <div className="md:col-span-2">
+          <Field
+            label={{
+              tech: "CONTRIBUTOR_HANDLES",
+              friendly: project ? "Invite contributors" : "Contributor handles",
+            }}
+            hint={
+              techLabels
+                ? "Use community usernames. Contributors can set role metadata from their dashboard."
+                : "Use community handles like @mario, @giulia. Contributors can add their own role from their dashboard."
+            }
+          >
+            <Input
+              className={inputClass}
+              value={form.contributor_handles}
+              onChange={(event) =>
+                update("contributor_handles", event.target.value)
+              }
+              placeholder="@handle, @another_handle"
+            />
+          </Field>
+        </div>
         <div className="space-y-3 md:col-span-2">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs font-mono uppercase tracking-wider text-zinc-500">
@@ -3003,6 +3316,117 @@ function ProjectEditor({
   );
 }
 
+function ProjectContributorsPanel({
+  project,
+  members,
+  userId,
+  onChange,
+}: {
+  project: Project;
+  members: ProjectMember[];
+  userId: string;
+  onChange: () => void;
+}) {
+  const { techLabels } = useTechLabels();
+  const [handle, setHandle] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  async function invite(event: React.FormEvent) {
+    event.preventDefault();
+    const handles = splitCommunityHandles(handle);
+    if (handles.length === 0) return;
+    setError(null);
+    try {
+      await inviteProjectMembersByHandle({
+        projectId: project.id,
+        ownerId: userId,
+        handles,
+      });
+      setHandle("");
+      onChange();
+    } catch (inviteError) {
+      setError(getError(inviteError) || "Could not invite contributor.");
+    }
+  }
+
+  async function remove(id: string) {
+    if (!supabase || !confirm("Remove this contributor from the project?")) {
+      return;
+    }
+    const { error: deleteError } = await supabase
+      .from("project_members")
+      .delete()
+      .eq("id", id);
+    if (deleteError) setError(deleteError.message);
+    else onChange();
+  }
+
+  return (
+    <Card className="p-6">
+      <h2 className="mb-2 text-xl font-bold text-zinc-100">
+        {techLabels ? "PROJECT_MEMBERS" : "Contributors"}
+      </h2>
+      <p className="mb-5 text-sm leading-relaxed text-zinc-500">
+        {techLabels
+          ? "Invite public member handles. Each member edits their own role vector."
+          : "Invite existing community members by handle. Each contributor can add their own role from the dashboard."}
+      </p>
+      <form onSubmit={invite} className="mb-6 space-y-3">
+        <Field label={{ tech: "COMMUNITY_HANDLE", friendly: "Community handle" }}>
+          <Input
+            className={inputClass}
+            value={handle}
+            onChange={(event) => setHandle(event.target.value)}
+            placeholder="@handle"
+            required
+          />
+        </Field>
+        <StatusMessage message={error} tone="error" />
+        <Button className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500">
+          <UserPlus size={15} /> {techLabels ? "INVITE_MEMBER" : "Invite contributor"}
+        </Button>
+      </form>
+      <div className="space-y-3">
+        {members.length === 0 ? (
+          <p className="text-sm text-zinc-500">
+            {techLabels ? "NO_PROJECT_MEMBERS" : "No contributors invited yet."}
+          </p>
+        ) : (
+          members.map((member) => (
+            <div
+              key={member.id}
+              className="flex items-start justify-between gap-3 rounded-sm border border-zinc-800 bg-zinc-900 p-3"
+            >
+              <div>
+                <p className="font-semibold text-zinc-100">
+                  {member.profiles?.full_name || (techLabels ? "MEMBER_NODE" : "Member")}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  @{member.profiles?.username || "handle"} ·{" "}
+                  {member.role || (techLabels ? "ROLE_PENDING" : "role pending")}
+                </p>
+                {member.contribution_note && (
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+                    {member.contribution_note}
+                  </p>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-8 text-zinc-400 hover:text-zinc-100"
+                onClick={() => remove(member.id)}
+              >
+                <Trash2 size={14} />
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export function DashboardProjectsPage() {
   return (
     <RequireAuth>
@@ -3017,10 +3441,13 @@ function DashboardProjectsInner({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
 
   async function load() {
-    if (!supabase) return;
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("projects")
-      .select("*")
+      .select("*, project_members(id)")
       .eq("owner_id", userId)
       .order("created_at", { ascending: false });
     setProjects((data as Project[]) ?? []);
@@ -3071,7 +3498,8 @@ function DashboardProjectsInner({ userId }: { userId: string }) {
                   <h2 className="font-bold text-zinc-100">{project.name}</h2>
                   <p className="text-sm text-zinc-500">
                     {project.status} ·{" "}
-                    {project.is_public ? techLabels ? "public_record" : "public" : techLabels ? "private_draft" : "private"}
+                    {project.is_public ? techLabels ? "public_record" : "public" : techLabels ? "private_draft" : "private"} ·{" "}
+                    {project.project_members?.length ?? 0} {techLabels ? "contributors" : "contributors"}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -3099,6 +3527,237 @@ function DashboardProjectsInner({ userId }: { userId: string }) {
   );
 }
 
+export function DashboardContributionsPage() {
+  return (
+    <RequireAuth>
+      {({ userId }) => <DashboardContributionsInner userId={userId} />}
+    </RequireAuth>
+  );
+}
+
+function DashboardContributionsInner({ userId }: { userId: string }) {
+  const { techLabels } = useTechLabels();
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+  const [communityMembers, setCommunityMembers] = useState<
+    CommunityProjectMember[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const [projectResult, communityResult] = await Promise.all([
+      supabase
+        .from("project_members")
+        .select(
+          "*, projects(*, profiles(username, full_name, avatar_url, headline, telegram_handle))",
+        )
+        .eq("profile_id", userId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("community_project_members")
+        .select("*, community_projects(*)")
+        .eq("profile_id", userId)
+        .order("created_at", { ascending: false }),
+    ]);
+    setProjectMembers((projectResult.data as ProjectMember[]) ?? []);
+    setCommunityMembers(
+      (communityResult.data as CommunityProjectMember[]) ?? [],
+    );
+    setError(getError(projectResult.error) || getError(communityResult.error));
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, [userId]);
+
+  return (
+    <PageShell>
+      <HeroBlock
+        eyebrow={{ tech: "CONTRIBUTION_ROLES", friendly: "Contribution roles" }}
+        title={{ tech: "Annotate project membership.", friendly: "Add your role on shared projects." }}
+        copy={{ tech: "These role vectors appear on project pages and your public profile.", friendly: "These roles appear on project pages and on your public profile." }}
+      />
+      <section className="container mx-auto space-y-8 px-4 py-12 md:px-6">
+        <StatusMessage message={error} tone="error" />
+        {loading ? (
+          <SkeletonList />
+        ) : (
+          <>
+            <ContributionSection
+              title={techLabels ? "PERSONAL_PROJECT_INVITES" : "Project invitations"}
+              empty={techLabels ? "NO_PROJECT_INVITES" : "No project invitations yet."}
+            >
+              {projectMembers.map((member) => (
+                <ContributionRoleCard
+                  key={member.id}
+                  id={member.id}
+                  table="project_members"
+                  title={member.projects?.name || (techLabels ? "ARTIFACT_RECORD" : "Project")}
+                  href={
+                    member.projects?.slug
+                      ? `/projects/${member.projects.slug}`
+                      : undefined
+                  }
+                  owner={
+                    member.projects?.profiles?.username
+                      ? `@${member.projects.profiles.username}`
+                      : undefined
+                  }
+                  role={member.role}
+                  note={member.contribution_note}
+                  onSaved={load}
+                />
+              ))}
+            </ContributionSection>
+
+            <ContributionSection
+              title={techLabels ? "COMMUNITY_ASSIGNMENTS" : "Community project assignments"}
+              empty={techLabels ? "NO_COMMUNITY_ASSIGNMENTS" : "No community project assignments yet."}
+            >
+              {communityMembers.map((member) => (
+                <ContributionRoleCard
+                  key={member.id}
+                  id={member.id}
+                  table="community_project_members"
+                  title={member.community_projects?.name || (techLabels ? "WORKSTREAM_RECORD" : "Community project")}
+                  href={
+                    member.community_projects?.slug
+                      ? `/community-projects/${member.community_projects.slug}`
+                      : undefined
+                  }
+                  role={member.role}
+                  note={member.contribution_note}
+                  onSaved={load}
+                />
+              ))}
+            </ContributionSection>
+          </>
+        )}
+      </section>
+    </PageShell>
+  );
+}
+
+function ContributionSection({
+  title,
+  empty,
+  children,
+}: {
+  title: string;
+  empty: string;
+  children: React.ReactNode;
+}) {
+  const items = React.Children.toArray(children);
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-xl font-bold text-zinc-100">{title}</h2>
+      {items.length === 0 ? (
+        <Card className="p-6 text-sm text-zinc-500">{empty}</Card>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">{items}</div>
+      )}
+    </section>
+  );
+}
+
+function ContributionRoleCard({
+  id,
+  table,
+  title,
+  href,
+  owner,
+  role,
+  note,
+  onSaved,
+}: {
+  id: string;
+  table: "project_members" | "community_project_members";
+  title: string;
+  href?: string;
+  owner?: string;
+  role: string | null;
+  note: string | null;
+  onSaved: () => void;
+}) {
+  const { techLabels } = useTechLabels();
+  const [nextRole, setNextRole] = useState(role ?? "");
+  const [nextNote, setNextNote] = useState(note ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (!supabase) return;
+    setSaving(true);
+    setError(null);
+    const { error: updateError } = await supabase
+      .from(table)
+      .update({
+        role: nextRole || null,
+        contribution_note: nextNote || null,
+      })
+      .eq("id", id);
+    if (updateError) setError(updateError.message);
+    else onSaved();
+    setSaving(false);
+  }
+
+  return (
+    <Card className="p-5">
+      <form onSubmit={save} className="space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-zinc-100">{title}</h3>
+            {owner && <p className="mt-1 text-xs text-zinc-500">{owner}</p>}
+          </div>
+          {href && (
+            <a
+              href={href}
+              className="inline-flex h-8 items-center rounded-sm border border-zinc-800 px-2 text-xs text-zinc-300 hover:bg-zinc-900"
+            >
+              {techLabels ? "OPEN" : "Open"}
+            </a>
+          )}
+        </div>
+        <Field label={{ tech: "ROLE_VECTOR", friendly: "Your role" }}>
+          <Input
+            className={inputClass}
+            value={nextRole}
+            onChange={(event) => setNextRole(event.target.value)}
+            placeholder="Frontend, founder, maintainer..."
+          />
+        </Field>
+        <Field label={{ tech: "CONTRIBUTION_NOTE", friendly: "Contribution note" }}>
+          <Textarea
+            className={`${textareaClass} min-h-20`}
+            value={nextNote}
+            onChange={(event) => setNextNote(event.target.value)}
+            placeholder={
+              techLabels
+                ? "Optional contribution context."
+                : "Optional short note about what you contributed."
+            }
+          />
+        </Field>
+        <StatusMessage message={error} tone="error" />
+        <Button
+          className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
+          disabled={saving}
+        >
+          {saving ? techLabels ? "SAVING..." : "Saving..." : techLabels ? "SAVE_ROLE" : "Save role"}
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
 export function ProjectEditorPage() {
   const params = useParams<{ id?: string }>();
   return (
@@ -3119,24 +3778,32 @@ function ProjectEditorLoader({
 }) {
   const { techLabels } = useTechLabels();
   const [project, setProject] = useState<Project | null>(null);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
   const [loading, setLoading] = useState(
     Boolean(projectId && projectId !== "new"),
   );
 
-  useEffect(() => {
-    async function load() {
-      if (!supabase || !projectId || projectId === "new") {
-        setLoading(false);
-        return;
-      }
-      const { data } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", projectId)
-        .maybeSingle();
-      setProject((data as Project | null) ?? null);
+  async function load() {
+    if (!supabase || !projectId || projectId === "new") {
       setLoading(false);
+      return;
     }
+    const { data } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("id", projectId)
+      .maybeSingle();
+    setProject((data as Project | null) ?? null);
+    const { data: memberData } = await supabase
+      .from("project_members")
+      .select("*, profiles(username, full_name, avatar_url, headline)")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: true });
+    setMembers((memberData as ProjectMember[]) ?? []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
     load();
   }, [projectId]);
 
@@ -3150,6 +3817,16 @@ function ProjectEditorLoader({
       <section className="container mx-auto px-4 py-12 md:px-6">
         {loading ? (
           <SkeletonList />
+        ) : project ? (
+          <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+            <ProjectEditor userId={userId} project={project} />
+            <ProjectContributorsPanel
+              project={project}
+              members={members}
+              userId={userId}
+              onChange={load}
+            />
+          </div>
         ) : (
           <ProjectEditor userId={userId} project={project} />
         )}
