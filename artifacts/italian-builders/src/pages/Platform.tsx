@@ -34,16 +34,16 @@ import {
   type Project,
   type ProjectLookingFor,
   type ProjectMember,
+  type WaitlistSignup,
   isSupabaseConfigured,
-  joinList,
   newInviteToken,
   slugify,
-  splitList,
   supabase,
   authRedirectUrl,
   useSupabaseSession,
 } from "@/lib/supabase";
 import { mediaFieldHelp, uploadMediaFile } from "@/lib/storage";
+import { coordsForCityCountry, locationLabel } from "@/lib/geo";
 
 const inputClass =
   "h-10 rounded-sm border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600";
@@ -63,6 +63,132 @@ const lookingForOptions = [
 ];
 const maxLookingForItems = 8;
 const maxLookingForMessageLength = 200;
+const maxProfileSkills = 12;
+const maxProfileLookingFor = 8;
+const maxProfileLanguages = 8;
+const profileSkillOptions = [
+  "AI",
+  "APIs",
+  "Analytics",
+  "Airtable",
+  "Automation",
+  "AWS",
+  "Branding",
+  "Cloudflare",
+  "Communication",
+  "Community Building",
+  "Copywriting",
+  "Customer Discovery",
+  "Data Engineering",
+  "Design Systems",
+  "Docker",
+  "Figma",
+  "Firebase",
+  "Flutter",
+  "Fundraising",
+  "Growth",
+  "Hiring",
+  "Kotlin",
+  "Leadership",
+  "LLMs",
+  "Machine Learning",
+  "Make",
+  "Marketing",
+  "Mentoring",
+  "Next.js",
+  "No-code",
+  "Node.js",
+  "Notion",
+  "Open Source",
+  "Operations",
+  "Payments",
+  "Postgres",
+  "Product Management",
+  "Prompt Engineering",
+  "Python",
+  "React",
+  "React Native",
+  "Sales",
+  "Security",
+  "SEO",
+  "Strategy",
+  "Stripe",
+  "Supabase",
+  "Swift",
+  "TypeScript",
+  "UI Design",
+  "UX Design",
+  "Vercel",
+  "Zapier",
+];
+const profileLookingForOptions = [
+  "Advisor",
+  "Beta users",
+  "Co-founder / partner",
+  "Community partners",
+  "Contributors",
+  "Designer",
+  "Developer",
+  "Early customers",
+  "Feedback",
+  "Fundraising support",
+  "Growth partner",
+  "Hiring",
+  "Investor",
+  "Marketer",
+  "Mentor",
+  "Open-source maintainers",
+  "Pilot customers",
+  "Sales support",
+];
+const languageOptions = [
+  "Italian",
+  "English",
+  "Spanish",
+  "French",
+  "German",
+  "Portuguese",
+  "Dutch",
+  "Arabic",
+  "Chinese",
+  "Japanese",
+  "Korean",
+  "Hindi",
+  "Russian",
+  "Polish",
+  "Romanian",
+  "Greek",
+];
+const profileVisibilityOptions: Array<{
+  value: Profile["visibility"];
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "public",
+    label: "Public",
+    description:
+      "Visible on your public profile, builder directory, map, project pages, and search previews.",
+  },
+  {
+    value: "members",
+    label: "Community members",
+    description:
+      "Visible to signed-in members and admins, including full project attribution for members. Hidden from public directory, map, and anonymous visitors.",
+  },
+  {
+    value: "unlisted",
+    label: "Unlisted",
+    description:
+      "Hidden from public directory, map, public profile page, and normal member browsing. Project attribution may show only limited data.",
+  },
+  {
+    value: "private",
+    label: "Private",
+    description:
+      "Visible only to you and platform admins. Other people should not see the profile or full project attribution.",
+  },
+];
 
 type ModeLabel = string | { tech: string; friendly: string };
 
@@ -424,6 +550,159 @@ function Tags({ items }: { items?: string[] | null }) {
           {item}
         </span>
       ))}
+    </div>
+  );
+}
+
+function tagKey(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function uniqueTags(values?: string[] | null, maxItems = Number.MAX_SAFE_INTEGER) {
+  const seen = new Set<string>();
+  const tags: string[] = [];
+  for (const value of values ?? []) {
+    const label = value.trim();
+    const key = tagKey(label);
+    if (!label || seen.has(key)) continue;
+    seen.add(key);
+    tags.push(label);
+    if (tags.length >= maxItems) break;
+  }
+  return tags;
+}
+
+function coordinateText(value: number) {
+  return Number(value.toFixed(6)).toString();
+}
+
+function inferredCoordinateText(city: string, country: string) {
+  const coords = coordsForCityCountry(city, country);
+  return coords
+    ? {
+        latitude: coordinateText(coords[0]),
+        longitude: coordinateText(coords[1]),
+      }
+    : { latitude: "", longitude: "" };
+}
+
+function formLocationLabel(form: Pick<ProfileFormState, "city" | "country">) {
+  return locationLabel({ city: form.city, country: form.country });
+}
+
+function visibilityDescription(value: Profile["visibility"]) {
+  return (
+    profileVisibilityOptions.find((option) => option.value === value)
+      ?.description ?? ""
+  );
+}
+
+function TagPicker({
+  label,
+  values,
+  options,
+  maxItems,
+  onChange,
+  placeholder,
+}: {
+  label: ModeLabel;
+  values: string[];
+  options: string[];
+  maxItems: number;
+  onChange: (values: string[]) => void;
+  placeholder: string;
+}) {
+  const { techLabels } = useTechLabels();
+  const [query, setQuery] = useState("");
+  const selected = uniqueTags(values, maxItems);
+  const selectedKeys = new Set(selected.map(tagKey));
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleOptions = options
+    .filter((option) => !selectedKeys.has(tagKey(option)))
+    .filter((option) =>
+      normalizedQuery ? option.toLowerCase().includes(normalizedQuery) : true,
+    )
+    .slice(0, 8);
+  const canAddMore = selected.length < maxItems;
+
+  function addTag(value: string) {
+    const option = options.find((item) => tagKey(item) === tagKey(value));
+    if (!option || selectedKeys.has(tagKey(option)) || !canAddMore) return;
+    onChange(uniqueTags([...selected, option], maxItems));
+    setQuery("");
+  }
+
+  function removeTag(value: string) {
+    onChange(selected.filter((item) => tagKey(item) !== tagKey(value)));
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Backspace" && !query && selected.length > 0) {
+      event.preventDefault();
+      onChange(selected.slice(0, -1));
+      return;
+    }
+    if (!["Enter", "Tab", ","].includes(event.key)) return;
+    if (!query.trim()) return;
+    const exact = options.find((option) => tagKey(option) === tagKey(query));
+    const next = exact ?? visibleOptions[0];
+    if (!next) return;
+    event.preventDefault();
+    addTag(next);
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-mono uppercase tracking-wider text-zinc-500">
+          {labelForMode(label, techLabels)}
+        </span>
+        <span className="text-[11px] font-mono text-zinc-600">
+          {selected.length}/{maxItems}
+        </span>
+      </div>
+      <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-2">
+        <div className="flex min-h-9 flex-wrap items-center gap-2">
+          {selected.map((item) => (
+            <span
+              key={item}
+              className="inline-flex h-7 max-w-full items-center gap-1 rounded-sm border border-blue-500/30 bg-blue-500/10 px-2 text-xs font-semibold text-blue-100"
+            >
+              <span className="truncate">{item}</span>
+              <button
+                type="button"
+                className="text-blue-200 hover:text-white"
+                onClick={() => removeTag(item)}
+                aria-label={`Remove ${item}`}
+              >
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+          <input
+            className="h-7 min-w-28 flex-1 bg-transparent px-1 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={!canAddMore}
+            placeholder={canAddMore ? placeholder : ""}
+          />
+        </div>
+      </div>
+      {canAddMore && visibleOptions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {visibleOptions.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className="rounded-sm border border-zinc-800 bg-zinc-900 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:border-blue-500/60 hover:text-blue-100"
+              onClick={() => addTag(option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -957,7 +1236,7 @@ export function BuilderProfilePage() {
         .from("profiles")
         .select("*")
         .eq("username", params.username)
-        .eq("visibility", "public")
+        .in("visibility", ["public", "members"])
         .maybeSingle();
       const nextProfile = profileData as Profile | null;
       setProfile(nextProfile);
@@ -1187,7 +1466,11 @@ export function BuilderProfilePage() {
                   {techLabels ? "GEO_POINT" : "Location"}
                 </dt>
                 <dd className="text-zinc-300">
-                  {profile.location || profile.city || profile.country}
+                  {locationLabel({
+                    city: profile.city,
+                    country: profile.country,
+                    fallback: profile.location,
+                  })}
                 </dd>
               </div>
               {profile.telegram_handle && (
@@ -1916,9 +2199,9 @@ type ProfileFormState = {
   bio: string;
   telegram_handle: string;
   role: string;
-  languages: string;
-  skills: string;
-  looking_for: string;
+  languages: string[];
+  skills: string[];
+  looking_for: string[];
   website_url: string;
   linkedin_url: string;
   x_url: string;
@@ -1927,7 +2210,6 @@ type ProfileFormState = {
   cover_url: string;
   city: string;
   country: string;
-  location: string;
   latitude: string;
   longitude: string;
   intro_video_url: string;
@@ -1935,6 +2217,10 @@ type ProfileFormState = {
 };
 
 function profileToForm(profile: Profile | null): ProfileFormState {
+  const city = profile?.city ?? "";
+  const country = profile?.country ?? "Italy";
+  const inferredCoords = inferredCoordinateText(city, country);
+
   return {
     username: profile?.username ?? "",
     full_name: profile?.full_name ?? "",
@@ -1942,23 +2228,38 @@ function profileToForm(profile: Profile | null): ProfileFormState {
     bio: profile?.bio ?? "",
     telegram_handle: profile?.telegram_handle ?? "",
     role: profile?.role ?? "",
-    languages: joinList(profile?.languages),
-    skills: joinList(profile?.skills),
-    looking_for: joinList(profile?.looking_for),
+    languages: uniqueTags(profile?.languages, maxProfileLanguages),
+    skills: uniqueTags(profile?.skills, maxProfileSkills),
+    looking_for: uniqueTags(profile?.looking_for, maxProfileLookingFor),
     website_url: profile?.website_url ?? "",
     linkedin_url: profile?.linkedin_url ?? "",
     x_url: profile?.x_url ?? "",
     github_url: profile?.github_url ?? "",
     avatar_url: profile?.avatar_url ?? "",
     cover_url: profile?.cover_url ?? "",
-    city: profile?.city ?? "",
-    country: profile?.country ?? "Italy",
-    location: profile?.location ?? "",
-    latitude: profile?.latitude?.toString() ?? "",
-    longitude: profile?.longitude?.toString() ?? "",
+    city,
+    country,
+    latitude: profile?.latitude?.toString() ?? inferredCoords.latitude,
+    longitude: profile?.longitude?.toString() ?? inferredCoords.longitude,
     intro_video_url: profile?.intro_video_url ?? "",
     visibility: profile?.visibility ?? "public",
   };
+}
+
+function mergeProfileFormSeed(
+  form: ProfileFormState,
+  seed?: Partial<ProfileFormState>,
+): ProfileFormState {
+  if (!seed) return form;
+  return {
+    ...form,
+    ...Object.fromEntries(
+      Object.entries(seed).filter(([, value]) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== undefined && value !== null && value !== "";
+      }),
+    ),
+  } as ProfileFormState;
 }
 
 function coordinateValue(value: string) {
@@ -1970,14 +2271,6 @@ function coordinateValue(value: string) {
 
 type ProfileEditorMode = "edit" | "preview";
 type ProfilePreviewDevice = "desktop" | "mobile";
-
-function profileFormList(value: string) {
-  return splitList(value);
-}
-
-function profileFormLocation(form: ProfileFormState) {
-  return form.location || form.city || form.country || "Italy";
-}
 
 function ProfileModeButton({
   active,
@@ -2019,6 +2312,20 @@ function ProfileEditorView({
   userId: string;
 }) {
   const { techLabels } = useTechLabels();
+
+  function updateCity(value: string) {
+    const coords = inferredCoordinateText(value, form.country);
+    update("city", value);
+    update("latitude", coords.latitude);
+    update("longitude", coords.longitude);
+  }
+
+  function updateCountry(value: string) {
+    const coords = inferredCoordinateText(form.city, value);
+    update("country", value);
+    update("latitude", coords.latitude);
+    update("longitude", coords.longitude);
+  }
 
   return (
     <div className="space-y-6">
@@ -2094,11 +2401,20 @@ function ProfileEditorView({
                   )
                 }
               >
-                <option value="public">public</option>
-                <option value="unlisted">unlisted</option>
-                <option value="private">private</option>
+                {profileVisibilityOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </Field>
+            <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-3 text-xs leading-relaxed text-zinc-500 md:col-span-2">
+              {visibilityDescription(form.visibility)}
+              <span className="mt-2 block text-zinc-600">
+                Search engines and scrapers can only see data that the app
+                serves publicly. A noindex tag is not a privacy boundary.
+              </span>
+            </div>
           </div>
         </div>
       </section>
@@ -2212,22 +2528,16 @@ function ProfileEditorView({
                 <Input
                   className={inputClass}
                   value={form.city}
-                  onChange={(event) => update("city", event.target.value)}
+                  onChange={(event) => updateCity(event.target.value)}
+                  required
                 />
               </Field>
               <Field label={{ tech: "COUNTRY_CODE", friendly: "Country" }}>
                 <Input
                   className={inputClass}
                   value={form.country}
-                  onChange={(event) => update("country", event.target.value)}
-                />
-              </Field>
-              <Field label={{ tech: "GEO_LABEL", friendly: "Location" }}>
-                <Input
-                  className={inputClass}
-                  value={form.location}
-                  onChange={(event) => update("location", event.target.value)}
-                  placeholder="Milan, Italy"
+                  onChange={(event) => updateCountry(event.target.value)}
+                  required
                 />
               </Field>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -2235,8 +2545,8 @@ function ProfileEditorView({
                   label={{ tech: "LATITUDE", friendly: "Latitude" }}
                   hint={
                     techLabels
-                      ? "Optional precise map coordinate."
-                      : "Optional. Used for the home page map pin."
+                      ? "Derived from city and country when recognized."
+                      : "Filled from city and country when recognized."
                   }
                 >
                   <Input
@@ -2249,14 +2559,15 @@ function ProfileEditorView({
                     value={form.latitude}
                     onChange={(event) => update("latitude", event.target.value)}
                     placeholder="45.4642"
+                    required
                   />
                 </Field>
                 <Field
                   label={{ tech: "LONGITUDE", friendly: "Longitude" }}
                   hint={
                     techLabels
-                      ? "Optional precise map coordinate."
-                      : "Optional. Used for the home page map pin."
+                      ? "Derived from city and country when recognized."
+                      : "Filled from city and country when recognized."
                   }
                 >
                   <Input
@@ -2271,6 +2582,7 @@ function ProfileEditorView({
                       update("longitude", event.target.value)
                     }
                     placeholder="9.1900"
+                    required
                   />
                 </Field>
               </div>
@@ -2296,40 +2608,35 @@ function ProfileEditorView({
               </h2>
               <p className="mt-1 text-sm text-zinc-500">
                 {techLabels
-                  ? "Comma-separated tokens rendered as profile chips."
-                  : "Comma-separated items, shown as profile chips."}
+                  ? "Controlled tokens rendered as profile chips."
+                  : "Pick from the shared tag lists."}
               </p>
             </div>
             <div className="space-y-4">
-              <Field label={{ tech: "SKILL_TAGS", friendly: "Skills" }}>
-                <Input
-                  className={inputClass}
-                  value={form.skills}
-                  onChange={(event) => update("skills", event.target.value)}
-                  placeholder="AI, React, Design"
-                />
-              </Field>
-              <Field
+              <TagPicker
+                label={{ tech: "SKILL_TAGS", friendly: "Skills" }}
+                values={form.skills}
+                options={profileSkillOptions}
+                maxItems={maxProfileSkills}
+                onChange={(values) => update("skills", values)}
+                placeholder="Search skills and tools"
+              />
+              <TagPicker
                 label={{ tech: "COLLAB_SIGNALS", friendly: "Looking for" }}
-              >
-                <Input
-                  className={inputClass}
-                  value={form.looking_for}
-                  onChange={(event) =>
-                    update("looking_for", event.target.value)
-                  }
-                  placeholder="Co-founders, beta users, contributors"
-                />
-              </Field>
-              <Field label={{ tech: "LANG_STACK", friendly: "Languages" }}>
-                <Input
-                  className={inputClass}
-                  value={form.languages}
-                  onChange={(event) => update("languages", event.target.value)}
-                  required
-                  placeholder="Italian, English"
-                />
-              </Field>
+                values={form.looking_for}
+                options={profileLookingForOptions}
+                maxItems={maxProfileLookingFor}
+                onChange={(values) => update("looking_for", values)}
+                placeholder="Search needs"
+              />
+              <TagPicker
+                label={{ tech: "LANG_STACK", friendly: "Languages" }}
+                values={form.languages}
+                options={languageOptions}
+                maxItems={maxProfileLanguages}
+                onChange={(values) => update("languages", values)}
+                placeholder="Search languages"
+              />
             </div>
           </section>
         </aside>
@@ -2346,9 +2653,9 @@ function ProfileDraftPreview({
   device: ProfilePreviewDevice;
 }) {
   const { techLabels } = useTechLabels();
-  const skills = profileFormList(form.skills);
-  const lookingFor = profileFormList(form.looking_for);
-  const languages = profileFormList(form.languages);
+  const skills = uniqueTags(form.skills, maxProfileSkills);
+  const lookingFor = uniqueTags(form.looking_for, maxProfileLookingFor);
+  const languages = uniqueTags(form.languages, maxProfileLanguages);
   const name = form.full_name || "Your name";
   const username = form.username || "username";
   const frameClass =
@@ -2492,7 +2799,7 @@ function ProfileDraftPreview({
                   <dt className="font-mono text-xs uppercase text-zinc-600">
                     {techLabels ? "GEO_POINT" : "Location"}
                   </dt>
-                  <dd className="text-zinc-300">{profileFormLocation(form)}</dd>
+                  <dd className="text-zinc-300">{formLocationLabel(form)}</dd>
                 </div>
                 {form.telegram_handle && (
                   <div>
@@ -2543,17 +2850,22 @@ function ProfileForm({
   userId,
   initialProfile,
   inviteToken,
+  initialForm,
 }: {
   userId: string;
   initialProfile: Profile | null;
   inviteToken?: string;
+  initialForm?: Partial<ProfileFormState>;
 }) {
   const { techLabels } = useTechLabels();
   const [, navigate] = useLocation();
-  const [form, setForm] = useState(() => profileToForm(initialProfile));
+  const [form, setForm] = useState(() =>
+    mergeProfileFormSeed(profileToForm(initialProfile), initialForm),
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [invitePassword, setInvitePassword] = useState("");
   const [mode, setMode] = useState<ProfileEditorMode>("edit");
   const [previewDevice, setPreviewDevice] =
     useState<ProfilePreviewDevice>("desktop");
@@ -2572,7 +2884,45 @@ function ProfileForm({
     setError(null);
     setMessage(null);
 
+    const profileLanguages = uniqueTags(form.languages, maxProfileLanguages);
+    const profileSkills = uniqueTags(form.skills, maxProfileSkills);
+    const profileLookingFor = uniqueTags(
+      form.looking_for,
+      maxProfileLookingFor,
+    );
+    const latitude = coordinateValue(form.latitude);
+    const longitude = coordinateValue(form.longitude);
+
+    if (profileLanguages.length === 0) {
+      setError("Pick at least one language.");
+      setSaving(false);
+      return;
+    }
+
+    if (latitude === null || longitude === null) {
+      setError(
+        "Add a city and country with recognized map coordinates, or enter latitude and longitude.",
+      );
+      setSaving(false);
+      return;
+    }
+
     if (inviteToken) {
+      if (invitePassword.length < 6) {
+        setError("Set a password with at least 6 characters.");
+        setSaving(false);
+        return;
+      }
+
+      const { error: passwordError } = await supabase.auth.updateUser({
+        password: invitePassword,
+      });
+      if (passwordError) {
+        setError(passwordError.message);
+        setSaving(false);
+        return;
+      }
+
       const { error: rpcError } = await supabase.rpc("accept_invite", {
         invite_token: inviteToken,
         profile_username: form.username,
@@ -2581,9 +2931,9 @@ function ProfileForm({
         profile_bio: form.bio,
         profile_telegram_handle: form.telegram_handle,
         profile_role: form.role,
-        profile_languages: splitList(form.languages),
-        profile_skills: splitList(form.skills),
-        profile_looking_for: splitList(form.looking_for),
+        profile_languages: profileLanguages,
+        profile_skills: profileSkills,
+        profile_looking_for: profileLookingFor,
         profile_website_url: form.website_url || null,
         profile_linkedin_url: form.linkedin_url || null,
         profile_x_url: form.x_url || null,
@@ -2599,9 +2949,9 @@ function ProfileForm({
             cover_url: form.cover_url || null,
             city: form.city || null,
             country: form.country || "Italy",
-            location: form.location || null,
-            latitude: coordinateValue(form.latitude),
-            longitude: coordinateValue(form.longitude),
+            location: null,
+            latitude,
+            longitude,
             intro_video_url: form.intro_video_url || null,
             visibility: form.visibility,
           })
@@ -2620,9 +2970,9 @@ function ProfileForm({
       bio: form.bio || null,
       telegram_handle: form.telegram_handle || null,
       role: form.role || null,
-      languages: splitList(form.languages),
-      skills: splitList(form.skills),
-      looking_for: splitList(form.looking_for),
+      languages: profileLanguages,
+      skills: profileSkills,
+      looking_for: profileLookingFor,
       website_url: form.website_url || null,
       linkedin_url: form.linkedin_url || null,
       x_url: form.x_url || null,
@@ -2631,9 +2981,9 @@ function ProfileForm({
       cover_url: form.cover_url || null,
       city: form.city || null,
       country: form.country || "Italy",
-      location: form.location || null,
-      latitude: coordinateValue(form.latitude),
-      longitude: coordinateValue(form.longitude),
+      location: null,
+      latitude,
+      longitude,
       intro_video_url: form.intro_video_url || null,
       visibility: form.visibility,
       onboarding_completed: true,
@@ -2705,6 +3055,28 @@ function ProfileForm({
         <ActionableErrorMessage message={error} />
       </div>
 
+      {inviteToken && (
+        <section className="dt-card p-4 md:p-5">
+          <Field
+            label={{ tech: "ACCOUNT_PASSWORD", friendly: "Account password" }}
+            hint={
+              techLabels
+                ? "Set the password for future member login."
+                : "Set the password you will use to sign in later."
+            }
+          >
+            <Input
+              className={inputClass}
+              type="password"
+              value={invitePassword}
+              onChange={(event) => setInvitePassword(event.target.value)}
+              required
+              minLength={6}
+            />
+          </Field>
+        </section>
+      )}
+
       {mode === "preview" ? (
         <div className="space-y-4">
           <div className="flex justify-end gap-2">
@@ -2736,10 +3108,7 @@ export function InvitePage() {
   const { techLabels } = useTechLabels();
   const params = useParams<{ token: string }>();
   const { user, loading: sessionLoading } = useSupabaseSession();
-  const [invite, setInvite] = useState<Pick<
-    Invite,
-    "id" | "email" | "telegram_handle" | "status" | "expires_at"
-  > | null>(null);
+  const [invite, setInvite] = useState<InviteLookup | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -2754,7 +3123,7 @@ export function InvitePage() {
         { invite_token: params.token },
       );
       setInvite(
-        ((data as (typeof invite)[] | null)?.[0] ?? null) as typeof invite,
+        ((data as InviteLookup[] | null)?.[0] ?? null) as InviteLookup | null,
       );
       setError(getError(queryError));
       setLoading(false);
@@ -2798,6 +3167,7 @@ export function InvitePage() {
             userId={user.id}
             initialProfile={null}
             inviteToken={params.token}
+            initialForm={inviteToProfileForm(invite)}
           />
         ) : (
           <Card className="flex items-center gap-3 p-6 text-sm text-zinc-500">
@@ -2807,6 +3177,48 @@ export function InvitePage() {
       </section>
     </PageShell>
   );
+}
+
+type InviteLookup = Pick<
+  Invite,
+  "id" | "email" | "telegram_handle" | "status" | "expires_at"
+> & {
+  waitlist_name: string | null;
+  waitlist_role: string | null;
+  waitlist_building: string | null;
+  waitlist_telegram_handle: string | null;
+  waitlist_x_handle: string | null;
+  waitlist_linkedin: string | null;
+  waitlist_website: string | null;
+  waitlist_project_url: string | null;
+};
+
+function normalizeSocialUrl(value: string | null, base: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `${base}${trimmed.replace(/^@/, "").replace(/^\/+/, "")}`;
+}
+
+function inviteToProfileForm(
+  invite: InviteLookup | null,
+): Partial<ProfileFormState> {
+  if (!invite) return {};
+
+  return {
+    full_name: invite.waitlist_name ?? "",
+    headline: invite.waitlist_role ?? "",
+    bio: invite.waitlist_building ?? "",
+    telegram_handle:
+      invite.waitlist_telegram_handle ?? invite.telegram_handle ?? "",
+    role: invite.waitlist_role ?? "",
+    website_url: invite.waitlist_website ?? invite.waitlist_project_url ?? "",
+    linkedin_url: normalizeSocialUrl(
+      invite.waitlist_linkedin,
+      "https://www.linkedin.com/",
+    ),
+    x_url: normalizeSocialUrl(invite.waitlist_x_handle, "https://x.com/"),
+  };
 }
 
 export function DashboardPage() {
@@ -3996,7 +4408,14 @@ export function AdminPage() {
             title={{ tech: "Platform operations.", friendly: "Platform operations." }}
             copy={{ tech: "Manage invite tokens, member records and shared workstream assignments.", friendly: "Manage invites, members and community project assignments." }}
           />
-          <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-3 md:px-6">
+          <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-2 md:px-6 xl:grid-cols-4">
+            <a href="/admin/waitlist" className="dt-card p-5">
+              <UserPlus className="mb-4 text-blue-400" size={20} />
+              <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "WAITLIST_QUEUE" : "Waitlist"}</h2>
+              <p className="text-sm text-zinc-500">
+                {techLabels ? "Review queued access requests and activate invite emails." : "Review access requests and activate people from the waitlist."}
+              </p>
+            </a>
             <a href="/admin/invites" className="dt-card p-5">
               <UserPlus className="mb-4 text-blue-400" size={20} />
               <h2 className="mb-2 font-bold text-zinc-100">{techLabels ? "INVITE_TOKENS" : "Invites"}</h2>
@@ -4024,6 +4443,265 @@ export function AdminPage() {
         </PageShell>
       )}
     </RequireAuth>
+  );
+}
+
+export function AdminWaitlistPage() {
+  return <RequireAuth admin>{() => <AdminWaitlistInner />}</RequireAuth>;
+}
+
+function AdminWaitlistInner() {
+  const { techLabels } = useTechLabels();
+  const [waitlist, setWaitlist] = useState<WaitlistSignup[]>([]);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"all" | "pending" | "active">("pending");
+  const [loading, setLoading] = useState(true);
+  const [activatingId, setActivatingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function adminApi<T>(path: string, init?: RequestInit): Promise<T> {
+    if (!supabase) throw new Error("The community backend is not configured.");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) throw new Error("Admin session expired. Sign in again.");
+
+    const response = await fetch(path, {
+      ...init,
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${token}`,
+        ...init?.headers,
+      },
+    });
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string }
+      | T
+      | null;
+
+    if (!response.ok) {
+      const errorMessage =
+        payload &&
+        typeof payload === "object" &&
+        "error" in payload &&
+        typeof payload.error === "string"
+          ? payload.error
+          : null;
+      throw new Error(
+        errorMessage || `Request failed with HTTP ${response.status}.`,
+      );
+    }
+
+    return payload as T;
+  }
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminApi<{ waitlist: WaitlistSignup[] }>(
+        "/api/admin/waitlist",
+      );
+      setWaitlist(data.waitlist);
+    } catch (err) {
+      setError(getError(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function activate(signup: WaitlistSignup) {
+    setActivatingId(signup.id);
+    setError(null);
+    try {
+      const data = await adminApi<{ waitlistSignup: WaitlistSignup }>(
+        `/api/admin/waitlist/${signup.id}/activate`,
+        { method: "POST" },
+      );
+      setWaitlist((current) =>
+        current.map((item) =>
+          item.id === signup.id ? data.waitlistSignup : item,
+        ),
+      );
+    } catch (err) {
+      setError(getError(err));
+      await load();
+    } finally {
+      setActivatingId(null);
+    }
+  }
+
+  const pendingCount = waitlist.filter((item) => item.status === "pending").length;
+  const activeCount = waitlist.filter((item) => item.status === "active").length;
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = waitlist.filter((item) => {
+    const matchesStatus = status === "all" || item.status === status;
+    const matchesQuery = normalizedQuery
+      ? `${item.name} ${item.email} ${item.role} ${item.building ?? ""} ${item.telegramHandle ?? ""} ${item.xHandle ?? ""} ${item.linkedin ?? ""} ${item.website ?? ""} ${item.projectUrl ?? ""}`
+          .toLowerCase()
+          .includes(normalizedQuery)
+      : true;
+    return matchesStatus && matchesQuery;
+  });
+
+  return (
+    <PageShell>
+      <HeroBlock
+        eyebrow={{ tech: "ADMIN_WAITLIST", friendly: "Admin waitlist" }}
+        title={{ tech: "Activate queued builders.", friendly: "Activate waitlist users." }}
+        copy={{ tech: "Review access requests, mint invite tokens and trigger Supabase Auth invite emails.", friendly: "Review people on the waitlist, activate them and send the invite email automatically." }}
+      />
+      <section className="container mx-auto space-y-6 px-4 py-12 md:px-6">
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+          <Input
+            className={inputClass}
+            placeholder={techLabels ? "Search waitlist queue..." : "Search waitlist..."}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <div className="flex rounded-sm border border-zinc-800 bg-zinc-950 p-1">
+            {(["pending", "active", "all"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={`h-8 rounded-sm px-3 text-xs font-semibold uppercase ${
+                  status === item
+                    ? "bg-zinc-100 text-zinc-950"
+                    : "text-zinc-400 hover:text-zinc-100"
+                }`}
+                onClick={() => setStatus(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <AdminMetric label={techLabels ? "PENDING_QUEUE" : "Pending"} value={pendingCount} />
+          <AdminMetric label={techLabels ? "ACTIVE_INVITES" : "Active"} value={activeCount} />
+          <AdminMetric label={techLabels ? "TOTAL_SIGNUPS" : "Total"} value={waitlist.length} />
+        </div>
+
+        <ActionableErrorMessage message={error} />
+
+        {loading ? (
+          <SkeletonList />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            title={{ tech: "NO_WAITLIST_ROWS", friendly: "No waitlist users found" }}
+            copy={{ tech: "No queued access request matches the current filter.", friendly: "No waitlist entries match the current filter." }}
+          />
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((signup) => (
+              <Card
+                key={signup.id}
+                className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-semibold text-zinc-100">{signup.name}</h2>
+                    <span
+                      className={`rounded-sm border px-2 py-0.5 text-[11px] font-mono uppercase ${
+                        signup.status === "active"
+                          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                          : "border-blue-500/40 bg-blue-500/10 text-blue-300"
+                      }`}
+                    >
+                      {signup.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-500">
+                    {signup.email} · {signup.role}
+                  </p>
+                  {signup.telegramHandle && (
+                    <p className="mt-1 text-sm text-zinc-500">
+                      Telegram {signup.telegramHandle}
+                    </p>
+                  )}
+                  {signup.building && (
+                    <p className="mt-2 max-w-3xl text-sm text-zinc-400">
+                      {signup.building}
+                    </p>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-zinc-500">
+                    <span>
+                      {techLabels ? "joined_at" : "Joined"}{" "}
+                      {new Date(signup.createdAt).toLocaleDateString()}
+                    </span>
+                    {signup.inviteEmailSentAt && (
+                      <span>
+                        {techLabels ? "email_sent_at" : "Email sent"}{" "}
+                        {new Date(signup.inviteEmailSentAt).toLocaleDateString()}
+                      </span>
+                    )}
+                    {signup.inviteStatus && (
+                      <span>{techLabels ? "invite_status" : "Invite"} {signup.inviteStatus}</span>
+                    )}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <ExternalLinkItem href={signup.linkedin} label="LinkedIn" icon={Linkedin} />
+                    <ExternalLinkItem href={signup.website} label="Website" icon={Globe} />
+                    <ExternalLinkItem href={signup.projectUrl} label="Project" icon={ExternalLink} />
+                    <ExternalLinkItem href={signup.xHandle ? `https://x.com/${signup.xHandle.replace(/^@/, "")}` : null} label="X" icon={Twitter} />
+                  </div>
+                  <ActionableErrorMessage message={signup.inviteEmailError} />
+                </div>
+                <div className="flex gap-2 lg:justify-end">
+                  {signup.inviteToken && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+                      onClick={() =>
+                        navigator.clipboard.writeText(
+                          `${window.location.origin}/invite/${signup.inviteToken}`,
+                        )
+                      }
+                    >
+                      <Copy size={14} />
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    disabled={signup.status === "active" || activatingId === signup.id}
+                    className="h-9 rounded-sm bg-blue-600 px-3 text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={() => activate(signup)}
+                  >
+                    {activatingId === signup.id
+                      ? techLabels
+                        ? "ACTIVATING..."
+                        : "Activating..."
+                      : signup.status === "active"
+                        ? techLabels
+                          ? "ACTIVE"
+                          : "Active"
+                        : techLabels
+                          ? "ACTIVATE"
+                          : "Activate"}
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+    </PageShell>
+  );
+}
+
+function AdminMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="dt-card p-4">
+      <p className="text-xs font-mono uppercase tracking-wider text-zinc-500">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-bold text-zinc-100">{value}</p>
+    </div>
   );
 }
 

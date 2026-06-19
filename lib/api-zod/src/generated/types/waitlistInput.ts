@@ -14,6 +14,8 @@ export interface WaitlistInput {
   /** @minLength 1 */
   role: string;
   building?: string;
+  /** @minLength 1 */
+  telegramHandle: string;
   xHandle?: string;
   linkedin?: string;
   website?: string;

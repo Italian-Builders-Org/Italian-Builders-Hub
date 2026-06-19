@@ -45,7 +45,7 @@ export type Profile = {
   looking_for: string[];
   languages: string[];
   intro_video_url: string | null;
-  visibility: "public" | "unlisted" | "private";
+  visibility: "public" | "members" | "unlisted" | "private";
   platform_role: "member" | "admin" | "owner";
   onboarding_completed: boolean;
   created_at: string;
@@ -134,6 +134,28 @@ export type Invite = {
   expires_at: string | null;
   accepted_at: string | null;
   created_at: string;
+};
+
+export type WaitlistSignup = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  building: string | null;
+  telegramHandle: string | null;
+  xHandle: string | null;
+  linkedin: string | null;
+  website: string | null;
+  projectUrl: string | null;
+  status: "pending" | "active";
+  activatedAt: string | null;
+  activatedBy: string | null;
+  inviteId: string | null;
+  inviteEmailSentAt: string | null;
+  inviteEmailError: string | null;
+  inviteToken: string | null;
+  inviteStatus: Invite["status"] | null;
+  createdAt: string;
 };
 
 export function slugify(value: string) {

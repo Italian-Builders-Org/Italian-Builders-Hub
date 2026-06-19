@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   ArrowRight,
+  Send,
   Twitter,
   Linkedin,
   Globe,
@@ -38,6 +39,11 @@ import {
   supabase,
   useSupabaseSession,
 } from "@/lib/supabase";
+import {
+  coordsForCityCountry,
+  fallbackCoordsForLocation,
+  locationLabel,
+} from "@/lib/geo";
 
 // --- Static Data ---
 
@@ -74,26 +80,6 @@ const ROLES = [
   "Supporter",
   "Other",
 ];
-
-const CITY_COORDS: Record<string, [number, number]> = {
-  milano: [45.4642, 9.19],
-  milan: [45.4642, 9.19],
-  torino: [45.0703, 7.6869],
-  turin: [45.0703, 7.6869],
-  bologna: [44.4949, 11.3426],
-  roma: [41.9028, 12.4964],
-  rome: [41.9028, 12.4964],
-  napoli: [40.8518, 14.2681],
-  naples: [40.8518, 14.2681],
-  firenze: [43.7696, 11.2558],
-  florence: [43.7696, 11.2558],
-  verona: [45.4384, 10.9916],
-  palermo: [38.1157, 13.3615],
-  genova: [44.4056, 8.9463],
-  genoa: [44.4056, 8.9463],
-  padova: [45.4064, 11.8768],
-  padua: [45.4064, 11.8768],
-};
 
 const EUROPE_GEOJSON_URL = "/maps/europe-italy-vector.geojson";
 const MAP_OCEAN_COLOR = "#020817";
@@ -397,32 +383,19 @@ function validCoordinate(lat?: number | null, lng?: number | null) {
   );
 }
 
-function cityKey(value?: string | null) {
-  return value?.split(",")[0]?.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-function fallbackCoordsForLocation(
-  city?: string | null,
-  location?: string | null,
-) {
-  const directCity = cityKey(city);
-  if (directCity && CITY_COORDS[directCity]) return CITY_COORDS[directCity];
-
-  const directLocation = cityKey(location);
-  if (directLocation && CITY_COORDS[directLocation]) {
-    return CITY_COORDS[directLocation];
-  }
-
-  return null;
-}
-
 function profileMapCoords(
-  profile: Pick<Profile, "latitude" | "longitude" | "city" | "location">,
+  profile: Pick<
+    Profile,
+    "latitude" | "longitude" | "city" | "country" | "location"
+  >,
 ) {
   if (validCoordinate(profile.latitude, profile.longitude)) {
     return [profile.latitude, profile.longitude] as [number, number];
   }
-  return fallbackCoordsForLocation(profile.city, profile.location);
+  return (
+    coordsForCityCountry(profile.city, profile.country) ||
+    fallbackCoordsForLocation(profile.location)
+  );
 }
 
 function profileToMapBuilder(profile: Profile): HomeMapBuilder | null {
@@ -434,7 +407,7 @@ function profileToMapBuilder(profile: Profile): HomeMapBuilder | null {
     name: profile.full_name,
     username: profile.username,
     role: profile.headline || profile.role || "Builder",
-    location: profile.location || profile.city || profile.country || "Italy",
+    location: profileLocationLabel(profile),
     avatarUrl: profile.avatar_url || "/images/avatar-1.png",
     highlight: profile.bio || "Building in the Italian Builders community.",
     tags: profile.skills?.length
@@ -561,7 +534,11 @@ function profileRole(profile: Profile) {
 }
 
 function profileLocationLabel(profile: Profile) {
-  return profile.location || profile.city || profile.country || "Italy";
+  return locationLabel({
+    city: profile.city,
+    country: profile.country,
+    fallback: profile.location,
+  });
 }
 
 function profileTags(profile: Profile) {
@@ -1496,6 +1473,7 @@ export function Join() {
         .toLowerCase(),
       role: String(formData.get("role") ?? "").trim(),
       building: getValue("building"),
+      telegram_handle: getValue("telegram"),
       x_handle: getValue("twitter"),
       linkedin: getValue("linkedin"),
       website: getValue("website"),
@@ -1698,6 +1676,25 @@ export function Join() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
+                        <Label htmlFor="telegram" className={formLabelClass}>
+                          {techLabels ? "TELEGRAM_HANDLE" : "Telegram"}{" "}
+                          <span className="text-blue-400">*</span>
+                        </Label>
+                        <div className="relative">
+                          <Send
+                            size={14}
+                            className="absolute left-2.5 top-2.5 text-zinc-500"
+                          />
+                          <Input
+                            id="telegram"
+                            name="telegram"
+                            required
+                            placeholder="@username"
+                            className={iconInputClass}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
                         <Label htmlFor="twitter" className={formLabelClass}>
                           {techLabels ? "X_HANDLE (optional)" : "X (optional)"}
                         </Label>
@@ -1810,6 +1807,7 @@ export function Join() {
 
 export function Footer() {
   const { techLabels } = useTechLabels();
+  const { user, loading } = useSupabaseSession();
 
   return (
     <footer className="bg-zinc-950 border-t border-zinc-900 pt-12 pb-8 text-zinc-400">
@@ -1950,12 +1948,14 @@ export function Footer() {
             © {new Date().getFullYear()} ITALIAN BUILDERS. ALL RIGHTS RESERVED.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <a
-              href="/dashboard"
-              className="inline-flex h-8 items-center justify-center rounded-sm border border-zinc-800 px-3 text-xs font-semibold text-zinc-300 transition-colors hover:border-blue-500/60 hover:text-white"
-            >
-              {techLabels ? "MEMBER_LOGIN" : "Builders login"}
-            </a>
+            {!loading && !user && (
+              <a
+                href="/dashboard"
+                className="inline-flex h-8 items-center justify-center rounded-sm border border-zinc-800 px-3 text-xs font-semibold text-zinc-300 transition-colors hover:border-blue-500/60 hover:text-white"
+              >
+                {techLabels ? "MEMBER_LOGIN" : "Builders login"}
+              </a>
+            )}
             <TechLabelToggle />
           </div>
         </div>

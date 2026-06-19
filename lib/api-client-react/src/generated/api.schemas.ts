@@ -21,6 +21,8 @@ export interface WaitlistInput {
   /** @minLength 1 */
   role: string;
   building?: string;
+  /** @minLength 1 */
+  telegramHandle: string;
   xHandle?: string;
   linkedin?: string;
   website?: string;
@@ -34,6 +36,8 @@ export interface WaitlistSignup {
   role: string;
   /** @nullable */
   building?: string | null;
+  /** @nullable */
+  telegramHandle?: string | null;
   /** @nullable */
   xHandle?: string | null;
   /** @nullable */

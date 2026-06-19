@@ -159,6 +159,7 @@ components:
         - name
         - email
         - role
+        - telegramHandle
       properties:
         name:
           type: string
@@ -171,6 +172,9 @@ components:
           minLength: 1
         building:
           type: string
+        telegramHandle:
+          type: string
+          minLength: 1
         xHandle:
           type: string
         linkedin:
@@ -197,6 +201,8 @@ components:
         role:
           type: string
         building:
+          type: ["string", "null"]
+        telegramHandle:
           type: ["string", "null"]
         xHandle:
           type: ["string", "null"]

@@ -27,11 +27,13 @@ export const createWaitlistSignupBodyEmailMin = 3;
 
 
 
+
 export const CreateWaitlistSignupBody = zod.object({
   "name": zod.string().min(1),
   "email": zod.string().min(createWaitlistSignupBodyEmailMin),
   "role": zod.string().min(1),
   "building": zod.string().optional(),
+  "telegramHandle": zod.string().min(1),
   "xHandle": zod.string().optional(),
   "linkedin": zod.string().optional(),
   "website": zod.string().optional(),

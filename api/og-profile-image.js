@@ -178,12 +178,17 @@ function ProjectTile({ project, index, origin }) {
   );
 }
 
+function profileLocationLabel(profile) {
+  const city = compactText(profile.city);
+  const country = compactText(profile.country);
+  if (city && country) return `${city}, ${country}`;
+  return city || country || compactText(profile.location) || "Italy";
+}
+
 function buildImage(profile, projects, origin) {
   const name = compactText(profile.full_name) || "Italian Builder";
   const headline = truncateText(profileRoleLine(profile), 64);
-  const location = compactText(
-    profile.location || profile.city || profile.country || "Italy",
-  );
+  const location = profileLocationLabel(profile);
   const avatarUrl = cleanImageUrl(profile.avatar_url, origin);
   const skills = Array.isArray(profile.skills)
     ? profile.skills.filter(Boolean).slice(0, 3)

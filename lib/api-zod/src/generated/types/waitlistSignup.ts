@@ -14,6 +14,8 @@ export interface WaitlistSignup {
   /** @nullable */
   building?: string | null;
   /** @nullable */
+  telegramHandle?: string | null;
+  /** @nullable */
   xHandle?: string | null;
   /** @nullable */
   linkedin?: string | null;

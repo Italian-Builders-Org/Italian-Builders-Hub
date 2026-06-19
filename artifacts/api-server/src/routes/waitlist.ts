@@ -19,8 +19,17 @@ router.post("/waitlist", async (req, res): Promise<void> => {
     return;
   }
 
-  const { name, email, role, building, xHandle, linkedin, website, projectUrl } =
-    parsed.data;
+  const {
+    name,
+    email,
+    role,
+    building,
+    telegramHandle,
+    xHandle,
+    linkedin,
+    website,
+    projectUrl,
+  } = parsed.data;
 
   try {
     const [row] = await db
@@ -30,6 +39,7 @@ router.post("/waitlist", async (req, res): Promise<void> => {
         email: email.trim().toLowerCase(),
         role,
         building: emptyToNull(building),
+        telegramHandle: emptyToNull(telegramHandle),
         xHandle: emptyToNull(xHandle),
         linkedin: emptyToNull(linkedin),
         website: emptyToNull(website),
@@ -43,10 +53,17 @@ router.post("/waitlist", async (req, res): Promise<void> => {
       email: row.email,
       role: row.role,
       building: row.building,
+      telegramHandle: row.telegramHandle,
       xHandle: row.xHandle,
       linkedin: row.linkedin,
       website: row.website,
       projectUrl: row.projectUrl,
+      status: row.status,
+      activatedAt: row.activatedAt?.toISOString() ?? null,
+      activatedBy: row.activatedBy,
+      inviteId: row.inviteId,
+      inviteEmailSentAt: row.inviteEmailSentAt?.toISOString() ?? null,
+      inviteEmailError: row.inviteEmailError,
       createdAt: row.createdAt.toISOString(),
     });
   } catch (err) {

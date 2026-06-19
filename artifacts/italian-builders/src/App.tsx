@@ -16,6 +16,7 @@ import {
   AdminInvitesPage,
   AdminMembersPage,
   AdminPage,
+  AdminWaitlistPage,
   BuilderProfilePage,
   BuildersDirectoryPage,
   CommunityProjectDetailPage,
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/dashboard/projects/new" component={ProjectEditorPage} />
       <Route path="/dashboard/projects/:id" component={ProjectEditorPage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/admin/waitlist" component={AdminWaitlistPage} />
       <Route path="/admin/invites" component={AdminInvitesPage} />
       <Route path="/admin/members" component={AdminMembersPage} />
       <Route path="/admin/community-projects" component={AdminCommunityProjectsPage} />
