@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -1474,10 +1480,73 @@ export function CommunityProjects({
   );
 }
 
+function TurnstileChallenge({
+  siteKey,
+  resetNonce,
+  onVerify,
+  onExpire,
+  onError,
+}: {
+  siteKey: string;
+  resetNonce: number;
+  onVerify: (token: string) => void;
+  onExpire: () => void;
+  onError: (message: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const widgetIdRef = useRef<string | null>(null);
+  const didMountRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadTurnstileScript()
+      .then(() => {
+        if (cancelled || !containerRef.current || !window.turnstile) return;
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          sitekey: siteKey,
+          theme: "dark",
+          callback: onVerify,
+          "expired-callback": onExpire,
+          "error-callback": () =>
+            onError("Security check failed. Please try again."),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          onError("Security check could not load. Please refresh and retry.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+      }
+      widgetIdRef.current = null;
+    };
+  }, [onError, onExpire, onVerify, siteKey]);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    if (widgetIdRef.current && window.turnstile) {
+      window.turnstile.reset(widgetIdRef.current);
+      onExpire();
+    }
+  }, [onExpire, resetNonce]);
+
+  return <div ref={containerRef} className="min-h-[65px]" />;
+}
+
 export function Join() {
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetNonce, setTurnstileResetNonce] = useState(0);
   const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
   const { techLabels } = useTechLabels();
   const formLabelClass = `text-xs text-zinc-400 ${techLabels ? "font-mono" : "font-medium"}`;
@@ -1486,6 +1555,26 @@ export function Join() {
   const inputClass = `bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600 h-9 text-sm rounded-sm focus-visible:ring-1 focus-visible:ring-blue-500 ${techLabels ? "font-mono" : ""}`;
   const iconInputClass = `pl-8 bg-zinc-900 border-zinc-700 text-zinc-100 h-9 text-sm rounded-sm ${techLabels ? "font-mono" : ""}`;
   const buttonLabelClass = `w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white h-10 rounded-sm text-xs dt-button shadow-none disabled:opacity-50 ${techLabels ? "font-mono uppercase" : "font-semibold"}`;
+  const isTurnstileConfigured = Boolean(turnstileSiteKey);
+  const canSubmit = isTurnstileConfigured && Boolean(turnstileToken);
+
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+    setErrorMsg((current) =>
+      current.includes("security check") || current.includes("Security check")
+        ? ""
+        : current,
+    );
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken("");
+  }, []);
+
+  const handleTurnstileError = useCallback((message: string) => {
+    setTurnstileToken("");
+    setErrorMsg(message);
+  }, []);
 
   useEffect(() => {
     async function loadWaitlistCount() {
@@ -1511,6 +1600,13 @@ export function Join() {
     };
 
     try {
+      if (!isTurnstileConfigured) {
+        throw new Error("Security check is not configured. Please try later.");
+      }
+      if (!turnstileToken) {
+        throw new Error("Complete the security check before submitting.");
+      }
+
       const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1526,6 +1622,7 @@ export function Join() {
           linkedin: getValue("linkedin"),
           website: getValue("website"),
           projectUrl: getValue("project"),
+          turnstileToken,
         }),
       });
       const payload = (await response.json().catch(() => null)) as {
@@ -1543,6 +1640,8 @@ export function Join() {
           ? error.message
           : "Could not submit the form. Please try again.",
       );
+      setTurnstileToken("");
+      setTurnstileResetNonce((current) => current + 1);
     } finally {
       setIsSubmitting(false);
     }
@@ -1827,9 +1926,29 @@ export function Join() {
                     </div>
                   </div>
 
+                  <div className="rounded-sm border border-zinc-700 bg-zinc-900/70 p-3">
+                    {isTurnstileConfigured && turnstileSiteKey ? (
+                      <TurnstileChallenge
+                        siteKey={turnstileSiteKey}
+                        resetNonce={turnstileResetNonce}
+                        onVerify={handleTurnstileVerify}
+                        onExpire={handleTurnstileExpire}
+                        onError={handleTurnstileError}
+                      />
+                    ) : (
+                      <p
+                        className={`text-xs text-amber-300 ${techLabels ? "font-mono" : "font-medium"}`}
+                      >
+                        {techLabels
+                          ? "SECURITY_CHECK_NOT_CONFIGURED"
+                          : "Security check is not configured yet."}
+                      </p>
+                    )}
+                  </div>
+
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !canSubmit}
                     className={buttonLabelClass}
                   >
                     {isSubmitting

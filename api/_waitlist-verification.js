@@ -88,6 +88,52 @@ function verificationUrl(req, token) {
   )}`;
 }
 
+function requestIp(req) {
+  const cloudflareIp = headerValue(req.headers["cf-connecting-ip"]);
+  if (cloudflareIp) return cloudflareIp;
+
+  const forwardedFor = headerValue(req.headers["x-forwarded-for"]);
+  const firstForwardedIp = forwardedFor?.split(",")[0]?.trim();
+  return firstForwardedIp || req.socket?.remoteAddress || undefined;
+}
+
+async function verifyTurnstile(req, token) {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) {
+    throw Object.assign(new Error("TURNSTILE_SECRET_KEY is required."), {
+      statusCode: 500,
+    });
+  }
+
+  const responseToken = requiredString(token, "Security check", 2048);
+  const response = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        secret,
+        response: responseToken,
+        remoteip: requestIp(req),
+      }),
+    },
+  );
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload) {
+    throw Object.assign(
+      new Error("Could not validate the security check. Please try again."),
+      { statusCode: 502 },
+    );
+  }
+
+  if (!payload.success) {
+    throw Object.assign(new Error("Security check failed. Please try again."), {
+      statusCode: 400,
+    });
+  }
+}
+
 function mapPayload(body) {
   const email = cleanEmail(body.email);
   return {
@@ -154,6 +200,7 @@ function escapeHtml(value) {
 
 async function requestWaitlistVerification(req) {
   const body = parseBody(req.body);
+  await verifyTurnstile(req, body.turnstileToken);
   const payload = mapPayload(body);
   const supabaseAdmin = getSupabaseAdmin();
 
