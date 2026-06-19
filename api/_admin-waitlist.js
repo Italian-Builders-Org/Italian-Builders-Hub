@@ -82,6 +82,115 @@ function newInviteToken() {
   return crypto.randomBytes(24).toString("hex");
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function acceptedInviteEmailHtml({ name, actionLink }) {
+  const safeName = escapeHtml(name || "there");
+  const safeActionLink = escapeHtml(actionLink);
+
+  return `<!doctype html>
+<html>
+  <body style="margin:0;background:#020817;color:#f8fafc;font-family:Inter,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#020817;padding:32px 18px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#09090b;border:1px solid #27272a;border-radius:8px;overflow:hidden;">
+            <tr>
+              <td style="padding:42px 40px;background:linear-gradient(180deg,rgba(37,99,235,0.12),rgba(9,9,11,0));">
+                <p style="margin:0 0 30px;color:#60a5fa;font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;">Italian Builders</p>
+                <h1 style="margin:0 0 18px;color:#f8fafc;font-size:32px;line-height:1.12;font-weight:800;">You are in. Now make it easy for the community to discover you.</h1>
+                <p style="margin:0 0 16px;color:#d4d4d8;font-size:16px;line-height:1.55;">Hi ${safeName},</p>
+                <p style="margin:0 0 16px;color:#d4d4d8;font-size:16px;line-height:1.55;">You have been accepted into the Italian Builders Community, a curated place for founders, developers, designers, operators, and makers building from Italy or with Italian roots.</p>
+                <p style="margin:0 0 16px;color:#d4d4d8;font-size:16px;line-height:1.55;">Your profile is the first thing other builders will see. It helps people understand what you are building, what you can help with, and where a useful collaboration could start.</p>
+                <p style="margin:0 0 10px;color:#d4d4d8;font-size:16px;line-height:1.55;">It takes just a few minutes:</p>
+                <ul style="margin:0 0 24px 20px;padding:0;color:#d4d4d8;font-size:16px;line-height:1.55;">
+                  <li>Create your account.</li>
+                  <li>Add your builder profile.</li>
+                  <li>Share what you are building or exploring.</li>
+                  <li>Make it easier for the right people to find you.</li>
+                </ul>
+                <p style="margin:0 0 24px;">
+                  <a href="${safeActionLink}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;padding:13px 18px;font-weight:750;">Create your profile</a>
+                </p>
+                <p style="margin:0 0 16px;color:#d4d4d8;font-size:16px;line-height:1.55;">We are opening access manually so the first members can set the tone with real projects, useful intros, and concrete conversations.</p>
+                <p style="margin:0;color:#d4d4d8;font-size:16px;line-height:1.55;">See you inside,<br />Italian Builders</p>
+                <p style="margin:26px 0 0;padding-top:18px;border-top:1px solid #27272a;color:#71717a;font-size:13px;line-height:1.5;">If the button does not work, open this link:<br /><a href="${safeActionLink}" style="color:#60a5fa;">${safeActionLink}</a></p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+async function sendAcceptedInviteEmail({
+  supabaseAdmin,
+  email,
+  name,
+  redirectTo,
+}) {
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { redirectTo },
+  });
+  if (error) throw error;
+
+  const actionLink = data?.properties?.action_link || data?.action_link;
+  if (!actionLink) {
+    throw new Error("Could not generate Supabase invite link.");
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is required.");
+  }
+
+  const from =
+    process.env.INVITE_FROM_EMAIL ||
+    process.env.WAITLIST_FROM_EMAIL ||
+    "Italian Builders <invites@italianbuilders.co>";
+  const subject = "You have been accepted into the Italian Builders Community";
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: email,
+      subject,
+      text: `Hi ${name || "there"},
+
+You have been accepted into the Italian Builders Community.
+
+Your profile helps other builders understand what you are building, what you can help with, and where a useful collaboration could start.
+
+Create your profile here:
+${actionLink}
+
+See you inside,
+Italian Builders`,
+      html: acceptedInviteEmailHtml({ name, actionLink }),
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.message || "Failed to send invite email.");
+  }
+}
+
 function mapWaitlistRow(row, invite) {
   return {
     id: row.id,
@@ -201,11 +310,12 @@ async function activateWaitlistSignupWithContext(req, rawId, context) {
   if (inviteError) throw inviteError;
 
   try {
-    const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      existing.email,
-      { redirectTo: inviteUrl },
-    );
-    if (error) throw error;
+    await sendAcceptedInviteEmail({
+      supabaseAdmin,
+      email: existing.email,
+      name: existing.name,
+      redirectTo: inviteUrl,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to send invite email.";
