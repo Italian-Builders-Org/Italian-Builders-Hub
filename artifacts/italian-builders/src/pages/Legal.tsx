@@ -2,7 +2,7 @@ import { openCookieSettings } from "@/components/CookieConsentBanner";
 import { Footer, Header } from "@/pages/Home";
 
 const updatedAt = "June 19, 2026";
-const contactEmail = "domenico.dd@gmail.com";
+const contactEmail = "info@italianbuilders.co";
 
 function LegalShell({
   eyebrow,

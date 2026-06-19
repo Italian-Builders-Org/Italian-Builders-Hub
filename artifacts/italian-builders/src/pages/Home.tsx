@@ -1938,7 +1938,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="mailto:domenico.dd@gmail.com"
+                  href="mailto:info@italianbuilders.co"
                   className="hover:text-white transition-colors"
                 >
                   {techLabels ? "CONTACT_ENDPOINT" : "Contact us"}
