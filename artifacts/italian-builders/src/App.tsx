@@ -31,6 +31,7 @@ import {
   ProjectDetailPage,
   ProjectEditorPage,
   ProjectsDirectoryPage,
+  ResetPasswordPage,
 } from "@/pages/Platform";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/mission" component={MissionPage} />
       <Route path="/privacy" component={PrivacyPolicyPage} />
       <Route path="/terms" component={TermsOfServicePage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/invite/:token" component={InvitePage} />
       <Route path="/dashboard" component={DashboardPage} />
       <Route

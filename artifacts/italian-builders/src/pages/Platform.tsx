@@ -76,24 +76,35 @@ const profileSkillOptions = [
   "Airtable",
   "Automation",
   "AWS",
+  "Base44",
+  "Bolt",
   "Branding",
+  "Claude Code",
   "Cloudflare",
   "Communication",
   "Community Building",
   "Copywriting",
+  "Cursor",
   "Customer Discovery",
   "Data Engineering",
   "Design Systems",
+  "Devin",
   "Docker",
+  "Emergent",
   "Figma",
   "Firebase",
+  "Firebase Studio",
   "Flutter",
   "Fundraising",
+  "GitHub Copilot",
+  "Google Antigravity",
   "Growth",
   "Hiring",
+  "Kiro",
   "Kotlin",
   "Leadership",
   "LLMs",
+  "Lovable",
   "Machine Learning",
   "Make",
   "Marketing",
@@ -103,6 +114,7 @@ const profileSkillOptions = [
   "Node.js",
   "Notion",
   "Open Source",
+  "OpenAI Codex",
   "Operations",
   "Payments",
   "Postgres",
@@ -111,6 +123,8 @@ const profileSkillOptions = [
   "Python",
   "React",
   "React Native",
+  "Replit",
+  "Rork",
   "Sales",
   "Security",
   "SEO",
@@ -121,7 +135,9 @@ const profileSkillOptions = [
   "TypeScript",
   "UI Design",
   "UX Design",
+  "v0",
   "Vercel",
+  "Windsurf",
   "Zapier",
 ];
 const profileLookingForOptions = [
@@ -621,12 +637,16 @@ function TagPicker({
   const selected = uniqueTags(values, maxItems);
   const selectedKeys = new Set(selected.map(tagKey));
   const normalizedQuery = query.trim().toLowerCase();
-  const visibleOptions = options
+  const matchingOptions = options
     .filter((option) => !selectedKeys.has(tagKey(option)))
     .filter((option) =>
       normalizedQuery ? option.toLowerCase().includes(normalizedQuery) : true,
-    )
-    .slice(0, 8);
+    );
+  const visibleOptions = matchingOptions.slice(0, 8);
+  const hiddenOptionCount = Math.max(
+    matchingOptions.length - visibleOptions.length,
+    0,
+  );
   const canAddMore = selected.length < maxItems;
 
   function addTag(value: string) {
@@ -705,6 +725,15 @@ function TagPicker({
               {option}
             </button>
           ))}
+          {hiddenOptionCount > 0 && (
+            <span className="rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-1 text-[11px] font-medium text-zinc-500">
+              (
+              {hiddenOptionCount >= 45
+                ? "45+ more"
+                : `${hiddenOptionCount} more`}
+              )
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -871,12 +900,18 @@ function SignInPanel({
   allowSignup?: boolean;
 }) {
   const { techLabels } = useTechLabels();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const setAuthMode = (nextMode: typeof mode) => {
+    setMode(nextMode);
+    setMessage(null);
+    setError(null);
+  };
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -891,21 +926,27 @@ function SignInPanel({
     }
 
     const result =
-      mode === "signin"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({
-            email,
-            password,
-            options: { emailRedirectTo: authRedirectUrl() },
-          });
+      mode === "forgot"
+        ? await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: authRedirectUrl("/reset-password"),
+          })
+        : mode === "signin"
+          ? await supabase.auth.signInWithPassword({ email, password })
+          : await supabase.auth.signUp({
+              email,
+              password,
+              options: { emailRedirectTo: authRedirectUrl() },
+            });
 
     if (result.error) {
       setError(result.error.message);
     } else {
       setMessage(
-        mode === "signin"
-          ? "Signed in."
-          : "Account created. Check your email if confirmation is enabled, then continue here.",
+        mode === "forgot"
+          ? "Check your email for the password reset link."
+          : mode === "signin"
+            ? "Signed in."
+            : "Account created. Check your email if confirmation is enabled, then continue here.",
       );
     }
     setSaving(false);
@@ -920,18 +961,26 @@ function SignInPanel({
               ? techLabels
                 ? "AUTH_LOGIN"
                 : "Sign in"
-              : techLabels
-                ? "CREATE_INVITED_ACCOUNT"
-                : "Create invited account"}
+              : mode === "forgot"
+                ? techLabels
+                  ? "PASSWORD_RECOVERY"
+                  : "Reset password"
+                : techLabels
+                  ? "CREATE_INVITED_ACCOUNT"
+                  : "Create invited account"}
           </h2>
           <p className="mt-1 text-sm text-zinc-500">
-            {allowSignup
+            {mode === "forgot"
               ? techLabels
-                ? "Invite token can mint one approved member account."
-                : "This invite lets you create an approved member account."
-              : techLabels
-                ? "Auth is invite-gated. Request access if no approved account exists."
-                : "Accounts are invite-only. Request access from the waitlist if you do not have an approved account."}
+                ? "Request a signed recovery link for this auth identity."
+                : "Enter your email and we will send you a secure reset link."
+              : allowSignup
+                ? techLabels
+                  ? "Invite token can mint one approved member account."
+                  : "This invite lets you create an approved member account."
+                : techLabels
+                  ? "Auth is invite-gated. Request access if no approved account exists."
+                  : "Accounts are invite-only. Request access from the waitlist if you do not have an approved account."}
           </p>
         </div>
         <Field label={{ tech: "EMAIL_ADDRESS", friendly: "Email" }}>
@@ -943,16 +992,18 @@ function SignInPanel({
             required
           />
         </Field>
-        <Field label={{ tech: "PASSWORD", friendly: "Password" }}>
-          <Input
-            className={inputClass}
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            minLength={6}
-          />
-        </Field>
+        {mode !== "forgot" && (
+          <Field label={{ tech: "PASSWORD", friendly: "Password" }}>
+            <Input
+              className={inputClass}
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={6}
+            />
+          </Field>
+        )}
         <StatusMessage message={message} />
         <ActionableErrorMessage message={error} />
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -965,20 +1016,35 @@ function SignInPanel({
               ? techLabels
                 ? "WORKING..."
                 : "Working..."
-              : mode === "signin"
+              : mode === "forgot"
                 ? techLabels
-                  ? "SIGN_IN"
-                  : "Sign in"
-                : techLabels
-                  ? "CREATE_ACCOUNT"
-                  : "Create account"}
+                  ? "SEND_RESET_LINK"
+                  : "Send reset link"
+                : mode === "signin"
+                  ? techLabels
+                    ? "SIGN_IN"
+                    : "Sign in"
+                  : techLabels
+                    ? "CREATE_ACCOUNT"
+                    : "Create account"}
           </Button>
-          {allowSignup ? (
+          {mode === "forgot" ? (
             <Button
               type="button"
               variant="outline"
               className="h-10 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => setAuthMode("signin")}
+            >
+              {techLabels ? "BACK_TO_SIGN_IN" : "Back to sign in"}
+            </Button>
+          ) : allowSignup ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+              onClick={() =>
+                setAuthMode(mode === "signin" ? "signup" : "signin")
+              }
             >
               {mode === "signin"
                 ? techLabels
@@ -997,8 +1063,184 @@ function SignInPanel({
             </a>
           )}
         </div>
+        {mode === "signin" && (
+          <button
+            type="button"
+            className="text-sm text-zinc-400 underline-offset-4 hover:text-zinc-100 hover:underline"
+            onClick={() => setAuthMode("forgot")}
+          >
+            {techLabels ? "FORGOT_PASSWORD" : "Forgot password?"}
+          </button>
+        )}
       </form>
     </Card>
+  );
+}
+
+export function ResetPasswordPage() {
+  const { techLabels } = useTechLabels();
+  const [, navigate] = useLocation();
+  const [checking, setChecking] = useState(true);
+  const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!supabase) {
+      setChecking(false);
+      return;
+    }
+
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setHasRecoverySession(Boolean(data.session));
+      setChecking(false);
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === "PASSWORD_RECOVERY" || session) {
+        setHasRecoverySession(true);
+        setChecking(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+
+    if (!supabase) {
+      setError("The community backend is not configured in this deployment.");
+      setSaving(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      setSaving(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setSaving(false);
+      return;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      setPassword("");
+      setConfirmPassword("");
+      setMessage("Password updated. You can continue to your dashboard.");
+    }
+    setSaving(false);
+  }
+
+  return (
+    <PageShell>
+      <HeroBlock
+        eyebrow={{ tech: "PASSWORD_RECOVERY", friendly: "Password reset" }}
+        title={{
+          tech: "Rotate auth credential.",
+          friendly: "Create a new password.",
+        }}
+        copy={{
+          tech: "Recovery links open a short-lived Supabase session before the password is updated.",
+          friendly:
+            "Use the secure link from your email to set a new password for your account.",
+        }}
+      />
+      <section className="container mx-auto max-w-xl px-4 py-12 md:px-6">
+        <Card className="p-6">
+          {checking ? (
+            <p className="text-sm text-zinc-400">
+              {techLabels
+                ? "CHECKING_RECOVERY_SESSION"
+                : "Checking reset session..."}
+            </p>
+          ) : hasRecoverySession ? (
+            <form onSubmit={submit} className="space-y-4">
+              <Field label={{ tech: "NEW_PASSWORD", friendly: "New password" }}>
+                <Input
+                  className={inputClass}
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  minLength={6}
+                />
+              </Field>
+              <Field
+                label={{
+                  tech: "CONFIRM_PASSWORD",
+                  friendly: "Confirm password",
+                }}
+              >
+                <Input
+                  className={inputClass}
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  required
+                  minLength={6}
+                />
+              </Field>
+              <StatusMessage message={message} />
+              <ActionableErrorMessage message={error} />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
+                >
+                  {saving
+                    ? techLabels
+                      ? "UPDATING..."
+                      : "Updating..."
+                    : techLabels
+                      ? "UPDATE_PASSWORD"
+                      : "Update password"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+                  onClick={() => navigate("/dashboard")}
+                >
+                  {techLabels ? "OPEN_DASHBOARD" : "Open dashboard"}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <StatusMessage
+                tone="warning"
+                message={
+                  techLabels
+                    ? "No recovery session found. Request a fresh reset link."
+                    : "This reset link is invalid or expired. Request a new password reset email."
+                }
+              />
+              <SignInPanel compact />
+            </div>
+          )}
+        </Card>
+      </section>
+    </PageShell>
   );
 }
 
@@ -3339,6 +3581,119 @@ export function DashboardPage() {
   );
 }
 
+function DeleteAccountPanel({ email }: { email?: string | null }) {
+  const { techLabels } = useTechLabels();
+  const { user } = useSupabaseSession();
+  const accountEmail = (user?.email || email || "").trim().toLowerCase();
+  const [confirmation, setConfirmation] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const confirmationMatches =
+    accountEmail.length > 0 &&
+    confirmation.trim().toLowerCase() === accountEmail;
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    if (!supabase) {
+      setError("The community backend is not configured in this deployment.");
+      setSaving(false);
+      return;
+    }
+
+    if (!confirmationMatches) {
+      setError("Type your account email to confirm deletion.");
+      setSaving(false);
+      return;
+    }
+
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setError(
+        "Your session expired. Sign in again before deleting the account.",
+      );
+      setSaving(false);
+      return;
+    }
+
+    const response = await fetch("/api/account/delete", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: confirmation }),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      setError(
+        typeof result.error === "string"
+          ? result.error
+          : "Could not delete account.",
+      );
+      setSaving(false);
+      return;
+    }
+
+    await supabase.auth.signOut();
+    window.location.assign("/");
+  }
+
+  return (
+    <Card className="border-red-500/30 bg-red-950/10 p-6">
+      <form onSubmit={submit} className="space-y-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-1 shrink-0 text-red-300" size={18} />
+          <div>
+            <h2 className="text-lg font-bold text-zinc-100">
+              {techLabels ? "DELETE_ACCOUNT" : "Delete account"}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+              {techLabels
+                ? "Hard-delete auth identity, profile record and owned project records. Community projects are retained."
+                : "This permanently deletes your account, public profile and personal projects. Community projects are not deleted, including projects where you only participate."}
+            </p>
+          </div>
+        </div>
+        <Field
+          label={{
+            tech: "CONFIRM_ACCOUNT_EMAIL",
+            friendly: "Type your email to confirm",
+          }}
+        >
+          <Input
+            className={inputClass}
+            type="email"
+            value={confirmation}
+            onChange={(event) => setConfirmation(event.target.value)}
+            placeholder={accountEmail || "you@example.com"}
+            autoComplete="email"
+            required
+          />
+        </Field>
+        <ActionableErrorMessage message={error} />
+        <Button
+          type="submit"
+          disabled={!confirmationMatches || saving}
+          className="h-10 rounded-sm bg-red-600 text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {saving
+            ? techLabels
+              ? "DELETING..."
+              : "Deleting..."
+            : techLabels
+              ? "DELETE_ACCOUNT"
+              : "Delete account"}
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
 export function DashboardProfilePage() {
   const { techLabels } = useTechLabels();
 
@@ -3360,7 +3715,10 @@ export function DashboardProfilePage() {
           />
           <section className="container mx-auto px-4 py-12 md:px-6">
             {profile ? (
-              <ProfileForm userId={userId} initialProfile={profile} />
+              <div className="space-y-8">
+                <ProfileForm userId={userId} initialProfile={profile} />
+                <DeleteAccountPanel email={profile.email} />
+              </div>
             ) : (
               <Card className="p-6">
                 <h2 className="mb-2 text-xl font-bold text-zinc-100">

@@ -45,6 +45,19 @@ import {
   locationLabel,
 } from "@/lib/geo";
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: Record<string, unknown>,
+      ) => string;
+      remove: (widgetId: string) => void;
+      reset: (widgetId: string) => void;
+    };
+  }
+}
+
 // --- Static Data ---
 
 const WHO_FOR = [
@@ -89,6 +102,44 @@ const MAP_ITALY_STROKE = "rgba(0, 0, 0, 0)";
 const MAP_PIN_COLOR = "#3b82f6";
 const MAP_PIN_OUTLINE = "rgba(239, 246, 255, 0.88)";
 const MAP_PIN_RING = "rgba(15, 23, 42, 0.72)";
+const turnstileScriptSrc =
+  "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
+  | string
+  | undefined;
+
+let turnstileScriptPromise: Promise<void> | null = null;
+
+function loadTurnstileScript() {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.turnstile) return Promise.resolve();
+  if (turnstileScriptPromise) return turnstileScriptPromise;
+
+  turnstileScriptPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      `script[src="${turnstileScriptSrc}"]`,
+    );
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(), { once: true });
+      existingScript.addEventListener(
+        "error",
+        () => reject(new Error("Could not load security check.")),
+        { once: true },
+      );
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = turnstileScriptSrc;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Could not load security check."));
+    document.head.appendChild(script);
+  });
+
+  return turnstileScriptPromise;
+}
 
 // --- Sub-components ---
 
