@@ -8,6 +8,7 @@ import BuildersPage from "@/pages/Builders";
 import ProjectsPage from "@/pages/Projects";
 import OpenSourcePage from "@/pages/OpenSource";
 import JoinPage from "@/pages/Join";
+import MissionPage from "@/pages/Mission";
 import { TechLabelProvider } from "@/pages/Home";
 import {
   AdminCommunityProjectEditorPage,
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/community-projects" component={CommunityProjectsDirectoryPage} />
       <Route path="/community-projects/:slug" component={CommunityProjectDetailPage} />
       <Route path="/os-projects" component={OpenSourcePage} />
+      <Route path="/mission" component={MissionPage} />
       <Route path="/invite/:token" component={InvitePage} />
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/dashboard/contributions" component={DashboardContributionsPage} />

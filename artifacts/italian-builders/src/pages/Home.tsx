@@ -1893,19 +1893,28 @@ export function Footer() {
             </h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a
+                  href="/mission"
+                  className="hover:text-white transition-colors"
+                >
                   Mission
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Guidelines
-                </a>
+                <span className="flex flex-wrap items-center gap-2 text-zinc-500">
+                  <span>Guides</span>
+                  <span className="rounded-sm border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+                    {techLabels ? "COMING_SOON" : "Coming soon"}
+                  </span>
+                </span>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Changelog
-                </a>
+                <span className="flex flex-wrap items-center gap-2 text-zinc-500">
+                  <span>Changelog</span>
+                  <span className="rounded-sm border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+                    {techLabels ? "COMING_SOON" : "Coming soon"}
+                  </span>
+                </span>
               </li>
             </ul>
           </div>
