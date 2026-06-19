@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import {
   ArrowRight,
+  AlertTriangle,
   Copy,
   Eye,
   ExternalLink,
@@ -276,7 +277,7 @@ function MediaUploadField({
         <p className="mt-2 text-xs leading-relaxed text-zinc-500">
           {mediaFieldHelp(kind)}
         </p>
-        <StatusMessage message={error} tone="error" />
+        <ActionableErrorMessage message={error} />
       </div>
     </div>
   );
@@ -285,18 +286,116 @@ function MediaUploadField({
 function StatusMessage({
   message,
   tone = "neutral",
+  title,
+  action,
 }: {
   message: string | null;
-  tone?: "neutral" | "error";
+  tone?: "neutral" | "error" | "warning";
+  title?: string;
+  action?: React.ReactNode;
 }) {
   if (!message) return null;
+  const toneClass =
+    tone === "error"
+      ? "border-red-500/40 bg-red-950/30 text-red-200"
+      : tone === "warning"
+        ? "border-amber-500/40 bg-amber-950/25 text-amber-100"
+        : "border-zinc-800 bg-zinc-900 text-zinc-300";
   return (
     <div
-      className={`rounded-sm border p-3 text-sm ${tone === "error" ? "border-red-500/40 bg-red-950/30 text-red-200" : "border-zinc-800 bg-zinc-900 text-zinc-300"}`}
+      className={`rounded-sm border p-3 text-sm ${toneClass}`}
     >
-      {message}
+      <div className="flex items-start gap-3">
+        {tone !== "neutral" && (
+          <AlertTriangle className="mt-0.5 shrink-0" size={16} />
+        )}
+        <div className="min-w-0 space-y-2">
+          {title && <p className="font-semibold text-zinc-50">{title}</p>}
+          <p className="leading-relaxed">{message}</p>
+          {action && <div className="pt-1">{action}</div>}
+        </div>
+      </div>
     </div>
   );
+}
+
+type ActionableStatus = {
+  title: string;
+  message: string;
+  action?: React.ReactNode;
+  tone?: "error" | "warning";
+};
+
+function InlineActionLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      className="inline-flex h-8 items-center gap-2 rounded-sm border border-current/30 px-3 text-xs font-semibold text-current hover:bg-white/10"
+    >
+      {children} <ArrowRight size={12} />
+    </a>
+  );
+}
+
+function schemaCacheStatus(message: string | null): ActionableStatus | null {
+  if (!message) return null;
+  const normalized = message.toLowerCase();
+  if (
+    normalized.includes("schema cache") &&
+    normalized.includes("profiles") &&
+    (normalized.includes("latitude") || normalized.includes("longitude"))
+  ) {
+    return {
+      title: "Profile location fields are not installed yet.",
+      message:
+        "The profile form is working, but the database is missing the latitude/longitude columns required by this version. Apply `supabase/migrations/20260619113000_profile_coordinates.sql`, then reload the page.",
+      tone: "error",
+    };
+  }
+  if (
+    normalized.includes("schema cache") &&
+    normalized.includes("community_project_members")
+  ) {
+    return {
+      title: "Community assignment roles are not installed yet.",
+      message:
+        "Community projects exist, but assignment role editing needs the latest member-role migration. Apply `supabase/migrations/20260619110000_project_members.sql`, then reload the page.",
+      tone: "error",
+    };
+  }
+  if (
+    normalized.includes("schema cache") &&
+    normalized.includes("project_members")
+  ) {
+    return {
+      title: "Project contribution roles are not installed yet.",
+      message:
+        "This page needs the `project_members` table before project invitations can load. Apply `supabase/migrations/20260619110000_project_members.sql`, then reload the page. Seeing no invitations is normal until a project owner invites you.",
+      tone: "error",
+    };
+  }
+  return null;
+}
+
+function ActionableErrorMessage({ message }: { message: string | null }) {
+  const status = schemaCacheStatus(message);
+  if (status) {
+    return (
+      <StatusMessage
+        message={status.message}
+        title={status.title}
+        tone={status.tone}
+        action={status.action}
+      />
+    );
+  }
+  return <StatusMessage message={message} tone="error" />;
 }
 
 function EmptyState({ title, copy }: { title: ModeLabel; copy: ModeLabel }) {
@@ -572,7 +671,7 @@ function SignInPanel({
           />
         </Field>
         <StatusMessage message={message} />
-        <StatusMessage message={error} tone="error" />
+        <ActionableErrorMessage message={error} />
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button
             type="submit"
@@ -779,7 +878,7 @@ export function BuildersDirectoryPage() {
             ))}
           </select>
         </div>
-        <StatusMessage message={error} tone="error" />
+        <ActionableErrorMessage message={error} />
         {loading ? (
           <SkeletonList />
         ) : filtered.length === 0 ? (
@@ -2601,7 +2700,7 @@ function ProfileForm({
 
       <div className="space-y-3">
         <StatusMessage message={message} />
-        <StatusMessage message={error} tone="error" />
+        <ActionableErrorMessage message={error} />
       </div>
 
       {mode === "preview" ? (
@@ -3303,7 +3402,7 @@ function ProjectEditor({
           </Field>
         </div>
         <div className="md:col-span-2">
-          <StatusMessage message={error} tone="error" />
+          <ActionableErrorMessage message={error} />
           <Button
             className="mt-3 h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
             disabled={saving}
@@ -3381,7 +3480,7 @@ function ProjectContributorsPanel({
             required
           />
         </Field>
-        <StatusMessage message={error} tone="error" />
+        <ActionableErrorMessage message={error} />
         <Button className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500">
           <UserPlus size={15} /> {techLabels ? "INVITE_MEMBER" : "Invite contributor"}
         </Button>
@@ -3542,7 +3641,8 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
     CommunityProjectMember[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [projectError, setProjectError] = useState<string | null>(null);
+  const [communityError, setCommunityError] = useState<string | null>(null);
 
   async function load() {
     if (!supabase) {
@@ -3568,7 +3668,8 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
     setCommunityMembers(
       (communityResult.data as CommunityProjectMember[]) ?? [],
     );
-    setError(getError(projectResult.error) || getError(communityResult.error));
+    setProjectError(getError(projectResult.error));
+    setCommunityError(getError(communityResult.error));
     setLoading(false);
   }
 
@@ -3584,14 +3685,23 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
         copy={{ tech: "These role vectors appear on project pages and your public profile.", friendly: "These roles appear on project pages and on your public profile." }}
       />
       <section className="container mx-auto space-y-8 px-4 py-12 md:px-6">
-        <StatusMessage message={error} tone="error" />
         {loading ? (
           <SkeletonList />
         ) : (
           <>
             <ContributionSection
               title={techLabels ? "PERSONAL_PROJECT_INVITES" : "Project invitations"}
-              empty={techLabels ? "NO_PROJECT_INVITES" : "No project invitations yet."}
+              error={projectError}
+              empty={
+                techLabels
+                  ? "NO_PROJECT_INVITES: create or open a project, then invite this member handle from the contributors panel."
+                  : "No project invitations yet. A project owner needs to add your handle from the project editor before you can describe your role."
+              }
+              emptyAction={
+                <InlineActionLink href="/dashboard/projects">
+                  {techLabels ? "OPEN_ARTIFACTS" : "Open your projects"}
+                </InlineActionLink>
+              }
             >
               {projectMembers.map((member) => (
                 <ContributionRoleCard
@@ -3618,7 +3728,17 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
 
             <ContributionSection
               title={techLabels ? "COMMUNITY_ASSIGNMENTS" : "Community project assignments"}
-              empty={techLabels ? "NO_COMMUNITY_ASSIGNMENTS" : "No community project assignments yet."}
+              error={communityError}
+              empty={
+                techLabels
+                  ? "NO_COMMUNITY_ASSIGNMENTS: an admin can assign member nodes from the shared workstream editor."
+                  : "No community project assignments yet. An admin can assign you from a community project."
+              }
+              emptyAction={
+                <InlineActionLink href="/community-projects">
+                  {techLabels ? "BROWSE_WORKSTREAMS" : "Browse community projects"}
+                </InlineActionLink>
+              }
             >
               {communityMembers.map((member) => (
                 <ContributionRoleCard
@@ -3647,10 +3767,14 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
 function ContributionSection({
   title,
   empty,
+  emptyAction,
+  error,
   children,
 }: {
   title: string;
   empty: string;
+  emptyAction?: React.ReactNode;
+  error?: string | null;
   children: React.ReactNode;
 }) {
   const items = React.Children.toArray(children);
@@ -3658,8 +3782,13 @@ function ContributionSection({
   return (
     <section className="space-y-3">
       <h2 className="text-xl font-bold text-zinc-100">{title}</h2>
-      {items.length === 0 ? (
-        <Card className="p-6 text-sm text-zinc-500">{empty}</Card>
+      {error ? (
+        <ActionableErrorMessage message={error} />
+      ) : items.length === 0 ? (
+        <Card className="space-y-4 p-6 text-sm text-zinc-500">
+          <p>{empty}</p>
+          {emptyAction}
+        </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">{items}</div>
       )}
@@ -3746,7 +3875,7 @@ function ContributionRoleCard({
             }
           />
         </Field>
-        <StatusMessage message={error} tone="error" />
+        <ActionableErrorMessage message={error} />
         <Button
           className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
           disabled={saving}
@@ -3963,7 +4092,7 @@ function AdminInvitesInner({ userId }: { userId: string }) {
                 placeholder="@username"
               />
             </Field>
-            <StatusMessage message={error} tone="error" />
+            <ActionableErrorMessage message={error} />
             <Button className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500">
               {techLabels ? "CREATE_INVITE" : "Create invite"}
             </Button>
@@ -4424,7 +4553,7 @@ function CommunityProjectEditor({
           </Field>
         </div>
         <div className="md:col-span-2">
-          <StatusMessage message={error} tone="error" />
+          <ActionableErrorMessage message={error} />
           <Button
             className="mt-3 h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
             disabled={saving}
@@ -4520,7 +4649,7 @@ function AssignmentPanel({
             onChange={(event) => setNote(event.target.value)}
           />
         </Field>
-        <StatusMessage message={error} tone="error" />
+        <ActionableErrorMessage message={error} />
         <Button className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500">
           {techLabels ? "ASSIGN_NODE" : "Assign member"}
         </Button>
