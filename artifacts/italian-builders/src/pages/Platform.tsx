@@ -45,6 +45,11 @@ import {
   useSupabaseSession,
 } from "@/lib/supabase";
 import { mediaFieldHelp, uploadMediaFile } from "@/lib/storage";
+import {
+  normalizeHttpUrlInput,
+  normalizeSocialUrl,
+  sanitizeHttpUrl,
+} from "@/lib/url-safety";
 import { coordsForCityCountry, locationLabel } from "@/lib/geo";
 
 const inputClass =
@@ -749,10 +754,11 @@ function ExternalLinkItem({
   label: string;
   icon?: React.FC<{ size?: number; className?: string }>;
 }) {
-  if (!href) return null;
+  const safeHref = sanitizeHttpUrl(href);
+  if (!safeHref) return null;
   return (
     <a
-      href={href}
+      href={safeHref}
       target="_blank"
       rel="noreferrer"
       className="flex w-full items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-blue-400 hover:border-blue-500/50 hover:text-blue-300"
@@ -3210,10 +3216,13 @@ function ProfileForm({
         profile_languages: profileLanguages,
         profile_skills: profileSkills,
         profile_looking_for: profileLookingFor,
-        profile_website_url: form.website_url || null,
-        profile_linkedin_url: form.linkedin_url || null,
-        profile_x_url: form.x_url || null,
-        profile_github_url: form.github_url || null,
+        profile_website_url: normalizeHttpUrlInput(form.website_url) || null,
+        profile_linkedin_url:
+          normalizeSocialUrl(form.linkedin_url, "https://linkedin.com/in/") ||
+          null,
+        profile_x_url: normalizeSocialUrl(form.x_url, "https://x.com/") || null,
+        profile_github_url:
+          normalizeSocialUrl(form.github_url, "https://github.com/") || null,
       });
       if (rpcError) {
         setError(rpcError.message);
@@ -3228,7 +3237,7 @@ function ProfileForm({
             location: null,
             latitude,
             longitude,
-            intro_video_url: form.intro_video_url || null,
+            intro_video_url: normalizeHttpUrlInput(form.intro_video_url) || null,
             visibility: form.visibility,
           })
           .eq("id", userId);
@@ -3249,10 +3258,13 @@ function ProfileForm({
       languages: profileLanguages,
       skills: profileSkills,
       looking_for: profileLookingFor,
-      website_url: form.website_url || null,
-      linkedin_url: form.linkedin_url || null,
-      x_url: form.x_url || null,
-      github_url: form.github_url || null,
+      website_url: normalizeHttpUrlInput(form.website_url) || null,
+      linkedin_url:
+        normalizeSocialUrl(form.linkedin_url, "https://linkedin.com/in/") ||
+        null,
+      x_url: normalizeSocialUrl(form.x_url, "https://x.com/") || null,
+      github_url:
+        normalizeSocialUrl(form.github_url, "https://github.com/") || null,
       avatar_url: form.avatar_url || null,
       cover_url: form.cover_url || null,
       city: form.city || null,
@@ -3260,7 +3272,7 @@ function ProfileForm({
       location: null,
       latitude,
       longitude,
-      intro_video_url: form.intro_video_url || null,
+      intro_video_url: normalizeHttpUrlInput(form.intro_video_url) || null,
       visibility: form.visibility,
       onboarding_completed: true,
     };
@@ -3482,13 +3494,6 @@ type InviteLookup = Pick<
   waitlist_project_url: string | null;
 };
 
-function normalizeSocialUrl(value: string | null, base: string) {
-  const trimmed = value?.trim();
-  if (!trimmed) return "";
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `${base}${trimmed.replace(/^@/, "").replace(/^\/+/, "")}`;
-}
-
 function inviteToProfileForm(
   invite: InviteLookup | null,
 ): Partial<ProfileFormState> {
@@ -3501,7 +3506,9 @@ function inviteToProfileForm(
     telegram_handle:
       invite.waitlist_telegram_handle ?? invite.telegram_handle ?? "",
     role: invite.waitlist_role ?? "",
-    website_url: invite.waitlist_website ?? invite.waitlist_project_url ?? "",
+    website_url: normalizeHttpUrlInput(
+      invite.waitlist_website ?? invite.waitlist_project_url,
+    ),
     linkedin_url: normalizeSocialUrl(
       invite.waitlist_linkedin,
       "https://www.linkedin.com/",
@@ -3876,7 +3883,12 @@ function ProjectEditor({
   }
 
   function preferredProjectUrl(current = form) {
-    return current.website_url || current.demo_url || current.github_url || "";
+    return (
+      normalizeHttpUrlInput(current.website_url) ||
+      normalizeHttpUrlInput(current.demo_url) ||
+      normalizeSocialUrl(current.github_url, "https://github.com/") ||
+      ""
+    );
   }
 
   async function importOpenGraphImage(
@@ -3998,9 +4010,10 @@ function ProjectEditor({
       description: form.description || null,
       category: form.category || null,
       status: form.status,
-      website_url: form.website_url || null,
-      github_url: form.github_url || null,
-      demo_url: form.demo_url || null,
+      website_url: normalizeHttpUrlInput(form.website_url) || null,
+      github_url:
+        normalizeSocialUrl(form.github_url, "https://github.com/") || null,
+      demo_url: normalizeHttpUrlInput(form.demo_url) || null,
       image_url: form.image_url || null,
       looking_for: cleanLookingForItems(form.looking_for),
       is_open_source: form.is_open_source,
@@ -5979,8 +5992,8 @@ function CommunityProjectEditor({
       description: form.description || null,
       category: form.category || null,
       status: form.status,
-      repo_url: form.repo_url || null,
-      website_url: form.website_url || null,
+      repo_url: normalizeSocialUrl(form.repo_url, "https://github.com/") || null,
+      website_url: normalizeHttpUrlInput(form.website_url) || null,
       image_url: form.image_url || null,
       is_public: form.is_public,
       created_by: project?.created_by ?? userId,

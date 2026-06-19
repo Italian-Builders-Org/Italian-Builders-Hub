@@ -71,34 +71,21 @@ export async function uploadMediaFile({
     throw new Error("You can only upload media for your own account.");
   }
 
-  const uploadRequest = await fetch("/api/media-upload-url", {
+  const uploadRequest = await fetch("/api/media-upload", {
     method: "POST",
     headers: {
       authorization: `Bearer ${token}`,
-      "content-type": "application/json",
+      "content-type": file.type,
+      "x-media-folder": folder,
+      "x-media-file-name": file.name || `upload.${safeExtension(file)}`,
     },
-    body: JSON.stringify({
-      folder,
-      fileName: file.name || `upload.${safeExtension(file)}`,
-      contentType: file.type,
-      size: file.size,
-    }),
+    body: file,
   });
 
   const uploadData = await uploadRequest.json().catch(() => null);
 
   if (!uploadRequest.ok) {
     throw new Error(uploadData?.error || "Could not prepare media upload.");
-  }
-
-  const uploadResponse = await fetch(uploadData.uploadUrl, {
-    method: "PUT",
-    headers: uploadData.headers,
-    body: file,
-  });
-
-  if (!uploadResponse.ok) {
-    throw new Error("Could not upload media to Cloudflare R2.");
   }
 
   return uploadData.publicUrl as string;

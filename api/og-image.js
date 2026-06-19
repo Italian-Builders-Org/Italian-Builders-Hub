@@ -4,6 +4,7 @@ const {
   uploadR2Object,
   verifySupabaseUser,
 } = require("./_r2-storage");
+const { safeFetch, validatePublicHttpUrl } = require("./_safe-fetch");
 
 const MAX_HTML_BYTES = 750_000;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -17,18 +18,6 @@ function parseBody(body) {
   if (body && Buffer.isBuffer(body)) return JSON.parse(body.toString("utf8"));
   if (body && typeof body === "object") return body;
   return {};
-}
-
-function normalizeHttpUrl(input) {
-  if (typeof input !== "string") throw new Error("URL is required.");
-  const url = new URL(input.trim());
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new Error("Only http and https URLs are supported.");
-  }
-  if (["localhost", "127.0.0.1", "::1"].includes(url.hostname)) {
-    throw new Error("Local URLs are not supported.");
-  }
-  return url;
 }
 
 function decodeHtml(value) {
@@ -69,6 +58,17 @@ function fileExtension(contentType, imageUrl) {
 async function readLimited(response, limit) {
   const reader = response.body?.getReader();
   if (!reader) {
+    if (response.body?.[Symbol.asyncIterator]) {
+      const chunks = [];
+      let total = 0;
+      for await (const chunk of response.body) {
+        const bytes = Buffer.from(chunk);
+        total += bytes.byteLength;
+        if (total > limit) throw new Error("Response is too large.");
+        chunks.push(bytes);
+      }
+      return new Uint8Array(Buffer.concat(chunks, total));
+    }
     const bytes = new Uint8Array(await response.arrayBuffer());
     if (bytes.byteLength > limit) throw new Error("Response is too large.");
     return bytes;
@@ -109,7 +109,8 @@ module.exports = async function handler(req, res) {
   try {
     const user = await verifySupabaseUser(authorization);
     const body = parseBody(req.body);
-    const pageUrl = normalizeHttpUrl(body.url);
+    if (typeof body.url !== "string") throw new Error("URL is required.");
+    const pageUrl = await validatePublicHttpUrl(body.url.trim());
     const userId = String(body.userId || "").trim();
     if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new Error("Valid user id is required.");
     if (user.id !== userId) {
@@ -117,12 +118,11 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const pageResponse = await fetch(pageUrl, {
+    const pageResponse = await safeFetch(pageUrl, {
       headers: {
         "user-agent": "ItalianBuildersBot/1.0 (+https://italian-builders.vercel.app)",
         accept: "text/html,application/xhtml+xml",
       },
-      redirect: "follow",
     });
 
     if (!pageResponse.ok) {
@@ -138,17 +138,16 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const imageUrl = new URL(ogImage, pageResponse.url || pageUrl);
-    if (imageUrl.protocol !== "https:" && imageUrl.protocol !== "http:") {
-      throw new Error("Open Graph image URL is invalid.");
-    }
+    const imageUrl = await validatePublicHttpUrl(
+      ogImage,
+      pageResponse.url || pageUrl,
+    );
 
-    const imageResponse = await fetch(imageUrl, {
+    const imageResponse = await safeFetch(imageUrl, {
       headers: {
         "user-agent": "ItalianBuildersBot/1.0 (+https://italian-builders.vercel.app)",
         accept: "image/avif,image/webp,image/png,image/jpeg,image/gif,*/*",
       },
-      redirect: "follow",
     });
 
     if (!imageResponse.ok) {

@@ -4,12 +4,20 @@ const {
   fetchPublicProfile,
   fetchPublicProfileProjects,
   initials,
-  isHttpUrl,
   normalizeUsername,
   profileRoleLine,
   siteOrigin,
   truncateText,
 } = require("./_profile-og");
+const { safeFetch, validatePublicHttpUrl } = require("./_safe-fetch");
+
+const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
+const SUPPORTED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
 
 function h(type, props, ...children) {
   return {
@@ -21,9 +29,63 @@ function h(type, props, ...children) {
   };
 }
 
-function cleanImageUrl(value, origin) {
+async function readLimited(response, limit) {
+  if (response.body?.[Symbol.asyncIterator]) {
+    const chunks = [];
+    let total = 0;
+    for await (const chunk of response.body) {
+      const bytes = Buffer.from(chunk);
+      total += bytes.byteLength;
+      if (total > limit) throw new Error("Response is too large.");
+      chunks.push(bytes);
+    }
+    return Buffer.concat(chunks, total);
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.byteLength > limit) throw new Error("Response is too large.");
+  return bytes;
+}
+
+async function safeImageDataUrl(value, origin) {
   const url = absoluteUrl(value, origin);
-  return isHttpUrl(url) ? url : null;
+  if (!url) return null;
+
+  try {
+    const safeUrl = await validatePublicHttpUrl(url);
+    const response = await safeFetch(safeUrl, {
+      headers: {
+        "user-agent": "ItalianBuildersBot/1.0 (+https://italianbuilders.co)",
+        accept: "image/avif,image/webp,image/png,image/jpeg,image/gif,*/*",
+      },
+    });
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get("content-type")?.split(";")[0] || "";
+    if (!SUPPORTED_IMAGE_TYPES.has(contentType)) return null;
+
+    const bytes = await readLimited(response, MAX_PROFILE_IMAGE_BYTES);
+    return `data:${contentType};base64,${bytes.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+async function withSafeProfileImages(profile, projects, origin) {
+  const [avatarUrl, projectUrls] = await Promise.all([
+    safeImageDataUrl(profile.avatar_url, origin),
+    Promise.all(
+      projects.map((project) => safeImageDataUrl(project?.image_url, origin)),
+    ),
+  ]);
+
+  return {
+    profile: { ...profile, avatar_url: avatarUrl },
+    projects: projects.map((project, index) => ({
+      ...project,
+      image_url: projectUrls[index],
+    })),
+  };
 }
 
 function Avatar({ src, name }) {
@@ -136,8 +198,8 @@ function LocationBadge({ location }) {
   );
 }
 
-function ProjectTile({ project, index, origin }) {
-  const src = cleanImageUrl(project?.image_url, origin);
+function ProjectTile({ project, index }) {
+  const src = project?.image_url || null;
   const label = truncateText(
     compactText(project?.name) || `Project ${index + 1}`,
     28,
@@ -189,7 +251,7 @@ function buildImage(profile, projects, origin) {
   const name = compactText(profile.full_name) || "Italian Builder";
   const headline = truncateText(profileRoleLine(profile), 64);
   const location = profileLocationLabel(profile);
-  const avatarUrl = cleanImageUrl(profile.avatar_url, origin);
+  const avatarUrl = profile.avatar_url || null;
   const skills = Array.isArray(profile.skills)
     ? profile.skills.filter(Boolean).slice(0, 3)
     : [];
@@ -288,7 +350,6 @@ function buildImage(profile, projects, origin) {
         h(ProjectTile, {
           project,
           index,
-          origin,
           key: `${project.name || "project"}-${index}`,
         }),
       ),
@@ -330,11 +391,15 @@ module.exports = async function handler(req, res) {
 
   const origin = siteOrigin(req);
   const projects = await fetchPublicProfileProjects(profile.id).catch(() => []);
+  const safeMedia = await withSafeProfileImages(profile, projects, origin);
   const { ImageResponse } = await import("@vercel/og");
-  const response = new ImageResponse(buildImage(profile, projects, origin), {
-    width: 1200,
-    height: 630,
-  });
+  const response = new ImageResponse(
+    buildImage(safeMedia.profile, safeMedia.projects, origin),
+    {
+      width: 1200,
+      height: 630,
+    },
+  );
 
   res.statusCode = 200;
   response.headers.forEach((value, key) => {

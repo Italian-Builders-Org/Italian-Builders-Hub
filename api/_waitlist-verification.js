@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
+const { appBaseUrl } = require("./_app-base-url");
 
 const verificationTtlHours = 24;
 
@@ -71,15 +72,6 @@ function newToken() {
 
 function hashToken(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
-}
-
-function appBaseUrl(req) {
-  const configured = process.env.APP_BASE_URL?.replace(/\/+$/, "");
-  if (configured) return configured;
-
-  const host = headerValue(req.headers["x-forwarded-host"]) || req.headers.host;
-  const protocol = headerValue(req.headers["x-forwarded-proto"]) || "https";
-  return `${protocol}://${host}`.replace(/\/+$/, "");
 }
 
 function verificationUrl(req, token) {

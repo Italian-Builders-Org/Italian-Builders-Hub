@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
+const { appBaseUrl } = require("./_app-base-url");
 
 let cachedSupabaseAdmin;
 
@@ -67,15 +68,6 @@ async function requireAdmin(req) {
   }
 
   return { user: data.user };
-}
-
-function appBaseUrl(req) {
-  const configured = process.env.APP_BASE_URL?.replace(/\/+$/, "");
-  if (configured) return configured;
-
-  const host = headerValue(req.headers["x-forwarded-host"]) || req.headers.host;
-  const protocol = headerValue(req.headers["x-forwarded-proto"]) || "https";
-  return `${protocol}://${host}`.replace(/\/+$/, "");
 }
 
 function newInviteToken() {
