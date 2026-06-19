@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,15 +7,13 @@ import { Switch as ToggleSwitch } from "@/components/ui/switch";
 import {
   Menu, X, ArrowRight, Twitter, Linkedin, Globe, Link as LinkIcon,
   CheckCircle2, ChevronRight, ChevronLeft, ChevronUp, MapPin,
-  Terminal, Activity, Database, Server, Code2
+  Terminal, Activity, Database, Server, Code2, LogOut, UserCircle
 } from "lucide-react";
 import {
   useListBuilders, getListBuildersQueryKey,
   useListProjects, getListProjectsQueryKey,
   useListOsProjects, getListOsProjectsQueryKey,
   useGetDirectoryStats, getGetDirectoryStatsQueryKey,
-  useGetWaitlistCount, getGetWaitlistCountQueryKey,
-  useCreateWaitlistSignup
 } from "@workspace/api-client-react";
 import {
   STATIC_BUILDERS,
@@ -25,9 +22,8 @@ import {
   STATIC_PROJECTS,
   hasItems,
   isDirectoryStats,
-  isWaitlistCount,
-  isWaitlistSignup,
 } from "@/data/directory";
+import { type Profile, supabase, useSupabaseSession } from "@/lib/supabase";
 
 // --- Static Data ---
 
@@ -135,12 +131,87 @@ function TechLabelToggle({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function HeaderAuthControls({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
+  const { techLabels } = useTechLabels();
+  const { user, loading } = useSupabaseSession();
+  const [profile, setProfile] = useState<Pick<Profile, "username" | "full_name" | "avatar_url" | "platform_role"> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadProfile() {
+      if (!supabase || !user) {
+        setProfile(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("username, full_name, avatar_url, platform_role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setProfile((data as Pick<Profile, "username" | "full_name" | "avatar_url" | "platform_role"> | null) ?? null);
+      }
+    }
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  async function signOut() {
+    await supabase?.auth.signOut();
+    window.location.href = "/";
+  }
+
+  const linkClass = mobile
+    ? "inline-flex h-9 w-full items-center justify-center rounded-sm border border-zinc-800 bg-zinc-950 px-3 text-xs font-semibold text-zinc-200 hover:bg-zinc-900"
+    : "inline-flex h-8 items-center justify-center rounded-sm border border-zinc-800 bg-zinc-950 px-3 text-xs font-semibold text-zinc-200 hover:bg-zinc-900";
+  const primaryClass = mobile
+    ? "inline-flex h-9 w-full items-center justify-center rounded-sm bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-500"
+    : "inline-flex h-8 items-center justify-center rounded-sm bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-500";
+
+  if (loading) {
+    return <div className={mobile ? "h-9" : "h-8 w-24"} />;
+  }
+
+  if (!user) {
+    return (
+      <div className={mobile ? "flex flex-col gap-3" : "flex items-center gap-3"}>
+        <a href="/dashboard" onClick={onNavigate} className={linkClass}>{techLabels ? "SIGN_IN" : "Sign in"}</a>
+        <a href="/join" onClick={onNavigate} className={primaryClass}>{techLabels ? "REQUEST_ACCESS" : "Join waitlist"}</a>
+      </div>
+    );
+  }
+
+  const isAdmin = profile?.platform_role === "admin" || profile?.platform_role === "owner";
+  const profileHref = profile?.username ? `/builders/${profile.username}` : "/dashboard/profile";
+
+  return (
+    <div className={mobile ? "flex flex-col gap-3" : "flex items-center gap-2"}>
+      <a href={profileHref} onClick={onNavigate} className={`${linkClass} gap-2`}>
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt="" className="h-5 w-5 rounded-sm border border-zinc-700 object-cover" />
+        ) : (
+          <UserCircle size={15} />
+        )}
+        {techLabels ? "PROFILE" : "Profile"}
+      </a>
+      <a href="/dashboard/profile" onClick={onNavigate} className={linkClass}>{techLabels ? "EDIT_PROFILE" : "Edit profile"}</a>
+      <a href="/dashboard" onClick={onNavigate} className={primaryClass}>{techLabels ? "CONSOLE" : "Dashboard"}</a>
+      {isAdmin && <a href="/admin" onClick={onNavigate} className={linkClass}>{techLabels ? "ADMIN" : "Admin"}</a>}
+      <button type="button" onClick={signOut} className={`${linkClass} gap-2`}>
+        <LogOut size={14} /> {techLabels ? "SIGN_OUT" : "Sign out"}
+      </button>
+    </div>
+  );
+}
+
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { techLabels } = useTechLabels();
   const navLabelClass = `text-xs text-zinc-500 hover:text-zinc-100 transition-colors ${techLabels ? "font-mono uppercase" : "font-medium"}`;
-  const secondaryActionClass = `text-xs text-zinc-400 hover:text-zinc-100 ${techLabels ? "font-mono uppercase" : "font-medium"}`;
-  const primaryActionClass = `inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-blue-600 hover:bg-blue-500 text-white text-xs dt-button rounded-sm ${techLabels ? "font-mono uppercase" : "font-semibold"}`;
   const mobileNavClass = `text-sm text-zinc-400 ${techLabels ? "font-mono uppercase" : "font-medium"}`;
 
   return (
@@ -159,15 +230,12 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-6">
           <a href="/builders" className={navLabelClass}>{techLabels ? "/builders" : "Builders"}</a>
           <a href="/projects" className={navLabelClass}>{techLabels ? "/projects" : "Projects"}</a>
-          <a href="/os-projects" className={navLabelClass}>{techLabels ? "/initiatives" : "Initiatives"}</a>
+          <a href="/community-projects" className={navLabelClass}>{techLabels ? "/community-projects" : "Community projects"}</a>
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
           <TechLabelToggle />
-          <a href="/join" className={secondaryActionClass}>{techLabels ? "Sign in" : "Sign in"}</a>
-          <a href="/join" className={`${primaryActionClass} h-8 px-4`}>
-            {techLabels ? "Join Waitlist" : "Join Waitlist"}
-          </a>
+          <HeaderAuthControls />
         </div>
 
         {/* Mobile Toggle */}
@@ -185,14 +253,11 @@ export function Header() {
           <nav className="flex flex-col space-y-3">
             <a href="/builders" onClick={() => setMobileMenuOpen(false)} className={mobileNavClass}>{techLabels ? "/builders" : "Builders"}</a>
             <a href="/projects" onClick={() => setMobileMenuOpen(false)} className={mobileNavClass}>{techLabels ? "/projects" : "Projects"}</a>
-            <a href="/os-projects" onClick={() => setMobileMenuOpen(false)} className={mobileNavClass}>{techLabels ? "/initiatives" : "Initiatives"}</a>
+            <a href="/community-projects" onClick={() => setMobileMenuOpen(false)} className={mobileNavClass}>{techLabels ? "/community-projects" : "Community projects"}</a>
           </nav>
           <div className="pt-4 border-t border-zinc-800 flex flex-col gap-3">
             <TechLabelToggle compact />
-            <a href="/join" onClick={() => setMobileMenuOpen(false)} className={`inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border h-9 w-full text-xs dt-button rounded-sm border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-800 hover:text-white ${techLabels ? "font-mono uppercase" : "font-semibold"}`}>{techLabels ? "Sign in" : "Sign in"}</a>
-            <a href="/join" onClick={() => setMobileMenuOpen(false)} className={`${primaryActionClass} h-9 w-full`}>
-              {techLabels ? "Join Waitlist" : "Join Waitlist"}
-            </a>
+            <HeaderAuthControls mobile onNavigate={() => setMobileMenuOpen(false)} />
           </div>
         </div>
       )}
@@ -417,7 +482,7 @@ function Hero() {
 
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
               <a href="#join" className="inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-12 px-6 bg-blue-600 hover:bg-blue-500 text-white font-mono uppercase text-xs dt-button rounded-sm w-full sm:w-auto">
-                {techLabels ? "Join Waitlist" : "Join Waitlist"} <ArrowRight size={16} className="ml-2" />
+                {techLabels ? "REQUEST_ACCESS" : "Join Waitlist"} <ArrowRight size={16} className="ml-2" />
               </a>
             </div>
 
@@ -437,7 +502,7 @@ function Hero() {
               <div className="absolute inset-0 dt-grid-bg opacity-40 pointer-events-none" />
 
               <div className="flex items-center justify-between mb-3 relative z-10">
-                <span className="text-[10px] font-mono text-zinc-500 uppercase">{techLabels ? "Builder map" : "Builder map"}</span>
+                <span className="text-[10px] font-mono text-zinc-500 uppercase">{techLabels ? "NODE_MAP" : "Builder map"}</span>
                 <span className="text-[10px] font-mono text-blue-400 uppercase flex items-center gap-1">
                   <MapPin size={10} /> Italia
                 </span>
@@ -521,11 +586,11 @@ export function FeaturedBuilders() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div className="max-w-2xl">
             <div className="text-xs font-mono text-blue-400 mb-2 font-semibold tracking-wider">
-              {techLabels ? `Featured builders - ${formattedDate}` : "Featured builders"}
+              {techLabels ? `DAILY_BUILDER_SET --date=${formattedDate}` : "Featured builders"}
             </div>
             <h2 className="text-3xl font-bold text-zinc-50 mb-2">Builder Highlights</h2>
             <p className="text-sm text-zinc-500 font-mono">
-              {techLabels ? "People building products, startups and experiments across Italy." : "People building products, startups and experiments across Italy."}
+              {techLabels ? "Active nodes building products, startups and experiments across Italy." : "People building products, startups and experiments across Italy."}
             </p>
           </div>
           <div className="hidden md:flex items-center gap-2">
@@ -592,7 +657,7 @@ export function FeaturedBuilders() {
                   variant="ghost"
                   className="w-full justify-between h-8 rounded-sm border border-zinc-800 text-xs font-mono uppercase bg-zinc-900 hover:bg-zinc-800 hover:text-zinc-100 text-zinc-400"
                 >
-                  {techLabels ? "View profile" : "View profile"}
+                  {techLabels ? "OPEN_PROFILE" : "View profile"}
                   <ArrowRight size={14} className="text-zinc-500 group-hover:text-zinc-200 transition-colors" />
                 </Button>
               </div>
@@ -625,10 +690,10 @@ export function BuilderProjects() {
       <div className="container mx-auto px-4 md:px-6">
         <div className="mb-8">
           <div className="text-xs font-mono text-blue-400 mb-2 font-semibold tracking-wider">
-            {techLabels ? "Project showcase" : "Project showcase"}
+            {techLabels ? "ARTIFACT_REGISTRY" : "Project showcase"}
           </div>
           <h2 className="text-3xl font-bold text-zinc-50 mb-2">
-            {techLabels ? "Community Projects" : "Community Projects"}
+            {techLabels ? "Member Artifacts" : "Community Projects"}
           </h2>
           <p className="text-sm text-zinc-500 font-mono max-w-2xl">
             Discover products, startups, side projects and experiments created by members of the community.
@@ -691,7 +756,7 @@ export function BuilderProjects() {
               variant="outline"
               className="h-10 px-6 border-zinc-800 text-zinc-300 text-xs font-mono uppercase bg-zinc-950 hover:bg-zinc-900 hover:text-zinc-100 rounded-sm"
             >
-              {techLabels ? "Show more projects" : "Show more projects"} <ChevronUp className="ml-2 rotate-180" size={14} />
+              {techLabels ? "LOAD_MORE_ARTIFACTS" : "Show more projects"} <ChevronUp className="ml-2 rotate-180" size={14} />
             </Button>
           </div>
         )}
@@ -710,11 +775,11 @@ export function CommunityProjects() {
       <div className="container mx-auto px-4 md:px-6">
         <div className="mb-10 text-center max-w-2xl mx-auto">
           <div className="text-xs font-mono text-blue-400 mb-2 font-semibold tracking-wider">
-            {techLabels ? "Community initiatives" : "Community initiatives"}
+            {techLabels ? "SHARED_WORKSTREAMS" : "Community initiatives"}
           </div>
           <h2 className="text-3xl font-bold text-zinc-50 mb-3">Community Initiatives</h2>
           <p className="text-sm text-zinc-500 font-mono">
-            {techLabels ? "Projects created together to help builders connect, collaborate and grow." : "Projects created together to help builders connect, collaborate and grow."}
+            {techLabels ? "Shared execution tracks for discovery, collaboration and builder growth." : "Projects created together to help builders connect, collaborate and grow."}
           </p>
         </div>
 
@@ -738,7 +803,7 @@ export function CommunityProjects() {
                 <div className="flex items-center justify-between text-xs font-mono text-zinc-500 pt-4 border-t border-zinc-800">
                   <span className="uppercase">{project.category}</span>
                   <a href="#" className="text-blue-400 hover:text-blue-300 font-semibold group-hover:underline flex items-center gap-1">
-                    {techLabels ? "View project" : "View project"} <ArrowRight size={12} />
+                    {techLabels ? "OPEN_PROJECT" : "View project"} <ArrowRight size={12} />
                   </a>
                 </div>
               </div>
@@ -753,6 +818,8 @@ export function CommunityProjects() {
 export function Join() {
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
   const { techLabels } = useTechLabels();
   const formLabelClass = `text-xs text-zinc-400 ${techLabels ? "font-mono" : "font-medium"}`;
   const helperTextClass = `text-sm text-zinc-400 ${techLabels ? "font-mono" : ""}`;
@@ -760,48 +827,58 @@ export function Join() {
   const inputClass = `bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600 h-9 text-sm rounded-sm focus-visible:ring-1 focus-visible:ring-blue-500 ${techLabels ? "font-mono" : ""}`;
   const iconInputClass = `pl-8 bg-zinc-900 border-zinc-700 text-zinc-100 h-9 text-sm rounded-sm ${techLabels ? "font-mono" : ""}`;
   const buttonLabelClass = `w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white h-10 rounded-sm text-xs dt-button shadow-none disabled:opacity-50 ${techLabels ? "font-mono uppercase" : "font-semibold"}`;
-  const queryClient = useQueryClient();
-  const { data: countData } = useGetWaitlistCount({ query: { queryKey: getGetWaitlistCountQueryKey() } });
-  
-  const createWaitlist = useCreateWaitlistSignup({
-    mutation: {
-      onSuccess: (row) => {
-        if (!isWaitlistSignup(row)) {
-          setErrorMsg("Waitlist API is not connected yet. Please try again after launch.");
-          return;
-        }
-        setSubmitted(true);
-        setErrorMsg("");
-        queryClient.invalidateQueries({ queryKey: getGetWaitlistCountQueryKey() });
-      },
-      onError: (err: any) => {
-        setErrorMsg(err?.message || err?.error || "Connection refused. Please verify inputs.");
-      }
-    }
-  });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    async function loadWaitlistCount() {
+      if (!supabase) return;
+      const { count } = await supabase
+        .from("waitlist_signups")
+        .select("id", { count: "exact", head: true });
+      setWaitlistCount(count ?? null);
+    }
+    loadWaitlistCount();
+  }, [submitted]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!supabase) {
+      setErrorMsg("Supabase is not configured yet. Please try again later.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMsg("");
     const formData = new FormData(e.currentTarget);
     
     // Map empty optional fields to undefined
     const getValue = (key: string) => {
       const val = formData.get(key)?.toString();
-      return val ? val : undefined;
+      return val ? val.trim() : null;
     };
 
-    createWaitlist.mutate({
-      data: {
-        name: formData.get("name") as string,
-        email: formData.get("email") as string,
-        role: formData.get("role") as string,
-        building: getValue("building"),
-        xHandle: getValue("twitter"),
-        linkedin: getValue("linkedin"),
-        website: getValue("website"),
-        projectUrl: getValue("project"),
-      }
+    const { error } = await supabase.from("waitlist_signups").insert({
+      name: String(formData.get("name") ?? "").trim(),
+      email: String(formData.get("email") ?? "").trim().toLowerCase(),
+      role: String(formData.get("role") ?? "").trim(),
+      building: getValue("building"),
+      x_handle: getValue("twitter"),
+      linkedin: getValue("linkedin"),
+      website: getValue("website"),
+      project_url: getValue("project"),
     });
+
+    setIsSubmitting(false);
+
+    if (error) {
+      if (error.code === "23505") {
+        setSubmitted(true);
+        return;
+      }
+      setErrorMsg(error.message || "Could not submit the form. Please try again.");
+      return;
+    }
+
+    setSubmitted(true);
   };
 
   return (
@@ -811,19 +888,19 @@ export function Join() {
 
           <div>
             <div className="text-xs font-mono text-blue-400 mb-4 font-semibold tracking-wider uppercase flex items-center gap-2">
-              <span>{techLabels ? "Who can join" : "Who can join"}</span>
-              {isWaitlistCount(countData) && (
+              <span>{techLabels ? "ACCESS_MATRIX" : "Who can join"}</span>
+              {typeof waitlistCount === "number" && (
                 <span className="bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-sm text-[10px]">
-                  {techLabels ? `${countData.count} waiting` : `${countData.count} waiting`}
+                  {techLabels ? `${waitlistCount} queued` : `${waitlistCount} waiting`}
                 </span>
               )}
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight">
-              {techLabels ? "Join the Community" : "Join the Community"}
+              {techLabels ? "Request Access" : "Join the Community"}
             </h2>
             <p className={`${helperTextClass} mb-10`}>
               {techLabels
-                ? "Tell us who you are and what you're building. We'll let you know when the platform launches."
+                ? "Submit your builder record. We will notify approved accounts when access opens."
                 : "Tell us who you are and what you're building. We'll let you know when the platform launches."}
             </p>
 
@@ -852,7 +929,7 @@ export function Join() {
                <div className="w-2 h-2 rounded-full bg-amber-500/80"></div>
                <div className="w-2 h-2 rounded-full bg-green-500/80"></div>
                <span className="ml-2 text-[10px] font-mono text-zinc-500">
-                {techLabels ? "Join request" : "Join request"}
+                {techLabels ? "ACCESS_REQUEST.form" : "Join request"}
                </span>
             </div>
 
@@ -863,11 +940,11 @@ export function Join() {
                     <CheckCircle2 size={24} className="text-blue-400" />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">
-                    {techLabels ? "You're on the list." : "You're on the list."}
+                    {techLabels ? "REQUEST_QUEUED" : "You're on the list."}
                   </h3>
                   <p className={`${helperTextClass} mb-8 max-w-xs`}>
                     {techLabels
-                      ? "We'll keep you updated as Italian Builders grows."
+                      ? "Your builder record is queued for launch updates."
                       : "We'll keep you updated as Italian Builders grows."}
                   </p>
                   <Button
@@ -875,17 +952,17 @@ export function Join() {
                     onClick={() => setSubmitted(false)}
                     className={`h-8 text-xs bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white rounded-sm ${techLabels ? "font-mono" : "font-semibold"}`}
                   >
-                    {techLabels ? "Submit another" : "Submit another"}
+                    {techLabels ? "NEW_REQUEST" : "Submit another"}
                   </Button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="mb-6">
                     <h3 className="text-lg font-bold text-white mb-1">
-                      {techLabels ? "Join the Waitlist" : "Join the Waitlist"}
+                      {techLabels ? "ACCESS_REQUEST" : "Join the Waitlist"}
                     </h3>
                     <p className={smallHelperClass}>
-                      {techLabels ? "Tell us who you are and what you're building." : "Tell us who you are and what you're building."}
+                      {techLabels ? "Create a pending builder record." : "Tell us who you are and what you're building."}
                     </p>
                   </div>
 
@@ -897,7 +974,7 @@ export function Join() {
 
                     <div className="space-y-3">
                     <div className="space-y-1">
-                      <Label htmlFor="name" className={formLabelClass}>{techLabels ? "Name" : "Name"} <span className="text-blue-400">*</span></Label>
+                      <Label htmlFor="name" className={formLabelClass}>{techLabels ? "FULL_NAME" : "Name"} <span className="text-blue-400">*</span></Label>
                       <Input
                         id="name"
                         name="name"
@@ -908,7 +985,7 @@ export function Join() {
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="email" className={formLabelClass}>{techLabels ? "Email" : "Email"} <span className="text-blue-400">*</span></Label>
+                      <Label htmlFor="email" className={formLabelClass}>{techLabels ? "EMAIL_ADDRESS" : "Email"} <span className="text-blue-400">*</span></Label>
                       <Input
                         id="email"
                         name="email"
@@ -920,7 +997,7 @@ export function Join() {
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="role" className={formLabelClass}>{techLabels ? "Role" : "Role"} <span className="text-blue-400">*</span></Label>
+                      <Label htmlFor="role" className={formLabelClass}>{techLabels ? "ROLE_VECTOR" : "Role"} <span className="text-blue-400">*</span></Label>
                       <Select required defaultValue={ROLES[0]} name="role">
                         <SelectTrigger id="role" className={`bg-zinc-900 border-zinc-700 text-zinc-100 h-9 text-sm rounded-sm focus:ring-1 focus:ring-blue-500 ${techLabels ? "font-mono" : ""}`}>
                           <SelectValue placeholder="Select role" />
@@ -935,7 +1012,7 @@ export function Join() {
 
                     <div className="space-y-1">
                       <Label htmlFor="building" className={formLabelClass}>
-                        {techLabels ? "What are you building?" : "What are you building?"} <span className="text-zinc-600">{techLabels ? "(optional)" : "(optional)"}</span>
+                        {techLabels ? "BUILD_CONTEXT" : "What are you building?"} <span className="text-zinc-600">{techLabels ? "(optional)" : "(optional)"}</span>
                       </Label>
                       <Input
                         id="building"
@@ -947,14 +1024,14 @@ export function Join() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label htmlFor="twitter" className={formLabelClass}>{techLabels ? "X (optional)" : "X (optional)"}</Label>
+                        <Label htmlFor="twitter" className={formLabelClass}>{techLabels ? "X_HANDLE (optional)" : "X (optional)"}</Label>
                         <div className="relative">
                           <Twitter size={14} className="absolute left-2.5 top-2.5 text-zinc-500" />
                           <Input id="twitter" name="twitter" placeholder="@username" className={iconInputClass} />
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="linkedin" className={formLabelClass}>{techLabels ? "LinkedIn (optional)" : "LinkedIn (optional)"}</Label>
+                        <Label htmlFor="linkedin" className={formLabelClass}>{techLabels ? "LINKEDIN_URL (optional)" : "LinkedIn (optional)"}</Label>
                         <div className="relative">
                           <Linkedin size={14} className="absolute left-2.5 top-2.5 text-zinc-500" />
                           <Input id="linkedin" name="linkedin" placeholder="in/username" className={iconInputClass} />
@@ -963,7 +1040,7 @@ export function Join() {
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="website" className={formLabelClass}>{techLabels ? "Website (optional)" : "Website (optional)"}</Label>
+                      <Label htmlFor="website" className={formLabelClass}>{techLabels ? "WEBSITE_URL (optional)" : "Website (optional)"}</Label>
                       <div className="relative">
                         <Globe size={14} className="absolute left-2.5 top-2.5 text-zinc-500" />
                         <Input id="website" name="website" type="url" placeholder="https://..." className={iconInputClass} />
@@ -971,7 +1048,7 @@ export function Join() {
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="project" className={formLabelClass}>{techLabels ? "Project URL (optional)" : "Project URL (optional)"}</Label>
+                      <Label htmlFor="project" className={formLabelClass}>{techLabels ? "PROJECT_URL (optional)" : "Project URL (optional)"}</Label>
                       <div className="relative">
                         <LinkIcon size={14} className="absolute left-2.5 top-2.5 text-zinc-500" />
                         <Input id="project" name="project" type="url" placeholder="https://..." className={iconInputClass} />
@@ -981,15 +1058,15 @@ export function Join() {
 
                   <Button 
                     type="submit" 
-                    disabled={createWaitlist.isPending}
+                    disabled={isSubmitting}
                     className={buttonLabelClass}
                   >
-                    {createWaitlist.isPending
-                      ? techLabels ? "Submitting..." : "Submitting..."
-                      : techLabels ? "Join the Community" : "Join the Community"}
+                    {isSubmitting
+                      ? techLabels ? "SUBMITTING..." : "Submitting..."
+                      : techLabels ? "SUBMIT_ACCESS_REQUEST" : "Join the Community"}
                   </Button>
                   <p className={`text-[10px] text-center text-zinc-500 mt-3 ${techLabels ? "font-mono" : ""}`}>
-                    {techLabels ? "We'll use this to keep you updated." : "We'll use this to keep you updated."}
+                    {techLabels ? "Used only for access and launch updates." : "We'll use this to keep you updated."}
                   </p>
                 </form>
               )}
@@ -1019,14 +1096,14 @@ export function Footer() {
             </div>
             <p className="text-zinc-500 mb-6 max-w-xs leading-relaxed">
               {techLabels
-                ? "Connecting people who build. A community for builders, founders, developers, designers and creators across Italy."
+                ? "Builder graph for founders, developers, designers and creators operating across Italy."
                 : "Connecting people who build. A community for builders, founders, developers, designers and creators across Italy."}
             </p>
             <div className="flex gap-4">
-              <a href="#" className="text-zinc-500 hover:text-white transition-colors" aria-label="Twitter">
+              <a href="https://x.com/italianbldrs" target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-white transition-colors" aria-label="X">
                 <Twitter size={16} />
               </a>
-              <a href="#" className="text-zinc-500 hover:text-white transition-colors" aria-label="LinkedIn">
+              <a href="https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all" target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-white transition-colors" aria-label="LinkedIn">
                 <Linkedin size={16} />
               </a>
             </div>
@@ -1037,7 +1114,7 @@ export function Footer() {
             <ul className="space-y-2">
               <li><a href="/builders" className="hover:text-white transition-colors">Directory</a></li>
               <li><a href="/projects" className="hover:text-white transition-colors">Showcase</a></li>
-              <li><a href="/os-projects" className="hover:text-white transition-colors">{techLabels ? "Initiatives" : "Initiatives"}</a></li>
+              <li><a href="/community-projects" className="hover:text-white transition-colors">{techLabels ? "/community-projects" : "Community projects"}</a></li>
             </ul>
           </div>
 
@@ -1053,16 +1130,24 @@ export function Footer() {
           <div>
             <h4 className="text-white font-bold mb-4 uppercase tracking-wider">Legal</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="hover:text-white transition-colors">{techLabels ? "Privacy policy" : "Privacy policy"}</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">{techLabels ? "Terms of service" : "Terms of service"}</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">{techLabels ? "Contact us" : "Contact us"}</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{techLabels ? "PRIVACY_POLICY" : "Privacy policy"}</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{techLabels ? "TERMS_OF_SERVICE" : "Terms of service"}</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{techLabels ? "CONTACT_ENDPOINT" : "Contact us"}</a></li>
             </ul>
           </div>
         </div>
 
         <div className={`pt-6 border-t border-zinc-900 flex flex-col md:flex-row items-center justify-between gap-4 ${techLabels ? "font-mono text-[10px]" : "text-xs"}`}>
           <p className="text-zinc-600">© {new Date().getFullYear()} ITALIAN BUILDERS. ALL RIGHTS RESERVED.</p>
-          <TechLabelToggle />
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            <a
+              href="/dashboard"
+              className="inline-flex h-8 items-center justify-center rounded-sm border border-zinc-800 px-3 text-xs font-semibold text-zinc-300 transition-colors hover:border-blue-500/60 hover:text-white"
+            >
+              {techLabels ? "MEMBER_LOGIN" : "Builders login"}
+            </a>
+            <TechLabelToggle />
+          </div>
         </div>
       </div>
     </footer>

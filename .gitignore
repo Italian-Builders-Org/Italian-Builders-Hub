@@ -50,3 +50,9 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Vercel local project link metadata
+.vercel/
+
+# Supabase CLI local metadata/cache
+supabase/.temp/
