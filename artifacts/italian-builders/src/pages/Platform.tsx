@@ -1442,6 +1442,7 @@ export function ProjectDetailPage() {
           "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(*, profiles(username, full_name, avatar_url, headline))",
         )
         .eq("slug", params.slug)
+        .eq("is_public", true)
         .maybeSingle();
       setProject((data as Project | null) ?? null);
       setLoading(false);
@@ -1778,6 +1779,7 @@ export function CommunityProjectDetailPage() {
           "*, community_project_members(*, profiles(username, full_name, avatar_url, headline))",
         )
         .eq("slug", params.slug)
+        .eq("is_public", true)
         .maybeSingle();
       setProject((data as CommunityProject | null) ?? null);
       setLoading(false);
@@ -2964,7 +2966,7 @@ async function inviteProjectMembers({
   ownerId: string;
   profiles: Pick<Profile, "id" | "username">[];
 }) {
-  if (!supabase || profiles.length === 0) return;
+  if (!supabase || profiles.length === 0) return 0;
 
   const rows = profiles
     .filter((profile) => profile.id !== ownerId)
@@ -2973,12 +2975,15 @@ async function inviteProjectMembers({
       profile_id: profile.id,
       invited_by: ownerId,
     }));
-  if (rows.length === 0) return;
+  if (rows.length === 0) return 0;
 
-  const { error: inviteError } = await supabase
+  const { data, error: inviteError } = await supabase
     .from("project_members")
-    .upsert(rows, { onConflict: "project_id,profile_id" });
+    .upsert(rows, { onConflict: "project_id,profile_id" })
+    .select("id, profile_id");
   if (inviteError) throw inviteError;
+
+  return data?.length ?? rows.length;
 }
 
 async function inviteProjectMembersByHandle({
@@ -2991,7 +2996,7 @@ async function inviteProjectMembersByHandle({
   handles: string[];
 }) {
   const profiles = await resolveProjectContributorProfiles(handles);
-  await inviteProjectMembers({ projectId, ownerId, profiles: profiles ?? [] });
+  return inviteProjectMembers({ projectId, ownerId, profiles: profiles ?? [] });
 }
 
 function ProjectEditor({
@@ -3169,11 +3174,18 @@ function ProjectEditor({
 
       const projectId = (result.data as { id: string } | null)?.id;
       if (projectId && contributorProfiles && contributorProfiles.length > 0) {
-        await inviteProjectMembers({
-          projectId,
-          ownerId: userId,
-          profiles: contributorProfiles,
-        });
+        try {
+          await inviteProjectMembers({
+            projectId,
+            ownerId: userId,
+            profiles: contributorProfiles,
+          });
+        } catch (inviteError) {
+          setError(
+            `Project saved, but contributors were not invited: ${getError(inviteError) || "unknown error"}`,
+          );
+          return;
+        }
       }
       navigate(project ? "/dashboard/projects" : `/dashboard/projects/${projectId}`);
     } catch (submitError) {
@@ -3429,19 +3441,26 @@ function ProjectContributorsPanel({
   const { techLabels } = useTechLabels();
   const [handle, setHandle] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function invite(event: React.FormEvent) {
     event.preventDefault();
     const handles = splitCommunityHandles(handle);
     if (handles.length === 0) return;
     setError(null);
+    setMessage(null);
     try {
-      await inviteProjectMembersByHandle({
+      const invitedCount = await inviteProjectMembersByHandle({
         projectId: project.id,
         ownerId: userId,
         handles,
       });
       setHandle("");
+      setMessage(
+        invitedCount === 1
+          ? "Contributor invited."
+          : `${invitedCount ?? handles.length} contributors invited.`,
+      );
       onChange();
     } catch (inviteError) {
       setError(getError(inviteError) || "Could not invite contributor.");
@@ -3480,6 +3499,7 @@ function ProjectContributorsPanel({
             required
           />
         </Field>
+        <StatusMessage message={message} />
         <ActionableErrorMessage message={error} />
         <Button className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500">
           <UserPlus size={15} /> {techLabels ? "INVITE_MEMBER" : "Invite contributor"}
