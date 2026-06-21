@@ -52,7 +52,7 @@ export default function ProjectsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {projects.map((project) => (
                   <article key={project.id} className="group dt-card flex flex-col">
-                    <div className="aspect-[16/9] w-full bg-zinc-900 border-b border-zinc-800 relative overflow-hidden">
+                    <div className="aspect-[1200/630] w-full bg-zinc-900 border-b border-zinc-800 relative overflow-hidden">
                       <img src={project.imageUrl} alt={project.name} className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300" />
                       <div className="absolute top-2 right-2">
                         <span className={`px-2 py-1 text-[10px] font-mono font-bold uppercase border rounded-sm ${project.statusColor} backdrop-blur-sm`}>

@@ -65,6 +65,11 @@ const lookingForOptions = [
   "Advisor",
   "Designer",
   "Developer",
+  "Job: Full Time",
+  "Job: Part Time",
+  "Job: Contract",
+  "Job: Freelance",
+  "Job: Internship",
   "Beta users",
   "Community partners",
 ];
@@ -76,72 +81,97 @@ const maxProfileLanguages = 8;
 const waitlistPageSize = 30;
 const profileSkillOptions = [
   "AI",
+  "AI Agents",
+  "AI Engineering",
+  "AI Evaluation",
   "APIs",
+  "API Design",
+  "API Integrations",
+  "API Tools",
   "Analytics",
   "Airtable",
   "Automation",
   "AWS",
+  "Backend Development",
   "Base44",
   "Bolt",
   "Branding",
+  "ChatGPT",
   "Claude Code",
   "Cloudflare",
+  "Coding",
   "Communication",
   "Community Building",
   "Copywriting",
   "Cursor",
   "Customer Discovery",
   "Data Engineering",
+  "Deep Learning",
   "Design Systems",
   "Devin",
+  "DevOps",
   "Docker",
   "Emergent",
+  "Fine-tuning",
   "Figma",
   "Firebase",
   "Firebase Studio",
   "Flutter",
+  "Frontend Development",
   "Fundraising",
+  "Full-stack Development",
   "GitHub Copilot",
   "Google Antigravity",
   "Growth",
   "Hiring",
+  "Hugging Face",
   "Kiro",
   "Kotlin",
   "Leadership",
   "LLMs",
+  "LangChain",
+  "LangGraph",
   "Lovable",
   "Machine Learning",
   "Make",
   "Marketing",
+  "MCP",
   "Mentoring",
+  "Model Training",
   "Next.js",
   "No-code",
   "Node.js",
   "Notion",
   "Open Source",
   "OpenAI Codex",
+  "OpenAI API",
   "Operations",
   "Payments",
   "Postgres",
   "Product Management",
   "Prompt Engineering",
   "Python",
+  "RAG",
   "React",
   "React Native",
   "Replit",
+  "REST APIs",
   "Rork",
   "Sales",
   "Security",
   "SEO",
+  "Software Architecture",
   "Strategy",
   "Stripe",
   "Supabase",
   "Swift",
+  "Tool Calling",
   "TypeScript",
   "UI Design",
   "UX Design",
   "v0",
   "Vercel",
+  "Vibe Coding",
   "Windsurf",
   "Zapier",
 ];
@@ -159,6 +189,11 @@ const profileLookingForOptions = [
   "Growth partner",
   "Hiring",
   "Investor",
+  "Job: Contract",
+  "Job: Freelance",
+  "Job: Full Time",
+  "Job: Internship",
+  "Job: Part Time",
   "Marketer",
   "Mentor",
   "Open-source maintainers",
@@ -749,10 +784,12 @@ function ExternalLinkItem({
   href,
   label,
   icon: Icon = ExternalLink,
+  compact = false,
 }: {
   href?: string | null;
   label: string;
   icon?: React.FC<{ size?: number; className?: string }>;
+  compact?: boolean;
 }) {
   const safeHref = sanitizeHttpUrl(href);
   if (!safeHref) return null;
@@ -761,7 +798,11 @@ function ExternalLinkItem({
       href={safeHref}
       target="_blank"
       rel="noreferrer"
-      className="flex w-full items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-blue-400 hover:border-blue-500/50 hover:text-blue-300"
+      className={
+        compact
+          ? "inline-flex h-8 items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 text-xs text-blue-400 hover:border-blue-500/50 hover:text-blue-300"
+          : "flex w-full items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-blue-400 hover:border-blue-500/50 hover:text-blue-300"
+      }
     >
       <Icon size={14} className="shrink-0" />
       <span className="min-w-0 truncate">{label}</span>
@@ -863,12 +904,16 @@ function useMyProfile(userId?: string | null) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(Boolean(userId));
   const [error, setError] = useState<string | null>(null);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(
+    userId ?? null,
+  );
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       if (!supabase || !userId) {
         setProfile(null);
+        setLoadedUserId(null);
         setLoading(false);
         return;
       }
@@ -881,6 +926,7 @@ function useMyProfile(userId?: string | null) {
       if (cancelled) return;
       setError(getError(queryError));
       setProfile((data as Profile | null) ?? null);
+      setLoadedUserId(userId);
       setLoading(false);
     }
     load();
@@ -892,7 +938,7 @@ function useMyProfile(userId?: string | null) {
   return {
     profile,
     setProfile,
-    loading,
+    loading: loading || Boolean(userId && loadedUserId !== userId),
     error,
     isAdmin:
       profile?.platform_role === "admin" || profile?.platform_role === "owner",
@@ -902,9 +948,11 @@ function useMyProfile(userId?: string | null) {
 function SignInPanel({
   compact = false,
   allowSignup = false,
+  invitedEmail,
 }: {
   compact?: boolean;
   allowSignup?: boolean;
+  invitedEmail?: string | null;
 }) {
   const { techLabels } = useTechLabels();
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
@@ -920,6 +968,33 @@ function SignInPanel({
     setError(null);
   };
 
+  useEffect(() => {
+    if (invitedEmail) {
+      setEmail(invitedEmail);
+    }
+  }, [invitedEmail]);
+
+  function friendlyAuthError(message: string) {
+    const lowerMessage = message.toLowerCase();
+    if (
+      lowerMessage.includes("invalid login credentials") ||
+      lowerMessage.includes("invalid credentials")
+    ) {
+      return invitedEmail
+        ? `The invite is for ${invitedEmail}, but that password did not sign in. Use the password you set when accepting the invite, or reset it below.`
+        : "The email and password did not match. If you already opened an invite link, reset the password for that same email.";
+    }
+    if (
+      lowerMessage.includes("user already registered") ||
+      lowerMessage.includes("already registered")
+    ) {
+      return invitedEmail
+        ? `An auth account already exists for ${invitedEmail}. Sign in with its password, or reset it below.`
+        : "An account already exists for this email. Sign in with its password, or reset it below.";
+    }
+    return message;
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
@@ -932,25 +1007,29 @@ function SignInPanel({
       return;
     }
 
+    const authEmail = email.trim().toLowerCase();
     const result =
       mode === "forgot"
-        ? await supabase.auth.resetPasswordForEmail(email, {
+        ? await supabase.auth.resetPasswordForEmail(authEmail, {
             redirectTo: authRedirectUrl("/reset-password"),
           })
         : mode === "signin"
-          ? await supabase.auth.signInWithPassword({ email, password })
+          ? await supabase.auth.signInWithPassword({
+              email: authEmail,
+              password,
+            })
           : await supabase.auth.signUp({
-              email,
+              email: authEmail,
               password,
               options: { emailRedirectTo: authRedirectUrl() },
             });
 
     if (result.error) {
-      setError(result.error.message);
+      setError(friendlyAuthError(result.error.message));
     } else {
       setMessage(
         mode === "forgot"
-          ? "Check your email for the password reset link."
+          ? `Check ${authEmail} for the password reset link.`
           : mode === "signin"
             ? "Signed in."
             : "Account created. Check your email if confirmation is enabled, then continue here.",
@@ -996,8 +1075,16 @@ function SignInPanel({
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            readOnly={Boolean(invitedEmail)}
             required
           />
+          {invitedEmail && (
+            <p className="mt-2 text-xs text-zinc-500">
+              {techLabels
+                ? "Invite-bound auth: this link can only be accepted with the invited email."
+                : `This invite can only be accepted with ${invitedEmail}.`}
+            </p>
+          )}
         </Field>
         {mode !== "forgot" && (
           <Field label={{ tech: "PASSWORD", friendly: "Password" }}>
@@ -1487,6 +1574,7 @@ export function BuildersDirectoryPage() {
 
 export function BuilderProfilePage() {
   const { techLabels } = useTechLabels();
+  const { user } = useSupabaseSession();
   const params = useParams<{ username: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -1569,10 +1657,12 @@ export function BuilderProfilePage() {
     );
   }
 
+  const isOwnProfile = user?.id === profile.id;
+
   return (
     <PageShell>
-      <section className="border-b border-zinc-800 bg-zinc-950">
-        <div className="h-44 bg-zinc-900">
+      <section className="isolate border-b border-zinc-800 bg-zinc-950">
+        <div className="relative z-0 h-44 overflow-hidden bg-zinc-900">
           {profile.cover_url && (
             <img
               src={profile.cover_url}
@@ -1581,7 +1671,7 @@ export function BuilderProfilePage() {
             />
           )}
         </div>
-        <div className="container mx-auto px-4 pb-10 md:px-6">
+        <div className="container relative z-10 mx-auto px-4 pb-10 md:px-6">
           <div className="-mt-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="flex flex-col gap-4 md:flex-row md:items-end">
               <img
@@ -1599,26 +1689,43 @@ export function BuilderProfilePage() {
                 <p className="mt-2 max-w-2xl text-zinc-400">
                   {profile.headline || profile.role}
                 </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <ExternalLinkItem
+                    href={profile.website_url}
+                    label="Website"
+                    icon={Globe}
+                    compact
+                  />
+                  <ExternalLinkItem
+                    href={profile.github_url}
+                    label="GitHub"
+                    icon={Github}
+                    compact
+                  />
+                  <ExternalLinkItem
+                    href={profile.linkedin_url}
+                    label="LinkedIn"
+                    icon={Linkedin}
+                    compact
+                  />
+                  <ExternalLinkItem
+                    href={profile.x_url}
+                    label="X"
+                    icon={Twitter}
+                    compact
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <ExternalLinkItem
-                href={profile.website_url}
-                label="Website"
-                icon={Globe}
-              />
-              <ExternalLinkItem
-                href={profile.github_url}
-                label="GitHub"
-                icon={Github}
-              />
-              <ExternalLinkItem
-                href={profile.linkedin_url}
-                label="LinkedIn"
-                icon={Linkedin}
-              />
-              <ExternalLinkItem href={profile.x_url} label="X" icon={Twitter} />
-            </div>
+            {isOwnProfile && (
+              <a
+                href="/dashboard/profile"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-3 text-xs font-semibold text-zinc-100 hover:border-blue-500/50 hover:text-blue-100"
+              >
+                <PencilLine size={14} />
+                {techLabels ? "EDIT_PROFILE" : "Edit profile"}
+              </a>
+            )}
           </div>
         </div>
       </section>
@@ -1797,14 +1904,13 @@ export function BuilderProfilePage() {
 
 function ProjectCard({ project }: { project: Project }) {
   const { techLabels } = useTechLabels();
-  const lookingFor = cleanLookingForItems(project.looking_for);
   const contributorCount = project.project_members?.length ?? 0;
   return (
     <a
       href={`/projects/${project.slug}`}
       className="dt-card group flex flex-col overflow-hidden"
     >
-      <div className="aspect-[16/9] border-b border-zinc-800 bg-zinc-900">
+      <div className="aspect-[1200/630] border-b border-zinc-800 bg-zinc-900">
         {project.image_url && (
           <img
             src={project.image_url}
@@ -1827,18 +1933,6 @@ function ProjectCard({ project }: { project: Project }) {
               ? "DESCRIPTION_FIELD_EMPTY"
               : "No project description yet.")}
         </p>
-        {lookingFor.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-1.5">
-            {lookingFor.slice(0, 3).map((item) => (
-              <span
-                key={`${project.id}-${item.tag}`}
-                className="rounded-sm border border-blue-500/30 bg-blue-950/20 px-2 py-1 text-[10px] font-mono uppercase text-blue-300"
-              >
-                {item.tag}
-              </span>
-            ))}
-          </div>
-        )}
         {contributorCount > 0 && (
           <p className="mb-4 text-xs font-mono uppercase text-zinc-600">
             {techLabels
@@ -2075,7 +2169,7 @@ export function ProjectDetailPage() {
             <img
               src={project.image_url}
               alt={project.name}
-              className="mb-6 aspect-[16/9] w-full rounded-sm border border-zinc-800 object-cover"
+              className="mb-6 aspect-[1200/630] w-full rounded-sm border border-zinc-800 object-cover"
             />
           )}
           <h2 className="mb-3 text-xl font-bold text-zinc-100">
@@ -2397,7 +2491,7 @@ export function CommunityProjectDetailPage() {
             <img
               src={project.image_url}
               alt={project.name}
-              className="mb-6 aspect-[16/9] w-full rounded-sm border border-zinc-800 object-cover"
+              className="mb-6 aspect-[1200/630] w-full rounded-sm border border-zinc-800 object-cover"
             />
           )}
           <h2 className="mb-3 text-xl font-bold text-zinc-100">
@@ -2951,10 +3045,12 @@ function ProfileDraftPreview({
       <div
         className={`dark-technical-theme bg-zinc-950 text-zinc-100 ${innerClass}`}
       >
-        <section className="border-b border-zinc-800 bg-zinc-950">
+        <section className="isolate border-b border-zinc-800 bg-zinc-950">
           <div
             className={
-              device === "mobile" ? "h-32 bg-zinc-900" : "h-44 bg-zinc-900"
+              device === "mobile"
+                ? "relative z-0 h-32 overflow-hidden bg-zinc-900"
+                : "relative z-0 h-44 overflow-hidden bg-zinc-900"
             }
           >
             {form.cover_url ? (
@@ -2967,7 +3063,13 @@ function ProfileDraftPreview({
               <div className="dt-grid-bg h-full opacity-50" />
             )}
           </div>
-          <div className={device === "mobile" ? "px-4 pb-8" : "px-6 pb-10"}>
+          <div
+            className={
+              device === "mobile"
+                ? "relative z-10 px-4 pb-8"
+                : "relative z-10 px-6 pb-10"
+            }
+          >
             <div
               className={
                 device === "mobile"
@@ -3003,25 +3105,33 @@ function ProfileDraftPreview({
                   <p className="mt-2 max-w-2xl text-zinc-400">
                     {form.headline || form.role || "Builder"}
                   </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <ExternalLinkItem
+                      href={form.website_url}
+                      label="Website"
+                      icon={Globe}
+                      compact
+                    />
+                    <ExternalLinkItem
+                      href={form.github_url}
+                      label="GitHub"
+                      icon={Github}
+                      compact
+                    />
+                    <ExternalLinkItem
+                      href={form.linkedin_url}
+                      label="LinkedIn"
+                      icon={Linkedin}
+                      compact
+                    />
+                    <ExternalLinkItem
+                      href={form.x_url}
+                      label="X"
+                      icon={Twitter}
+                      compact
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <ExternalLinkItem
-                  href={form.website_url}
-                  label="Website"
-                  icon={Globe}
-                />
-                <ExternalLinkItem
-                  href={form.github_url}
-                  label="GitHub"
-                  icon={Github}
-                />
-                <ExternalLinkItem
-                  href={form.linkedin_url}
-                  label="LinkedIn"
-                  icon={Linkedin}
-                />
-                <ExternalLinkItem href={form.x_url} label="X" icon={Twitter} />
               </div>
             </div>
           </div>
@@ -3396,6 +3506,11 @@ export function InvitePage() {
   const { techLabels } = useTechLabels();
   const params = useParams<{ token: string }>();
   const { user, loading: sessionLoading } = useSupabaseSession();
+  const {
+    profile,
+    loading: profileLoading,
+    error: profileError,
+  } = useMyProfile(user?.id);
   const [invite, setInvite] = useState<InviteLookup | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -3418,6 +3533,12 @@ export function InvitePage() {
     }
     load();
   }, [params.token]);
+
+  const inviteEmail = invite?.email ?? null;
+  const authLoading = sessionLoading || profileLoading;
+  const signedInAs = user?.email || profile?.email || null;
+  const inviteBlockedByExistingProfile = Boolean(user && profile && invite);
+  const inviteBlockedByProfileError = Boolean(user && invite && profileError);
 
   return (
     <PageShell>
@@ -3458,21 +3579,128 @@ export function InvitePage() {
               tone="error"
             />
           )}
-          {!sessionLoading && !user && <SignInPanel compact allowSignup />}
+          {!authLoading && !user && (
+            <SignInPanel
+              compact
+              allowSignup
+              invitedEmail={inviteEmail}
+            />
+          )}
         </div>
-        {user && invite ? (
+        {inviteBlockedByExistingProfile ? (
+          <Card className="space-y-5 p-6 text-sm text-zinc-500">
+            <div className="flex items-start gap-3">
+              <Lock className="mt-0.5 shrink-0" size={18} />
+              <div>
+                <h2 className="text-lg font-bold text-zinc-100">
+                  {techLabels ? "ACCOUNT_ALREADY_ACTIVE" : "Already signed in"}
+                </h2>
+                <p className="mt-2 leading-relaxed">
+                  {techLabels
+                    ? "Active member session detected. Existing profiles cannot accept or mint another invite-bound account."
+                    : "You are already signed in with an approved member account. Sign out before using an invite for another account."}
+                </p>
+                {signedInAs && (
+                  <p className="mt-2 font-mono text-xs text-zinc-600">
+                    {techLabels ? "SESSION_EMAIL" : "Signed in as"}{" "}
+                    {signedInAs}
+                  </p>
+                )}
+                <ActionableErrorMessage message={profileError} />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <a
+                href="/dashboard"
+                className="inline-flex h-10 items-center justify-center rounded-sm bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500"
+              >
+                {techLabels ? "OPEN_DASHBOARD" : "Open dashboard"}
+              </a>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+                onClick={async () => {
+                  await supabase?.auth.signOut();
+                  window.location.reload();
+                }}
+              >
+                {techLabels ? "SIGN_OUT" : "Sign out"}
+              </Button>
+            </div>
+          </Card>
+        ) : inviteBlockedByProfileError ? (
+          <Card className="space-y-4 p-6 text-sm text-zinc-500">
+            <div className="flex items-center gap-3">
+              <Lock size={18} />
+              <span>
+                {techLabels
+                  ? "PROFILE_CHECK_FAILED"
+                  : "Could not verify this session."}
+              </span>
+            </div>
+            <ActionableErrorMessage
+              message={
+                profileError ||
+                "Could not confirm whether this account already has a profile."
+              }
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+              onClick={async () => {
+                await supabase?.auth.signOut();
+                window.location.reload();
+              }}
+            >
+              {techLabels ? "SIGN_OUT" : "Sign out"}
+            </Button>
+          </Card>
+        ) : user && invite?.id ? (
           <ProfileForm
             userId={user.id}
             initialProfile={null}
             inviteToken={params.token}
             initialForm={inviteToProfileForm(invite)}
           />
+        ) : user && invite ? (
+          <Card className="space-y-4 p-6 text-sm text-zinc-500">
+            <div className="flex items-center gap-3">
+              <Lock size={18} />
+              <span>
+                {techLabels
+                  ? "SIGNED_IN_ACCOUNT_CANNOT_ACCEPT_INVITE"
+                  : "This signed-in account cannot accept this invite."}
+              </span>
+            </div>
+            <p>
+              {techLabels
+                ? "Invite access is bound to the email that received the invite. Sign out, then open this invite with that email."
+                : "The invite exists, but it is bound to the email address that received it. Sign out, then open this link again with that same email."}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+              onClick={async () => {
+                await supabase?.auth.signOut();
+                window.location.reload();
+              }}
+            >
+              {techLabels ? "SIGN_OUT" : "Sign out"}
+            </Button>
+          </Card>
         ) : (
           <Card className="flex items-center gap-3 p-6 text-sm text-zinc-500">
             <Lock size={18} />{" "}
-            {techLabels
-              ? "Authenticate with the invited account to complete onboarding."
-              : "Sign in with the invited account to complete onboarding."}
+            {authLoading
+              ? techLabels
+                ? "LOADING_SESSION"
+                : "Checking your session..."
+              : techLabels
+                ? "Authenticate with the invited account to complete onboarding."
+                : "Sign in with the invited account to complete onboarding."}
           </Card>
         )}
       </section>
@@ -3480,10 +3708,9 @@ export function InvitePage() {
   );
 }
 
-type InviteLookup = Pick<
-  Invite,
-  "id" | "email" | "telegram_handle" | "status" | "expires_at"
-> & {
+type InviteLookup = Pick<Invite, "telegram_handle" | "status" | "expires_at"> & {
+  id: string | null;
+  email: string | null;
   waitlist_name: string | null;
   waitlist_role: string | null;
   waitlist_building: string | null;

@@ -155,16 +155,14 @@ type TechLabelsContextValue = {
 };
 
 const TechLabelsContext = React.createContext<TechLabelsContextValue>({
-  techLabels: true,
+  techLabels: false,
   setTechLabels: () => {},
 });
 
 export function TechLabelProvider({ children }: { children: React.ReactNode }) {
   const [techLabels, setTechLabels] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return (
-      window.localStorage.getItem("italian-builders-label-mode") !== "friendly"
-    );
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("italian-builders-label-mode") === "tech";
   });
 
   useEffect(() => {
@@ -302,9 +300,6 @@ function HeaderAuthControls({
           <UserCircle size={15} />
         )}
         {techLabels ? "PROFILE" : "Profile"}
-      </a>
-      <a href="/dashboard/profile" onClick={onNavigate} className={linkClass}>
-        {techLabels ? "EDIT_PROFILE" : "Edit profile"}
       </a>
       <a href="/dashboard" onClick={onNavigate} className={primaryClass}>
         {techLabels ? "CONSOLE" : "Dashboard"}
@@ -744,6 +739,10 @@ function BuilderGlobe({
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setClearColor(0x000000, 0);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.domElement.style.display = "block";
+        renderer.domElement.style.position = "relative";
+        renderer.domElement.style.zIndex = "0";
+        renderer.domElement.style.pointerEvents = "none";
         host.appendChild(renderer.domElement);
 
         const globe = new ThreeGlobe({
@@ -896,7 +895,12 @@ function BuilderGlobe({
     };
   }, []);
 
-  return <div ref={hostRef} className="h-full w-full overflow-hidden" />;
+  return (
+    <div
+      ref={hostRef}
+      className="relative z-0 h-full w-full overflow-hidden"
+    />
+  );
 }
 
 function Hero({ content }: { content: HomeDatabaseContent }) {
@@ -991,7 +995,7 @@ function Hero({ content }: { content: HomeDatabaseContent }) {
           </div>
 
           <div className="w-full lg:flex-[1.18] lg:max-w-none">
-            <div className="dt-card p-3 relative overflow-hidden">
+            <div className="dt-card isolate p-3 relative overflow-hidden">
               <div className="absolute inset-0 dt-grid-bg opacity-40 pointer-events-none" />
 
               <div className="flex items-center justify-between mb-3 relative z-10">
@@ -1010,7 +1014,7 @@ function Hero({ content }: { content: HomeDatabaseContent }) {
                 <BuilderGlobe builders={builders} activeBuilder={current} />
 
                 {current && (
-                  <div className="absolute bottom-2 left-2 right-2 z-10">
+                  <div className="absolute bottom-2 left-2 right-2 z-20">
                     <div className="dt-card bg-zinc-950/80 backdrop-blur-sm p-2.5 flex items-center gap-3">
                       <img
                         src={current.avatarUrl}
@@ -1308,7 +1312,7 @@ export function BuilderProjects({
                 href={`/projects/${project.slug}`}
                 className="group dt-card flex flex-col"
               >
-                <div className="aspect-[16/9] w-full bg-zinc-900 border-b border-zinc-800 relative overflow-hidden">
+                <div className="aspect-[1200/630] w-full bg-zinc-900 border-b border-zinc-800 relative overflow-hidden">
                   {project.image_url ? (
                     <img
                       src={project.image_url}
