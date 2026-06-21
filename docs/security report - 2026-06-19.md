@@ -54,7 +54,6 @@ node --test api/_safe-fetch.test.js
 node --test api/_app-base-url.test.js
 pnpm --filter ./scripts exec tsx --test ../tests/url-safety.test.ts
 node --check api/media-upload.js
-node --check api/media-upload-url.js
 node --check api/og-image.js
 node --check api/og-profile-image.js
 node --check api/_safe-fetch.js
