@@ -5,8 +5,17 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   Select,
   SelectContent,
@@ -203,6 +212,155 @@ function TechLabelToggle({ compact = false }: { compact?: boolean }) {
   );
 }
 
+type BreadcrumbLabel = {
+  friendly: string;
+  tech: string;
+};
+
+const breadcrumbLabels: Record<string, BreadcrumbLabel> = {
+  admin: { friendly: "Admin", tech: "ADMIN" },
+  "admin/community-projects": {
+    friendly: "Community projects",
+    tech: "COMMUNITY_PROJECTS",
+  },
+  "admin/community-projects/new": {
+    friendly: "New community project",
+    tech: "NEW_COMMUNITY_PROJECT",
+  },
+  "admin/invites": { friendly: "Invites", tech: "INVITES" },
+  "admin/members": { friendly: "Members", tech: "MEMBERS" },
+  "admin/waitlist": { friendly: "Waitlist", tech: "WAITLIST" },
+  builders: { friendly: "Builders", tech: "BUILDERS" },
+  "community-projects": {
+    friendly: "Community projects",
+    tech: "COMMUNITY_PROJECTS",
+  },
+  dashboard: { friendly: "Dashboard", tech: "CONSOLE" },
+  "dashboard/contributions": {
+    friendly: "Contributions",
+    tech: "CONTRIBUTIONS",
+  },
+  "dashboard/profile": { friendly: "Profile", tech: "PROFILE" },
+  "dashboard/projects": { friendly: "Projects", tech: "PROJECTS" },
+  "dashboard/projects/new": { friendly: "New project", tech: "NEW_PROJECT" },
+  invite: { friendly: "Invite", tech: "INVITE" },
+  join: { friendly: "Join", tech: "ACCESS_REQUEST" },
+  mission: { friendly: "Mission", tech: "MISSION" },
+  "os-projects": { friendly: "Open source", tech: "OPEN_SOURCE" },
+  privacy: { friendly: "Privacy", tech: "PRIVACY" },
+  projects: { friendly: "Projects", tech: "PROJECTS" },
+  "reset-password": { friendly: "Reset password", tech: "RESET_PASSWORD" },
+  terms: { friendly: "Terms", tech: "TERMS" },
+};
+
+function humanizeBreadcrumbSegment(segment: string) {
+  const decoded = decodeURIComponent(segment);
+  return decoded
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function dynamicBreadcrumbLabel(
+  segments: string[],
+  index: number,
+): BreadcrumbLabel {
+  const segment = decodeURIComponent(segments[index] ?? "");
+  const parentPath = segments.slice(0, index).join("/");
+
+  if (parentPath === "builders") {
+    const username = segment.replace(/^@+/, "");
+    return { friendly: `@${username}`, tech: `@${username}` };
+  }
+
+  if (parentPath === "dashboard/projects") {
+    return { friendly: "Edit project", tech: "PROJECT_EDITOR" };
+  }
+
+  if (parentPath === "admin/community-projects") {
+    return {
+      friendly: "Edit community project",
+      tech: "COMMUNITY_PROJECT_EDITOR",
+    };
+  }
+
+  if (parentPath === "invite") {
+    return { friendly: "Invitation", tech: "INVITE_TOKEN" };
+  }
+
+  const label = humanizeBreadcrumbSegment(segment);
+  return { friendly: label, tech: segment.toUpperCase() };
+}
+
+function labelForBreadcrumb(
+  segments: string[],
+  index: number,
+  techLabels: boolean,
+) {
+  const path = segments.slice(0, index + 1).join("/");
+  const label = breadcrumbLabels[path] ?? dynamicBreadcrumbLabel(segments, index);
+  return techLabels ? label.tech : label.friendly;
+}
+
+function BreadcrumbBar() {
+  const [location] = useLocation();
+  const { techLabels } = useTechLabels();
+  const pathname = location.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
+
+  if (pathname === "/") return null;
+
+  const segments = pathname.split("/").filter(Boolean);
+
+  return (
+    <div className="border-t border-zinc-900 bg-zinc-950/95">
+      <div className="container mx-auto px-4 md:px-6">
+        <Breadcrumb className="py-2">
+          <BreadcrumbList className="flex-nowrap overflow-x-auto whitespace-nowrap text-[11px] font-medium text-zinc-500 dt-scrollbar sm:text-xs">
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                href="/"
+                className={techLabels ? "font-mono text-zinc-400" : ""}
+              >
+                {techLabels ? "ROOT" : "Home"}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            {segments.map((segment, index) => {
+              const href = `/${segments.slice(0, index + 1).join("/")}`;
+              const isCurrent = index === segments.length - 1;
+              const label = labelForBreadcrumb(segments, index, techLabels);
+
+              return (
+                <React.Fragment key={`${href}-${segment}`}>
+                  <BreadcrumbSeparator className="text-zinc-700" />
+                  <BreadcrumbItem className="min-w-0">
+                    {isCurrent ? (
+                      <BreadcrumbPage
+                        className={`max-w-[13rem] truncate text-zinc-200 sm:max-w-none ${
+                          techLabels ? "font-mono" : ""
+                        }`}
+                      >
+                        {label}
+                      </BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink
+                        href={href}
+                        className={`max-w-[10rem] truncate text-zinc-500 hover:text-zinc-200 sm:max-w-none ${
+                          techLabels ? "font-mono" : ""
+                        }`}
+                      >
+                        {label}
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </React.Fragment>
+              );
+            })}
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+    </div>
+  );
+}
+
 function HeaderAuthControls({
   mobile = false,
   onNavigate,
@@ -395,6 +553,7 @@ export function Header() {
           </div>
         </div>
       )}
+      <BreadcrumbBar />
     </header>
   );
 }
