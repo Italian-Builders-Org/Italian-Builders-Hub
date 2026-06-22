@@ -188,6 +188,8 @@ const projectCategorySelect =
   "id, slug, name, group_name, sort_order, is_active, created_at, updated_at";
 const projectCategoryRelationSelect =
   "project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))";
+const anonymousProfileSelect =
+  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
 const hiddenProjectCategorySlugs = new Set(["virtual-try-on"]);
 
 function projectCategoryLabels(
@@ -271,7 +273,7 @@ const profileVisibilityOptions: Array<{
   },
   {
     value: "members",
-    label: "Community members",
+    label: "Community Only",
     description:
       "Visible to signed-in members and admins, including full project attribution for members. Hidden from public directory, map, and anonymous visitors.",
   },
@@ -1003,14 +1005,16 @@ function LookingForModal({
   item,
   project,
   onClose,
+  allowTelegramContact = false,
 }: {
   item: ProjectLookingFor | null;
   project: Project;
   onClose: () => void;
+  allowTelegramContact?: boolean;
 }) {
   if (!item) return null;
   const telegramHref = telegramDeepLink(
-    project.profiles?.telegram_handle,
+    allowTelegramContact ? project.profiles?.telegram_handle : null,
     `Hi, I saw ${project.name} on Italian Builders. I can help with ${item.tag}.`,
   );
 
@@ -1637,7 +1641,7 @@ export function BuildersDirectoryPage() {
       }
       const { data, error: queryError } = await supabase
         .from("profiles")
-        .select("*")
+        .select(anonymousProfileSelect)
         .eq("visibility", "public")
         .order("created_at", { ascending: false });
       setProfiles((data as Profile[]) ?? []);
@@ -1787,9 +1791,10 @@ export function BuilderProfilePage() {
         if (!cancelled) setLoading(false);
         return;
       }
+      const visibleProfileSelect = user?.id ? "*" : anonymousProfileSelect;
       const { data: visibleProfileData } = await supabase
         .from("profiles")
-        .select("*")
+        .select(visibleProfileSelect)
         .eq("username", params.username)
         .in("visibility", ["public", "members"])
         .maybeSingle();
@@ -1816,7 +1821,7 @@ export function BuilderProfilePage() {
           supabase
             .from("projects")
             .select(
-              `*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id), ${projectCategoryRelationSelect}`,
+              `*, profiles(username, full_name, avatar_url, headline), project_members(id), ${projectCategoryRelationSelect}`,
             )
             .eq("owner_id", nextProfile.id)
             .eq("is_public", true)
@@ -1824,7 +1829,7 @@ export function BuilderProfilePage() {
           supabase
             .from("project_members")
             .select(
-              "*, projects(*, profiles(username, full_name, avatar_url, headline, telegram_handle))",
+              "*, projects(*, profiles(username, full_name, avatar_url, headline))",
             )
             .eq("profile_id", nextProfile.id),
           supabase
@@ -2064,7 +2069,7 @@ export function BuilderProfilePage() {
                   })}
                 </dd>
               </div>
-              {profile.telegram_handle && (
+              {user?.id && profile.telegram_handle && (
                 <div>
                   <dt className="font-mono text-xs uppercase text-zinc-600">
                     {techLabels ? "TELEGRAM_HANDLE" : "Telegram"}
@@ -2192,7 +2197,7 @@ export function ProjectsDirectoryPage() {
       const { data } = await supabase
         .from("projects")
         .select(
-          `*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id), ${projectCategoryRelationSelect}`,
+          `*, profiles(username, full_name, avatar_url, headline), project_members(id), ${projectCategoryRelationSelect}`,
         )
         .eq("is_public", true)
         .order("created_at", { ascending: false });
@@ -2314,10 +2319,13 @@ export function ProjectDetailPage() {
         setLoading(false);
         return;
       }
+      const ownerProfileSelect = user?.id
+        ? "profiles(username, full_name, avatar_url, headline, telegram_handle)"
+        : "profiles(username, full_name, avatar_url, headline)";
       const { data } = await supabase
         .from("projects")
         .select(
-          `*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(*, profiles!project_members_profile_id_fkey(username, full_name, avatar_url, headline)), ${projectCategoryRelationSelect}`,
+          `*, ${ownerProfileSelect}, project_members(*, profiles!project_members_profile_id_fkey(username, full_name, avatar_url, headline)), ${projectCategoryRelationSelect}`,
         )
         .eq("slug", params.slug)
         .maybeSingle();
@@ -2362,6 +2370,7 @@ export function ProjectDetailPage() {
         item={selectedLookingFor}
         project={project}
         onClose={() => setSelectedLookingFor(null)}
+        allowTelegramContact={Boolean(user?.id)}
       />
       <HeroBlock
         eyebrow={
@@ -2849,7 +2858,7 @@ function profileToForm(profile: Profile | null): ProfileFormState {
     latitude: profile?.latitude?.toString() ?? inferredCoords.latitude,
     longitude: profile?.longitude?.toString() ?? inferredCoords.longitude,
     intro_video_url: profile?.intro_video_url ?? "",
-    visibility: profile?.visibility ?? "public",
+    visibility: profile?.visibility ?? "members",
   };
 }
 
@@ -3208,6 +3217,10 @@ function ProfileEditorView({
                   }
                   required
                 />
+                <p className="mt-2 text-xs text-zinc-500">
+                  Telegram is always Community Only and is never shown to
+                  anonymous visitors.
+                </p>
               </Field>
             </div>
           </section>

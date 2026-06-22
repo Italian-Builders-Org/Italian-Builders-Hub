@@ -117,6 +117,8 @@ const MAP_ITALY_STROKE = "rgba(0, 0, 0, 0)";
 const MAP_PIN_COLOR = "#3b82f6";
 const MAP_PIN_OUTLINE = "rgba(239, 246, 255, 0.88)";
 const MAP_PIN_RING = "rgba(15, 23, 42, 0.72)";
+const anonymousProfileSelect =
+  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
 const turnstileScriptSrc =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
@@ -680,14 +682,14 @@ function useHomeDatabaseContent() {
         await Promise.all([
           supabase
             .from("profiles")
-            .select("*", { count: "exact" })
+            .select(anonymousProfileSelect, { count: "exact" })
             .eq("visibility", "public")
             .order("created_at", { ascending: false })
             .limit(80),
           supabase
             .from("projects")
             .select(
-              "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id), project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))",
+              "*, profiles(username, full_name, avatar_url, headline), project_members(id), project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))",
               { count: "exact" },
             )
             .eq("is_public", true)
