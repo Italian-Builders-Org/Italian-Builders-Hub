@@ -3512,6 +3512,14 @@ function ProfileForm({
     setError(null);
     setMessage(null);
 
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+    if (sessionError || sessionData.session?.user.id !== userId) {
+      setError("Your session expired. Sign in again before saving your profile.");
+      setSaving(false);
+      return;
+    }
+
     const profileLanguages = uniqueTags(form.languages, maxProfileLanguages);
     const profileSkills = uniqueTags(form.skills, maxProfileSkills);
     const profileLookingFor = uniqueTags(
@@ -3594,7 +3602,6 @@ function ProfileForm({
     }
 
     const payload = {
-      id: userId,
       username: form.username.toLowerCase(),
       full_name: form.full_name,
       headline: form.headline || null,
@@ -3623,11 +3630,18 @@ function ProfileForm({
       onboarding_completed: true,
     };
 
-    const { error: upsertError } = await supabase
+    const { error: updateError } = await supabase
       .from("profiles")
-      .upsert(payload);
-    if (upsertError) {
-      setError(upsertError.message);
+      .update(payload)
+      .eq("id", userId)
+      .select("id")
+      .single();
+    if (updateError) {
+      setError(
+        updateError.code === "PGRST116"
+          ? "We could not find a profile for this session. Open your invite link or sign in again."
+          : updateError.message,
+      );
     } else {
       setMessage("Profile saved.");
     }
