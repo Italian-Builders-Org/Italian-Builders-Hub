@@ -52,6 +52,12 @@ import {
   sanitizeHttpUrl,
 } from "@/lib/url-safety";
 import { coordsForCityCountry, locationLabel } from "@/lib/geo";
+import {
+  Seo,
+  communityProjectSeo,
+  profileSeo,
+  projectSeo,
+} from "@/lib/seo";
 
 const inputClass =
   "h-10 rounded-sm border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600";
@@ -1732,6 +1738,7 @@ export function BuilderProfilePage() {
 
   return (
     <PageShell>
+      <Seo {...profileSeo(profile)} />
       <section className="isolate border-b border-zinc-800 bg-zinc-950">
         <div className="relative z-0 h-44 overflow-hidden bg-zinc-900">
           {profile.cover_url && (
@@ -2214,6 +2221,7 @@ export function ProjectDetailPage() {
 
   return (
     <PageShell>
+      <Seo {...projectSeo(project)} />
       <LookingForModal
         item={selectedLookingFor}
         project={project}
@@ -2559,6 +2567,7 @@ export function CommunityProjectDetailPage() {
 
   return (
     <PageShell>
+      <Seo {...communityProjectSeo(project)} />
       <HeroBlock
         eyebrow={
           project.category ||

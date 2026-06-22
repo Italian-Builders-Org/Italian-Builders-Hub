@@ -50,6 +50,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+.seo-cache/
 
 # Vercel local project link metadata
 .vercel/

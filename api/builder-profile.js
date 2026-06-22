@@ -38,14 +38,67 @@ function removeManagedMetadata(html) {
     .replace(
       /\s*<meta\s+(?:name|property)=["'](?:description|robots|og:[^"']+|twitter:[^"']+)["'][^>]*>\s*/gi,
       "\n",
+    )
+    .replace(/\s*<link\s+rel=["']canonical["'][^>]*>\s*/gi, "\n")
+    .replace(
+      /\s*<script\s+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>\s*/gi,
+      "\n",
     );
 }
 
 function injectMetadata(html, metadata) {
+  const schema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": `${metadata.origin}/#organization`,
+      name: "Italian Builders",
+      url: `${metadata.origin}/`,
+      logo: absoluteUrl("/logo-vector.svg", metadata.origin),
+      email: "info@italianbuilders.co",
+      sameAs: [
+        "https://x.com/italianbldrs",
+        "https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all",
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      "@id": `${metadata.url}#webpage`,
+      url: metadata.url,
+      name: metadata.title,
+      description: metadata.description,
+      mainEntity: metadata.profile
+        ? {
+            "@type": "Person",
+            "@id": `${metadata.url}#person`,
+            name: metadata.profile.full_name,
+            alternateName: metadata.profile.username,
+            description: metadata.description,
+            image: absoluteUrl(metadata.profile.avatar_url, metadata.origin),
+            jobTitle:
+              metadata.profile.headline || metadata.profile.role || undefined,
+            knowsAbout: Array.isArray(metadata.profile.skills)
+              ? metadata.profile.skills
+              : undefined,
+            address:
+              metadata.profile.city || metadata.profile.country
+                ? {
+                    "@type": "PostalAddress",
+                    addressLocality: metadata.profile.city || undefined,
+                    addressCountry: metadata.profile.country || undefined,
+                  }
+                : undefined,
+          }
+        : undefined,
+    },
+  ];
   const tags = [
     `<title>${escapeHtml(metadata.title)}</title>`,
     `<meta name="description" content="${escapeHtml(metadata.description)}" />`,
     `<meta name="robots" content="index, follow" />`,
+    `<link rel="canonical" href="${escapeHtml(metadata.url)}" />`,
+    `<meta property="og:site_name" content="Italian Builders" />`,
     `<meta property="og:title" content="${escapeHtml(metadata.title)}" />`,
     `<meta property="og:description" content="${escapeHtml(metadata.description)}" />`,
     `<meta property="og:type" content="profile" />`,
@@ -60,6 +113,7 @@ function injectMetadata(html, metadata) {
     `<meta name="twitter:description" content="${escapeHtml(metadata.description)}" />`,
     `<meta name="twitter:image" content="${escapeHtml(metadata.image)}" />`,
     `<meta name="twitter:image:alt" content="${escapeHtml(metadata.imageAlt)}" />`,
+    `<script type="application/ld+json">${JSON.stringify(schema)}</script>`,
   ].join("\n    ");
 
   return removeManagedMetadata(html).replace(
@@ -87,11 +141,13 @@ module.exports = async function handler(req, res) {
   const html = injectMetadata(readIndexHtml(), {
     title,
     description,
+    origin,
     url: absoluteUrl(pagePath, origin),
     image: absoluteUrl(imagePath, origin),
     imageAlt: profile
       ? `${profile.full_name} on Italian Builders`
       : "Italian Builders",
+    profile,
   });
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");

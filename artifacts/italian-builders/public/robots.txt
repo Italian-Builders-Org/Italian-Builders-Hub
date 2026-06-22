@@ -1,2 +1,9 @@
 User-agent: *
 Allow: /
+
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /invite
+Disallow: /reset-password
+
+Sitemap: https://italianbuilders.co/sitemap.xml

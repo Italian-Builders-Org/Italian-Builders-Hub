@@ -1,0 +1,30 @@
+# Italian Builders
+
+Italian Builders is a community platform for founders, makers, developers,
+designers, operators, investors, and supporters building from Italy or with
+Italian roots.
+
+## Primary URLs
+
+- https://italianbuilders.co/
+- https://italianbuilders.co/builders
+- https://italianbuilders.co/projects
+- https://italianbuilders.co/community-projects
+- https://italianbuilders.co/os-projects
+- https://italianbuilders.co/mission
+- https://italianbuilders.co/join
+
+## Public Content
+
+- Builder directory: public profiles from invited members.
+- Project showcase: public products, experiments, and open-source work.
+- Community projects: shared workstreams maintained through the platform.
+- Mission: the community purpose and positioning.
+
+## Private Or Non-Canonical Areas
+
+- /dashboard is member-only.
+- /admin is admin-only.
+- /invite and /reset-password are transactional flows.
+
+Use https://italianbuilders.co/ as the canonical site origin.
