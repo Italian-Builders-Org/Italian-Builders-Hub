@@ -17,21 +17,5 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Enable pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.28.0 --activate
-
-      - name: Pull Vercel environment
-        run: npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
-
-      - name: Build
-        run: npx --yes vercel@latest build --prod --token "$VERCEL_TOKEN"
-
-      - name: Deploy
-        run: npx --yes vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+      - name: Deploy on Vercel
+        run: npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
