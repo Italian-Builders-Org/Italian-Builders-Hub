@@ -28,6 +28,7 @@ import {
 import { Header, Footer, useTechLabels } from "@/pages/Home";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { defaultAvatarUrl } from "@/lib/assets";
 import { Textarea } from "@/components/ui/textarea";
 import {
   type CommunityProject,
@@ -1732,7 +1733,7 @@ export function BuildersDirectoryPage() {
               >
                 <div className="mb-5 flex items-start gap-3">
                   <img
-                    src={profile.avatar_url || "/images/avatar-1.png"}
+                    src={profile.avatar_url || defaultAvatarUrl}
                     alt={profile.full_name}
                     className="h-12 w-12 rounded-sm border border-zinc-700 object-cover grayscale"
                   />
@@ -1894,7 +1895,7 @@ export function BuilderProfilePage() {
           <div className="-mt-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="flex flex-col gap-4 md:flex-row md:items-end">
               <img
-                src={profile.avatar_url || "/images/avatar-1.png"}
+                src={profile.avatar_url || defaultAvatarUrl}
                 alt={profile.full_name}
                 className="h-24 w-24 rounded-sm border border-zinc-700 bg-zinc-950 object-cover grayscale"
               />
@@ -2431,7 +2432,7 @@ export function ProjectDetailPage() {
                   className="flex gap-3 rounded-sm border border-zinc-800 bg-zinc-900 p-3 hover:border-blue-500/50"
                 >
                   <img
-                    src={project.profiles.avatar_url || "/images/avatar-1.png"}
+                    src={project.profiles.avatar_url || defaultAvatarUrl}
                     alt=""
                     className="h-9 w-9 rounded-sm border border-zinc-700 object-cover grayscale"
                   />
@@ -2456,7 +2457,7 @@ export function ProjectDetailPage() {
                   className="flex gap-3 rounded-sm border border-zinc-800 bg-zinc-900 p-3 hover:border-blue-500/50"
                 >
                   <img
-                    src={member.profiles?.avatar_url || "/images/avatar-1.png"}
+                    src={member.profiles?.avatar_url || defaultAvatarUrl}
                     alt=""
                     className="h-9 w-9 rounded-sm border border-zinc-700 object-cover grayscale"
                   />
@@ -2784,7 +2785,7 @@ export function CommunityProjectDetailPage() {
                   >
                     <img
                       src={
-                        member.profiles?.avatar_url || "/images/avatar-1.png"
+                        member.profiles?.avatar_url || defaultAvatarUrl
                       }
                       alt=""
                       className="h-9 w-9 rounded-sm border border-zinc-700 object-cover grayscale"
@@ -3334,7 +3335,7 @@ function ProfileDraftPreview({
                 }
               >
                 <img
-                  src={form.avatar_url || "/images/avatar-1.png"}
+                  src={form.avatar_url || defaultAvatarUrl}
                   alt={name}
                   className="h-24 w-24 rounded-sm border border-zinc-700 bg-zinc-950 object-cover grayscale"
                 />

@@ -15,6 +15,7 @@ const {
 } = require("../server/api/_safe-fetch");
 
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
+const DEFAULT_AVATAR_URL = "/images/avatar-default.png";
 const SUPPORTED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -76,7 +77,7 @@ async function safeImageDataUrl(value, origin) {
 
 async function withSafeProfileImages(profile, projects, origin) {
   const [avatarUrl, projectUrls] = await Promise.all([
-    safeImageDataUrl(profile.avatar_url, origin),
+    safeImageDataUrl(profile.avatar_url || DEFAULT_AVATAR_URL, origin),
     Promise.all(
       projects.map((project) => safeImageDataUrl(project?.image_url, origin)),
     ),

@@ -45,7 +45,6 @@ import {
   Server,
   Code2,
   LogOut,
-  UserCircle,
 } from "lucide-react";
 import {
   type CommunityProject,
@@ -59,6 +58,7 @@ import {
   fallbackCoordsForLocation,
   locationLabel,
 } from "@/lib/geo";
+import { defaultAvatarUrl } from "@/lib/assets";
 
 declare global {
   interface Window {
@@ -450,15 +450,11 @@ function HeaderAuthControls({
         onClick={onNavigate}
         className={`${linkClass} gap-2`}
       >
-        {profile?.avatar_url ? (
-          <img
-            src={profile.avatar_url}
-            alt=""
-            className="h-5 w-5 rounded-sm border border-zinc-700 object-cover"
-          />
-        ) : (
-          <UserCircle size={15} />
-        )}
+        <img
+          src={profile?.avatar_url || defaultAvatarUrl}
+          alt=""
+          className="h-5 w-5 rounded-sm border border-zinc-700 object-cover"
+        />
         {techLabels ? "PROFILE" : "Profile"}
       </a>
       <a href="/dashboard" onClick={onNavigate} className={primaryClass}>
@@ -618,7 +614,7 @@ function profileToMapBuilder(profile: Profile): HomeMapBuilder | null {
     username: profile.username,
     role: profile.headline || profile.role || "Builder",
     location: profileLocationLabel(profile),
-    avatarUrl: profile.avatar_url || "/images/avatar-1.png",
+    avatarUrl: profile.avatar_url || defaultAvatarUrl,
     highlight: profile.bio || "Building in the Italian Builders community.",
     tags: profile.skills?.length
       ? profile.skills.slice(0, 3)
@@ -1163,7 +1159,7 @@ function Hero({ content }: { content: HomeDatabaseContent }) {
                 {avatarStack.map((profile) => (
                   <img
                     key={profile.id}
-                    src={profile.avatar_url || "/images/avatar-1.png"}
+                    src={profile.avatar_url || defaultAvatarUrl}
                     className="w-6 h-6 border border-zinc-700 rounded-sm object-cover"
                     alt={profile.full_name}
                   />
@@ -1344,7 +1340,7 @@ export function FeaturedBuilders({
                   <div className="flex items-start mb-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={profile.avatar_url || "/images/avatar-1.png"}
+                        src={profile.avatar_url || defaultAvatarUrl}
                         alt={profile.full_name}
                         className="w-10 h-10 object-cover border border-zinc-700 grayscale rounded-sm"
                       />
@@ -1544,7 +1540,7 @@ export function BuilderProjects({
                     <div className="flex items-center gap-2">
                       <img
                         src={
-                          project.profiles?.avatar_url || "/images/avatar-1.png"
+                          project.profiles?.avatar_url || defaultAvatarUrl
                         }
                         alt={project.profiles?.full_name || "Builder"}
                         className="w-5 h-5 rounded-sm border border-zinc-700 grayscale"
