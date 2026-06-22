@@ -6250,7 +6250,9 @@ function AdminInvitesInner() {
         <div className="space-y-3">
           {invites.map((invite) => {
             const expired = inviteExpired(invite);
-            const canResend = Boolean(invite.email) && expired;
+            const canResend =
+              Boolean(invite.email) &&
+              (invite.status === "pending" || invite.status === "expired");
             return (
               <Card
                 key={invite.id}

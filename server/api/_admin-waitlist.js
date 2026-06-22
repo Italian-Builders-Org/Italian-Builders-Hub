@@ -90,13 +90,6 @@ function cleanEmail(value) {
   return email;
 }
 
-function inviteIsExpired(invite) {
-  if (invite?.status === "expired") return true;
-  if (invite?.status !== "pending") return false;
-  if (!invite?.expires_at) return false;
-  return new Date(invite.expires_at).getTime() <= Date.now();
-}
-
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -365,8 +358,8 @@ async function resendDirectInvite(req, rawId) {
       statusCode: 400,
     });
   }
-  if (!inviteIsExpired(existing)) {
-    throw Object.assign(new Error("Only expired invites can be resent."), {
+  if (existing.status === "revoked") {
+    throw Object.assign(new Error("Revoked invites cannot be resent."), {
       statusCode: 400,
     });
   }
