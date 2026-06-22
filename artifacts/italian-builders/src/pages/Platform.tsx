@@ -1599,18 +1599,38 @@ export function BuilderProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
+      setLoading(true);
+      setProfile(null);
+      setProjects([]);
+      setProjectMemberships([]);
+      setAssignments([]);
+
       if (!supabase || !params.username) {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
         return;
       }
-      const { data: profileData } = await supabase
+      const { data: visibleProfileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("username", params.username)
         .in("visibility", ["public", "members"])
         .maybeSingle();
-      const nextProfile = profileData as Profile | null;
+      let nextProfile = visibleProfileData as Profile | null;
+
+      if (!nextProfile && user?.id) {
+        const { data: ownProfileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("username", params.username)
+          .eq("id", user.id)
+          .maybeSingle();
+        nextProfile = ownProfileData as Profile | null;
+      }
+
+      if (cancelled) return;
       setProfile(nextProfile);
       if (nextProfile) {
         const [
@@ -1637,14 +1657,18 @@ export function BuilderProfilePage() {
             .select("*, community_projects(*)")
             .eq("profile_id", nextProfile.id),
         ]);
+        if (cancelled) return;
         setProjects((projectData as Project[]) ?? []);
         setProjectMemberships((projectMemberData as ProjectMember[]) ?? []);
         setAssignments((memberData as CommunityProjectMember[]) ?? []);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
     load();
-  }, [params.username]);
+    return () => {
+      cancelled = true;
+    };
+  }, [params.username, user?.id]);
 
   if (loading) {
     return (
