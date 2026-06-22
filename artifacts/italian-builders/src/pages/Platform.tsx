@@ -363,10 +363,12 @@ function Field({
   label,
   children,
   hint,
+  required = false,
 }: {
   label: ModeLabel;
   children: React.ReactNode;
   hint?: string;
+  required?: boolean;
 }) {
   const { techLabels } = useTechLabels();
 
@@ -374,6 +376,11 @@ function Field({
     <label className="block space-y-2">
       <span className="text-xs font-mono uppercase tracking-wider text-zinc-500">
         {labelForMode(label, techLabels)}
+        {required && (
+          <span className="ml-1 text-red-500" aria-label="required">
+            *
+          </span>
+        )}
       </span>
       {children}
       {hint && (
@@ -664,6 +671,7 @@ function TagPicker({
   maxItems,
   onChange,
   placeholder,
+  required = false,
 }: {
   label: ModeLabel;
   values: string[];
@@ -671,6 +679,7 @@ function TagPicker({
   maxItems: number;
   onChange: (values: string[]) => void;
   placeholder: string;
+  required?: boolean;
 }) {
   const { techLabels } = useTechLabels();
   const [query, setQuery] = useState("");
@@ -720,6 +729,11 @@ function TagPicker({
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-mono uppercase tracking-wider text-zinc-500">
           {labelForMode(label, techLabels)}
+          {required && (
+            <span className="ml-1 text-red-500" aria-label="required">
+              *
+            </span>
+          )}
         </span>
         <span className="text-[11px] font-mono text-zinc-600">
           {selected.length}/{maxItems}
@@ -2726,7 +2740,7 @@ function ProfileEditorView({
             kind="avatar"
           />
           <div className="grid content-start gap-4 md:grid-cols-2">
-            <Field label={{ tech: "DISPLAY_NAME", friendly: "Full name" }}>
+            <Field label={{ tech: "DISPLAY_NAME", friendly: "Full name" }} required>
               <Input
                 className={inputClass}
                 value={form.full_name}
@@ -2734,7 +2748,7 @@ function ProfileEditorView({
                 required
               />
             </Field>
-            <Field label={{ tech: "USERNAME_SLUG", friendly: "Username" }}>
+            <Field label={{ tech: "USERNAME_SLUG", friendly: "Username" }} required>
               <Input
                 className={inputClass}
                 value={form.username}
@@ -2748,7 +2762,7 @@ function ProfileEditorView({
               />
             </Field>
             <div className="md:col-span-2">
-              <Field label={{ tech: "PROFILE_HEADLINE", friendly: "Headline" }}>
+              <Field label={{ tech: "PROFILE_HEADLINE", friendly: "Headline" }} required>
                 <Input
                   className={inputClass}
                   value={form.headline}
@@ -2757,7 +2771,7 @@ function ProfileEditorView({
                 />
               </Field>
             </div>
-            <Field label={{ tech: "ROLE_VECTOR", friendly: "Role" }}>
+            <Field label={{ tech: "ROLE_VECTOR", friendly: "Role" }} required>
               <Input
                 className={inputClass}
                 value={form.role}
@@ -2813,6 +2827,7 @@ function ProfileEditorView({
                 tech: "BIO_PAYLOAD",
                 friendly: "Bio / what you are building",
               }}
+              required
             >
               <Textarea
                 className={`${textareaClass} min-h-44`}
@@ -2900,7 +2915,7 @@ function ProfileEditorView({
               </p>
             </div>
             <div className="space-y-4">
-              <Field label={{ tech: "CITY_NODE", friendly: "City" }}>
+              <Field label={{ tech: "CITY_NODE", friendly: "City" }} required>
                 <Input
                   className={inputClass}
                   value={form.city}
@@ -2908,7 +2923,7 @@ function ProfileEditorView({
                   required
                 />
               </Field>
-              <Field label={{ tech: "COUNTRY_CODE", friendly: "Country" }}>
+              <Field label={{ tech: "COUNTRY_CODE", friendly: "Country" }} required>
                 <Input
                   className={inputClass}
                   value={form.country}
@@ -2919,6 +2934,7 @@ function ProfileEditorView({
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field
                   label={{ tech: "LATITUDE", friendly: "Latitude" }}
+                  required
                   hint={
                     techLabels
                       ? "Derived from city and country when recognized."
@@ -2940,6 +2956,7 @@ function ProfileEditorView({
                 </Field>
                 <Field
                   label={{ tech: "LONGITUDE", friendly: "Longitude" }}
+                  required
                   hint={
                     techLabels
                       ? "Derived from city and country when recognized."
@@ -2964,6 +2981,7 @@ function ProfileEditorView({
               </div>
               <Field
                 label={{ tech: "TELEGRAM_HANDLE", friendly: "Telegram handle" }}
+                required
               >
                 <Input
                   className={inputClass}
@@ -3012,6 +3030,7 @@ function ProfileEditorView({
                 maxItems={maxProfileLanguages}
                 onChange={(values) => update("languages", values)}
                 placeholder="Search languages"
+                required
               />
             </div>
           </section>
@@ -3457,6 +3476,7 @@ function ProfileForm({
         <section className="dt-card p-4 md:p-5">
           <Field
             label={{ tech: "ACCOUNT_PASSWORD", friendly: "Account password" }}
+            required
             hint={
               techLabels
                 ? "Set the password for future member login."
