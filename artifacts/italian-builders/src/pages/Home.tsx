@@ -325,15 +325,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm">
       <div className="container mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
-        <a href="/" className="flex items-center gap-3">
-          <div className="w-6 h-6 bg-white text-zinc-900 flex items-center justify-center font-mono text-xs font-bold leading-none">
-            IT
-          </div>
-          <span
-            className={`font-semibold text-sm tracking-tight text-zinc-100 ${techLabels ? "uppercase" : ""}`}
-          >
-            {techLabels ? "Italian Builders" : "Italian Builders"}
-          </span>
+        <a href="/" className="flex items-center">
+          <img
+            src="/logo-vector.svg"
+            alt="Italian Builders"
+            className="dt-logo"
+          />
         </a>
 
         {/* Desktop Nav */}
@@ -949,12 +946,12 @@ function Hero({ content }: { content: HomeDatabaseContent }) {
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="flex flex-col lg:flex-row gap-12 xl:gap-16 items-center">
           <div className="flex-1 lg:flex-[0.9] max-w-2xl">
-            <h1 className="text-4xl md:text-6xl font-bold text-zinc-50 mb-6 leading-[1.1] tracking-tight">
-              The home of Italian Builders.
+            <h1 className="text-[4.25rem] md:text-[7.5rem] font-black text-zinc-100 mb-8 leading-[0.92]">
+              Connecting
               <br />
-              <span className="text-blue-500">
-                Connecting the people who build.
-              </span>
+              the people
+              <br />
+              who <span className="text-blue-500 uppercase">build.</span>
             </h1>
 
             <p className="text-base md:text-lg text-zinc-400 mb-8 max-w-xl leading-relaxed">
@@ -1193,7 +1190,7 @@ export function FeaturedBuilders({
                     {profileTags(profile).map((tag) => (
                       <span
                         key={tag}
-                        className="px-1.5 py-0.5 border border-zinc-800 bg-zinc-900 text-[10px] font-mono font-medium text-zinc-400 uppercase rounded-sm"
+                        className="dt-tag px-1.5 py-0.5 border border-zinc-800 bg-zinc-900 text-[10px] text-zinc-400 rounded-sm"
                       >
                         {tag}
                       </span>
@@ -1285,7 +1282,7 @@ export function BuilderProjects({
                 setActive(cat);
                 setShowAll(false);
               }}
-              className={`px-3 py-1 text-xs font-mono uppercase border transition-colors flex-shrink-0 rounded-sm ${
+              className={`dt-tag px-3 py-1 text-xs border transition-colors flex-shrink-0 rounded-sm ${
                 active === cat
                   ? "bg-blue-600 text-white border-blue-600"
                   : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-600"
@@ -1324,7 +1321,7 @@ export function BuilderProjects({
                   )}
                   <div className="absolute top-2 right-2">
                     <span
-                      className={`px-2 py-1 text-[10px] font-mono font-bold uppercase border rounded-sm ${statusColor(project.status)} backdrop-blur-sm`}
+                      className={`dt-tag px-2 py-1 text-[10px] border rounded-sm ${statusColor(project.status)} backdrop-blur-sm`}
                     >
                       {project.status}
                     </span>
@@ -1337,7 +1334,7 @@ export function BuilderProjects({
                       {project.name}
                     </h3>
                     {project.category && (
-                      <span className="text-[10px] font-mono text-zinc-500 border border-zinc-800 px-1.5 py-0.5 bg-zinc-900 rounded-sm">
+                      <span className="dt-tag text-[10px] text-zinc-500 border border-zinc-800 px-1.5 py-0.5 bg-zinc-900 rounded-sm">
                         {project.category}
                       </span>
                     )}
@@ -1449,7 +1446,7 @@ export function CommunityProjects({
                     >
                       <Icon size={16} />
                     </div>
-                    <span className="text-[10px] font-mono border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-zinc-500 uppercase rounded-sm">
+                    <span className="dt-tag text-[10px] border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-zinc-500 rounded-sm">
                       {project.status}
                     </span>
                   </div>
@@ -1464,7 +1461,7 @@ export function CommunityProjects({
                   </p>
 
                   <div className="flex items-center justify-between text-xs font-mono text-zinc-500 pt-4 border-t border-zinc-800">
-                    <span className="uppercase">
+                    <span className="dt-tag">
                       {project.category || "Community"}
                     </span>
                     <span className="text-blue-400 font-semibold group-hover:underline flex items-center gap-1">
@@ -1991,15 +1988,12 @@ export function Footer() {
           className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 ${techLabels ? "font-mono text-xs" : "text-sm"}`}
         >
           <div className="col-span-2 lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4 text-white">
-              <div className="w-5 h-5 bg-white text-zinc-900 flex items-center justify-center text-[10px] font-bold">
-                IT
-              </div>
-              <span
-                className={`font-semibold ${techLabels ? "uppercase tracking-wider" : ""}`}
-              >
-                {techLabels ? "Italian Builders" : "Italian Builders"}
-              </span>
+            <div className="flex items-center mb-4 text-white">
+              <img
+                src="/logo-vector.svg"
+                alt="Italian Builders"
+                className="dt-logo-footer"
+              />
             </div>
             <p className="text-zinc-500 mb-6 max-w-xs leading-relaxed">
               {techLabels
