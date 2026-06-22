@@ -8,8 +8,11 @@ const {
   profileRoleLine,
   siteOrigin,
   truncateText,
-} = require("./_profile-og");
-const { safeFetch, validatePublicHttpUrl } = require("./_safe-fetch");
+} = require("../server/api/_profile-og");
+const {
+  safeFetch,
+  validatePublicHttpUrl,
+} = require("../server/api/_safe-fetch");
 
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = new Set([

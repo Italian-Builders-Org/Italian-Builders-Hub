@@ -1,4 +1,6 @@
-const { verifyWaitlistEmail } = require("../_waitlist-verification");
+const {
+  verifyWaitlistEmail,
+} = require("../../server/api/_waitlist-verification");
 
 function htmlPage({ title, body, status = 200 }) {
   return {

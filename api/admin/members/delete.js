@@ -1,4 +1,4 @@
-const { deleteMember, sendError } = require("../../_admin-members");
+const { deleteMember, sendError } = require("../../../server/api/_admin-members");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");

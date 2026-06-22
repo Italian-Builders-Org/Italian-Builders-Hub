@@ -10,7 +10,7 @@ const {
   profileDescription,
   profileTitle,
   siteOrigin,
-} = require("./_profile-og");
+} = require("../server/api/_profile-og");
 
 let cachedIndexHtml;
 

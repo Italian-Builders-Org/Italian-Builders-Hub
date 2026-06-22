@@ -2,7 +2,7 @@ const {
   createDirectInvite,
   listWaitlist,
   sendError,
-} = require("../_admin-waitlist");
+} = require("../../server/api/_admin-waitlist");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");

@@ -3,8 +3,11 @@ const {
   createObjectKey,
   uploadR2Object,
   verifySupabaseUser,
-} = require("./_r2-storage");
-const { safeFetch, validatePublicHttpUrl } = require("./_safe-fetch");
+} = require("../server/api/_r2-storage");
+const {
+  safeFetch,
+  validatePublicHttpUrl,
+} = require("../server/api/_safe-fetch");
 
 const MAX_HTML_BYTES = 750_000;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;

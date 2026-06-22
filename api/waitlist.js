@@ -1,4 +1,6 @@
-const { requestWaitlistVerification } = require("./_waitlist-verification");
+const {
+  requestWaitlistVerification,
+} = require("../server/api/_waitlist-verification");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");

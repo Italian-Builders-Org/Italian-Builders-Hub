@@ -4,7 +4,7 @@ const {
   createObjectKey,
   uploadR2Object,
   verifySupabaseUser,
-} = require("./_r2-storage");
+} = require("../server/api/_r2-storage");
 
 function headerValue(value) {
   return Array.isArray(value) ? value[0] : value;

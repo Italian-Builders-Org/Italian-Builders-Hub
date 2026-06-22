@@ -5,6 +5,18 @@
   "outputDirectory": "artifacts/italian-builders/dist/public",
   "rewrites": [
     {
+      "source": "/api/admin/waitlist/activate",
+      "destination": "/api/admin/waitlist/action?action=activate"
+    },
+    {
+      "source": "/api/admin/waitlist/activate-batch",
+      "destination": "/api/admin/waitlist/action?action=activate-batch"
+    },
+    {
+      "source": "/api/admin/waitlist/:id/activate",
+      "destination": "/api/admin/waitlist/action?action=activate&id=:id"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
