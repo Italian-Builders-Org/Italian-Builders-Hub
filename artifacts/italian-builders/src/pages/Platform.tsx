@@ -38,7 +38,6 @@ import {
   type ProjectMember,
   type WaitlistSignup,
   isSupabaseConfigured,
-  newInviteToken,
   slugify,
   supabase,
   authRedirectUrl,
@@ -5237,19 +5236,7 @@ export function AdminWaitlistPage() {
   return <RequireAuth admin>{() => <AdminWaitlistInner />}</RequireAuth>;
 }
 
-function AdminWaitlistInner() {
-  const { techLabels } = useTechLabels();
-  const [waitlist, setWaitlist] = useState<WaitlistSignup[]>([]);
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | "pending" | "active">("pending");
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [activatingId, setActivatingId] = useState<number | null>(null);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [batchActivating, setBatchActivating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function adminApi<T>(path: string, init?: RequestInit): Promise<T> {
+async function adminApi<T>(path: string, init?: RequestInit): Promise<T> {
     if (!supabase) throw new Error("The community backend is not configured.");
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
@@ -5283,6 +5270,18 @@ function AdminWaitlistInner() {
 
     return payload as T;
   }
+
+function AdminWaitlistInner() {
+  const { techLabels } = useTechLabels();
+  const [waitlist, setWaitlist] = useState<WaitlistSignup[]>([]);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"all" | "pending" | "active">("pending");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [activatingId, setActivatingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [batchActivating, setBatchActivating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -5748,17 +5747,19 @@ function AdminMetric({ label, value }: { label: string; value: number }) {
 export function AdminInvitesPage() {
   return (
     <RequireAuth admin>
-      {({ userId }) => <AdminInvitesInner userId={userId} />}
+      {() => <AdminInvitesInner />}
     </RequireAuth>
   );
 }
 
-function AdminInvitesInner({ userId }: { userId: string }) {
+function AdminInvitesInner() {
   const { techLabels } = useTechLabels();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [email, setEmail] = useState("");
   const [telegram, setTelegram] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   async function load() {
     if (!supabase) return;
@@ -5776,19 +5777,34 @@ function AdminInvitesInner({ userId }: { userId: string }) {
   async function createInvite(event: React.FormEvent) {
     event.preventDefault();
     if (!supabase) return;
+    const emailValue = email.trim();
+    const telegramValue = telegram.trim();
     setError(null);
-    const { error: insertError } = await supabase.from("invites").insert({
-      email: email || null,
-      telegram_handle: telegram || null,
-      token: newInviteToken(),
-      invited_by: userId,
-      expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
-    });
-    if (insertError) setError(insertError.message);
-    else {
+    setMessage(null);
+    setSaving(true);
+    try {
+      const data = await adminApi<{ invite: Invite; emailSent: boolean }>(
+        "/api/admin/waitlist",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: emailValue || null,
+            telegram: telegramValue || null,
+          }),
+        },
+      );
       setEmail("");
       setTelegram("");
-      load();
+      setMessage(
+        data.emailSent
+          ? `Invite email sent to ${data.invite.email}.`
+          : "Invite link created. Copy it and send it manually.",
+      );
+      await load();
+    } catch (err) {
+      setError(getError(err));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -5815,7 +5831,7 @@ function AdminInvitesInner({ userId }: { userId: string }) {
         copy={{
           tech: "Create secure invite tokens with email or Telegram metadata, then copy the route manually.",
           friendly:
-            "Create secure invite links with email and/or Telegram handle, then copy the link to send manually.",
+            "Create an invite with an email address to send it automatically, or create a Telegram-only link to send manually.",
         }}
       />
       <section className="container mx-auto grid gap-6 px-4 py-12 md:px-6 lg:grid-cols-[360px_1fr]">
@@ -5838,8 +5854,22 @@ function AdminInvitesInner({ userId }: { userId: string }) {
               />
             </Field>
             <ActionableErrorMessage message={error} />
-            <Button className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500">
-              {techLabels ? "CREATE_INVITE" : "Create invite"}
+            {message && (
+              <p className="rounded-sm border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+                {message}
+              </p>
+            )}
+            <Button
+              className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
+              disabled={saving}
+            >
+              {saving
+                ? techLabels
+                  ? "SENDING_INVITE..."
+                  : "Sending invite..."
+                : techLabels
+                  ? "CREATE_INVITE"
+                  : "Create invite"}
             </Button>
           </form>
         </Card>

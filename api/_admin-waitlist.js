@@ -74,6 +74,22 @@ function newInviteToken() {
   return crypto.randomBytes(24).toString("hex");
 }
 
+function cleanNullableString(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text || null;
+}
+
+function cleanEmail(value) {
+  const email = cleanNullableString(value)?.toLowerCase() ?? null;
+  if (!email) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw Object.assign(new Error("Enter a valid email address."), {
+      statusCode: 400,
+    });
+  }
+  return email;
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -254,6 +270,59 @@ async function listWaitlist(req) {
   return { waitlist };
 }
 
+async function createDirectInvite(req, payload = {}) {
+  const context = await requireAdmin(req);
+  const supabaseAdmin = getSupabaseAdmin();
+  const email = cleanEmail(payload.email);
+  const telegramHandle = cleanNullableString(payload.telegram);
+
+  if (!email && !telegramHandle) {
+    throw Object.assign(new Error("Email or Telegram handle is required."), {
+      statusCode: 400,
+    });
+  }
+
+  const token = newInviteToken();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  const inviteUrl = `${appBaseUrl(req)}/invite/${token}`;
+  const { data: invite, error: inviteError } = await supabaseAdmin
+    .from("invites")
+    .insert({
+      email,
+      telegram_handle: telegramHandle,
+      token,
+      invited_by: context.user.id,
+      expires_at: expiresAt,
+    })
+    .select("*")
+    .single();
+
+  if (inviteError) throw inviteError;
+
+  if (!email) {
+    return { invite, emailSent: false };
+  }
+
+  try {
+    await sendAcceptedInviteEmail({
+      supabaseAdmin,
+      email,
+      name: email.split("@")[0],
+      redirectTo: inviteUrl,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to send invite email.";
+    await supabaseAdmin
+      .from("invites")
+      .update({ status: "revoked" })
+      .eq("id", invite.id);
+    throw Object.assign(new Error(message), { statusCode: 502 });
+  }
+
+  return { invite, emailSent: true };
+}
+
 async function activateWaitlistSignupWithContext(req, rawId, context) {
   const id = Number(rawId);
 
@@ -409,6 +478,7 @@ function sendError(res, error) {
 module.exports = {
   activateWaitlistBatch,
   activateWaitlistSignup,
+  createDirectInvite,
   listWaitlist,
   sendError,
 };
