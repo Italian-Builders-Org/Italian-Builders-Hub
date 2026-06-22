@@ -90,6 +90,13 @@ function cleanEmail(value) {
   return email;
 }
 
+function inviteIsExpired(invite) {
+  if (invite?.status === "expired") return true;
+  if (invite?.status !== "pending") return false;
+  if (!invite?.expires_at) return false;
+  return new Date(invite.expires_at).getTime() <= Date.now();
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -271,6 +278,10 @@ async function listWaitlist(req) {
 }
 
 async function createDirectInvite(req, payload = {}) {
+  if (payload.action === "resend") {
+    return resendDirectInvite(req, payload.id);
+  }
+
   const context = await requireAdmin(req);
   const supabaseAdmin = getSupabaseAdmin();
   const email = cleanEmail(payload.email);
@@ -321,6 +332,83 @@ async function createDirectInvite(req, payload = {}) {
   }
 
   return { invite, emailSent: true };
+}
+
+async function resendDirectInvite(req, rawId) {
+  await requireAdmin(req);
+  const id = cleanNullableString(rawId);
+  if (!id) {
+    throw Object.assign(new Error("Invite id is required."), {
+      statusCode: 400,
+    });
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data: existing, error: loadError } = await supabaseAdmin
+    .from("invites")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError) throw loadError;
+  if (!existing) {
+    throw Object.assign(new Error("Invite not found."), { statusCode: 404 });
+  }
+  if (!existing.email) {
+    throw Object.assign(
+      new Error("Only email invites can be resent automatically."),
+      { statusCode: 400 },
+    );
+  }
+  if (existing.status === "accepted") {
+    throw Object.assign(new Error("Accepted invites cannot be resent."), {
+      statusCode: 400,
+    });
+  }
+  if (!inviteIsExpired(existing)) {
+    throw Object.assign(new Error("Only expired invites can be resent."), {
+      statusCode: 400,
+    });
+  }
+
+  const token = newInviteToken();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  const inviteUrl = `${appBaseUrl(req)}/invite/${token}`;
+  const { data: updated, error: updateError } = await supabaseAdmin
+    .from("invites")
+    .update({
+      token,
+      expires_at: expiresAt,
+      status: "pending",
+    })
+    .eq("id", existing.id)
+    .select("*")
+    .single();
+
+  if (updateError) throw updateError;
+
+  try {
+    await sendAcceptedInviteEmail({
+      supabaseAdmin,
+      email: existing.email,
+      name: existing.email.split("@")[0],
+      redirectTo: inviteUrl,
+    });
+  } catch (error) {
+    await supabaseAdmin
+      .from("invites")
+      .update({
+        token: existing.token,
+        expires_at: existing.expires_at,
+        status: existing.status,
+      })
+      .eq("id", existing.id);
+    const message =
+      error instanceof Error ? error.message : "Failed to resend invite email.";
+    throw Object.assign(new Error(message), { statusCode: 502 });
+  }
+
+  return { invite: updated, emailSent: true, resent: true };
 }
 
 async function activateWaitlistSignupWithContext(req, rawId, context) {

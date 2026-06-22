@@ -16,6 +16,7 @@ import {
   Monitor,
   PencilLine,
   Plus,
+  RefreshCw,
   Search,
   Smartphone,
   Trash2,
@@ -5237,39 +5238,39 @@ export function AdminWaitlistPage() {
 }
 
 async function adminApi<T>(path: string, init?: RequestInit): Promise<T> {
-    if (!supabase) throw new Error("The community backend is not configured.");
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) throw new Error("Admin session expired. Sign in again.");
+  if (!supabase) throw new Error("The community backend is not configured.");
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Admin session expired. Sign in again.");
 
-    const response = await fetch(path, {
-      ...init,
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${token}`,
-        ...init?.headers,
-      },
-    });
-    const payload = (await response.json().catch(() => null)) as
-      | { error?: string }
-      | T
-      | null;
+  const response = await fetch(path, {
+    ...init,
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+      ...init?.headers,
+    },
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string }
+    | T
+    | null;
 
-    if (!response.ok) {
-      const errorMessage =
-        payload &&
-        typeof payload === "object" &&
-        "error" in payload &&
-        typeof payload.error === "string"
-          ? payload.error
-          : null;
-      throw new Error(
-        errorMessage || `Request failed with HTTP ${response.status}.`,
-      );
-    }
-
-    return payload as T;
+  if (!response.ok) {
+    const errorMessage =
+      payload &&
+      typeof payload === "object" &&
+      "error" in payload &&
+      typeof payload.error === "string"
+        ? payload.error
+        : null;
+    throw new Error(
+      errorMessage || `Request failed with HTTP ${response.status}.`,
+    );
   }
+
+  return payload as T;
+}
 
 function AdminWaitlistInner() {
   const { techLabels } = useTechLabels();
@@ -5760,6 +5761,7 @@ function AdminInvitesInner() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   async function load() {
     if (!supabase) return;
@@ -5810,14 +5812,45 @@ function AdminInvitesInner() {
 
   async function revoke(id: string) {
     if (!supabase) return;
+    setError(null);
+    setMessage(null);
     await supabase.from("invites").update({ status: "revoked" }).eq("id", id);
     load();
+  }
+
+  async function resendInvite(invite: Invite) {
+    setError(null);
+    setMessage(null);
+    setResendingId(invite.id);
+    try {
+      const data = await adminApi<{ invite: Invite; emailSent: boolean }>(
+        "/api/admin/waitlist",
+        {
+          method: "POST",
+          body: JSON.stringify({ action: "resend", id: invite.id }),
+        },
+      );
+      setMessage(`Invite email resent to ${data.invite.email}.`);
+      await load();
+    } catch (err) {
+      setError(getError(err));
+      await load();
+    } finally {
+      setResendingId(null);
+    }
   }
 
   function copyInvite(invite: Invite) {
     navigator.clipboard.writeText(
       `${window.location.origin}/invite/${invite.token}`,
     );
+  }
+
+  function inviteExpired(invite: Invite) {
+    if (invite.status === "expired") return true;
+    if (invite.status !== "pending") return false;
+    if (!invite.expires_at) return false;
+    return new Date(invite.expires_at).getTime() <= Date.now();
   }
 
   return (
@@ -5874,44 +5907,67 @@ function AdminInvitesInner() {
           </form>
         </Card>
         <div className="space-y-3">
-          {invites.map((invite) => (
-            <Card
-              key={invite.id}
-              className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between"
-            >
-              <div>
-                <h2 className="font-semibold text-zinc-100">
-                  {invite.email || invite.telegram_handle}
-                </h2>
-                <p className="text-sm text-zinc-500">
-                  {invite.status} · {techLabels ? "expires_at" : "expires"}{" "}
-                  {invite.expires_at
-                    ? new Date(invite.expires_at).toLocaleDateString()
-                    : "never"}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-9 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
-                  onClick={() => copyInvite(invite)}
-                >
-                  <Copy size={14} />
-                </Button>
-                {invite.status === "pending" && (
+          {invites.map((invite) => {
+            const expired = inviteExpired(invite);
+            const canResend = Boolean(invite.email) && expired;
+            return (
+              <Card
+                key={invite.id}
+                className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div>
+                  <h2 className="font-semibold text-zinc-100">
+                    {invite.email || invite.telegram_handle}
+                  </h2>
+                  <p className="text-sm text-zinc-500">
+                    {expired ? "expired" : invite.status}{" "}
+                    · {techLabels ? "expires_at" : "expires"}{" "}
+                    {invite.expires_at
+                      ? new Date(invite.expires_at).toLocaleDateString()
+                      : "never"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 md:justify-end">
+                  {canResend && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 rounded-sm border-blue-500/40 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20"
+                      disabled={resendingId === invite.id}
+                      onClick={() => resendInvite(invite)}
+                    >
+                      <RefreshCw size={14} />
+                      {resendingId === invite.id
+                        ? techLabels
+                          ? "RESENDING..."
+                          : "Resending..."
+                        : techLabels
+                          ? "RESEND_INVITE"
+                          : "Resend invite"}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
                     className="h-9 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
-                    onClick={() => revoke(invite.id)}
+                    onClick={() => copyInvite(invite)}
                   >
-                    {techLabels ? "REVOKE" : "Revoke"}
+                    <Copy size={14} />
                   </Button>
-                )}
-              </div>
-            </Card>
-          ))}
+                  {invite.status === "pending" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+                      onClick={() => revoke(invite.id)}
+                    >
+                      {techLabels ? "REVOKE" : "Revoke"}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       </section>
     </PageShell>
