@@ -75,7 +75,7 @@ export default function BuildersPage() {
                         <MapPin size={10} /> {builder.location}
                       </span>
                     </div>
-                    <p className="text-sm text-zinc-300 leading-relaxed mb-5">"{builder.highlight}"</p>
+                    <p className="mb-5 line-clamp-3 text-sm leading-relaxed text-zinc-300">"{builder.highlight}"</p>
                     <div className="flex flex-wrap gap-1.5 mt-auto">
                       {builder.tags.map((tag) => (
                         <span key={tag} className="px-1.5 py-0.5 border border-zinc-800 bg-zinc-900 text-[10px] font-mono text-zinc-400 uppercase rounded-sm">

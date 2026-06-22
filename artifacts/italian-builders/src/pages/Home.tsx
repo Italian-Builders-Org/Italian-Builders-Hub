@@ -1350,7 +1350,7 @@ export function FeaturedBuilders({
                     </div>
                   </div>
 
-                  <div className="text-sm text-zinc-300 leading-relaxed mb-3 flex-grow border-l-2 border-zinc-700 pl-3">
+                  <div className="mb-3 line-clamp-3 flex-grow border-l-2 border-zinc-700 pl-3 text-sm leading-relaxed text-zinc-300">
                     "
                     {profile.bio ||
                       "Building in the Italian Builders community."}
