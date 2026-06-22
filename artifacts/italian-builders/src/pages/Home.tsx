@@ -1158,7 +1158,7 @@ export function FeaturedBuilders({
                   key={`${profile.id}-${i}`}
                   className="snap-start flex-shrink-0 w-80 dt-card p-5 flex flex-col group"
                 >
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start mb-4">
                     <div className="flex items-center gap-3">
                       <img
                         src={profile.avatar_url || "/images/avatar-1.png"}
@@ -1174,16 +1174,17 @@ export function FeaturedBuilders({
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] font-mono text-zinc-500 uppercase">
-                      <MapPin size={10} /> {profileLocationLabel(profile)}
-                    </div>
                   </div>
 
-                  <div className="text-sm text-zinc-300 leading-relaxed mb-4 flex-grow border-l-2 border-zinc-700 pl-3">
+                  <div className="text-sm text-zinc-300 leading-relaxed mb-3 flex-grow border-l-2 border-zinc-700 pl-3">
                     "
                     {profile.bio ||
                       "Building in the Italian Builders community."}
                     "
+                  </div>
+
+                  <div className="mb-4 flex items-center gap-1.5 text-[10px] font-mono text-zinc-500 uppercase">
+                    <MapPin size={10} /> {profileLocationLabel(profile)}
                   </div>
 
                   <div className="flex flex-wrap gap-1.5 mb-5 mt-auto">
