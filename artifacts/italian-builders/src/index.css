@@ -1,4 +1,5 @@
 @import url("https://use.typekit.net/kkh2lui.css");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -137,7 +138,7 @@
   --chart-4: 43 74% 66%;
   --chart-5: 27 87% 67%;
 
-  --app-font-sans: "forma-djr-display", Inter, sans-serif;
+  --app-font-sans: Inter, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: "forma-djr-mono", "JetBrains Mono", monospace;
   --radius: .5rem;
@@ -215,7 +216,7 @@
 }
 
 .dark-technical-theme {
-  font-family: "forma-djr-display", Inter, sans-serif;
+  font-family: Inter, sans-serif;
   background-color: #09090b;
   color: #e4e4e7;
   -webkit-font-smoothing: antialiased;
@@ -226,7 +227,7 @@
 .dark-technical-theme input,
 .dark-technical-theme select,
 .dark-technical-theme textarea {
-  font-family: "forma-djr-display", Inter, sans-serif;
+  font-family: Inter, sans-serif;
 }
 
 .dark-technical-theme h1,
