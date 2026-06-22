@@ -907,7 +907,12 @@ function BuilderGlobe({
         const camera = new THREE.PerspectiveCamera(18, 1, 0.1, 1200);
         camera.position.set(0, 0, 160);
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        try {
+          renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        } catch {
+          scene.clear();
+          return;
+        }
         renderer.setClearColor(0x000000, 0);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.domElement.style.display = "block";
@@ -1050,7 +1055,9 @@ function BuilderGlobe({
         updateScroll();
         animate();
       },
-    );
+    ).catch(() => {
+      globeRef.current = null;
+    });
 
     return () => {
       disposed = true;

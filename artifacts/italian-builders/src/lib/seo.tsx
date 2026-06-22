@@ -283,6 +283,14 @@ function setLink(selector: string, attributes: Record<string, string>) {
   element.setAttribute("data-seo-managed", "true");
 }
 
+function appendJsonLdSchema(schema: Exclude<JsonLdValue, undefined | null>) {
+  const script = document.createElement("script");
+  script.type = "application/ld+json";
+  script.setAttribute("data-seo-managed", "true");
+  script.text = JSON.stringify(schema);
+  document.head.appendChild(script);
+}
+
 function applySeo(config: SeoConfig) {
   const path = config.path || window.location.pathname || "/";
   const canonical = absoluteUrl(path);
@@ -362,11 +370,7 @@ function applySeo(config: SeoConfig) {
       ...(breadcrumb ? [breadcrumb] : []),
       ...(config.jsonLd || []),
     ];
-    const script = document.createElement("script");
-    script.type = "application/ld+json";
-    script.setAttribute("data-seo-managed", "true");
-    script.text = JSON.stringify(jsonLd.filter(Boolean));
-    document.head.appendChild(script);
+    jsonLd.filter((schema) => schema != null).forEach(appendJsonLdSchema);
   }
 }
 
