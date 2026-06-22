@@ -188,6 +188,7 @@ const projectCategorySelect =
   "id, slug, name, group_name, sort_order, is_active, created_at, updated_at";
 const projectCategoryRelationSelect =
   "project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))";
+const hiddenProjectCategorySlugs = new Set(["virtual-try-on"]);
 
 function projectCategoryLabels(
   project: Pick<Project, "category" | "project_category_tags">,
@@ -829,6 +830,141 @@ function TagPicker({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function isVisibleProjectCategory(category: ProjectCategory) {
+  return (
+    category.is_active &&
+    !hiddenProjectCategorySlugs.has(category.slug) &&
+    tagKey(category.name) !== "virtual try on"
+  );
+}
+
+function ProjectCategoryPicker({
+  categories,
+  selectedIds,
+  maxItems,
+  onChange,
+}: {
+  categories: ProjectCategory[];
+  selectedIds: string[];
+  maxItems: number;
+  onChange: (selectedIds: string[]) => void;
+}) {
+  const { techLabels } = useTechLabels();
+  const [query, setQuery] = useState("");
+  const selectedIdSet = new Set(selectedIds);
+  const selectedCategories = selectedIds
+    .map((id) => categories.find((category) => category.id === id))
+    .filter(Boolean) as ProjectCategory[];
+  const normalizedQuery = query.trim().toLowerCase();
+  const matchingCategories = categories
+    .filter((category) => !selectedIdSet.has(category.id))
+    .filter((category) => {
+      if (!normalizedQuery) return true;
+      return `${category.name} ${category.slug} ${category.group_name}`
+        .toLowerCase()
+        .includes(normalizedQuery);
+    });
+  const visibleCategories = matchingCategories.slice(0, 8);
+  const hiddenOptionCount = Math.max(
+    matchingCategories.length - visibleCategories.length,
+    0,
+  );
+  const canAddMore = selectedCategories.length < maxItems;
+
+  function addCategory(category: ProjectCategory) {
+    if (selectedIdSet.has(category.id) || !canAddMore) return;
+    onChange([...selectedIds, category.id].slice(0, maxItems));
+    setQuery("");
+  }
+
+  function removeCategory(categoryId: string) {
+    onChange(selectedIds.filter((id) => id !== categoryId));
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Backspace" && !query && selectedIds.length > 0) {
+      event.preventDefault();
+      onChange(selectedIds.slice(0, -1));
+      return;
+    }
+    if (!["Enter", "Tab", ","].includes(event.key)) return;
+    if (!query.trim()) return;
+    const exact = matchingCategories.find(
+      (category) => tagKey(category.name) === tagKey(query),
+    );
+    const next = exact ?? visibleCategories[0];
+    if (!next) return;
+    event.preventDefault();
+    addCategory(next);
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-2">
+        <div className="flex min-h-9 flex-wrap items-center gap-2">
+          {selectedCategories.map((category) => (
+            <span
+              key={category.id}
+              className="inline-flex h-7 max-w-full items-center gap-1 rounded-sm border border-blue-500/30 bg-blue-500/10 px-2 text-xs font-semibold text-blue-100"
+            >
+              <span className="truncate">{category.name}</span>
+              <button
+                type="button"
+                className="text-blue-200 hover:text-white"
+                onClick={() => removeCategory(category.id)}
+                aria-label={`Remove ${category.name}`}
+              >
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+          <input
+            className="h-7 min-w-32 flex-1 bg-transparent px-1 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={!canAddMore}
+            placeholder={
+              canAddMore
+                ? techLabels
+                  ? "SEARCH_CATEGORY_TAGS"
+                  : "Search project categories"
+                : ""
+            }
+          />
+        </div>
+      </div>
+      {canAddMore && visibleCategories.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {visibleCategories.map((category) => (
+            <button
+              key={category.id}
+              type="button"
+              className="rounded-sm border border-zinc-800 bg-zinc-900 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:border-blue-500/60 hover:text-blue-100"
+              onClick={() => addCategory(category)}
+            >
+              {category.name}
+            </button>
+          ))}
+          {hiddenOptionCount > 0 && (
+            <span className="rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-1 text-[11px] font-medium text-zinc-500">
+              (
+              {hiddenOptionCount >= 45
+                ? "45+ more"
+                : `${hiddenOptionCount} more`}
+              )
+            </span>
+          )}
+        </div>
+      )}
+      <p className="text-xs font-mono text-zinc-500">
+        {selectedCategories.length}/{maxItems}{" "}
+        {techLabels ? "SELECTED" : "selected"}
+      </p>
     </div>
   );
 }
@@ -4232,7 +4368,18 @@ function ProjectEditor({
         setError(categoryError.message);
         return;
       }
-      setProjectCategories((data as ProjectCategory[] | null) ?? []);
+      const nextProjectCategories = ((data as ProjectCategory[] | null) ?? [])
+        .filter(isVisibleProjectCategory);
+      const availableCategoryIds = new Set(
+        nextProjectCategories.map((category) => category.id),
+      );
+      setProjectCategories(nextProjectCategories);
+      setForm((current) => ({
+        ...current,
+        category_ids: current.category_ids.filter((id) =>
+          availableCategoryIds.has(id),
+        ),
+      }));
     }
 
     loadProjectCategories();
@@ -4240,23 +4387,6 @@ function ProjectEditor({
       cancelled = true;
     };
   }, []);
-
-  function toggleProjectCategory(categoryId: string) {
-    setForm((current) => {
-      const selected = current.category_ids.includes(categoryId);
-      if (selected) {
-        return {
-          ...current,
-          category_ids: current.category_ids.filter((id) => id !== categoryId),
-        };
-      }
-      if (current.category_ids.length >= maxProjectCategories) return current;
-      return {
-        ...current,
-        category_ids: [...current.category_ids, categoryId],
-      };
-    });
-  }
 
   function preferredProjectUrl(current = form) {
     return (
@@ -4511,36 +4641,15 @@ function ProjectEditor({
                   : "No categories are available yet."}
               </p>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {projectCategories.map((category) => {
-                  const selected = form.category_ids.includes(category.id);
-                  const disabled =
-                    !selected &&
-                    form.category_ids.length >= maxProjectCategories;
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => toggleProjectCategory(category.id)}
-                      className={`dt-tag rounded-sm border px-2 py-1 text-[10px] transition-colors ${
-                        selected
-                          ? "border-blue-500 bg-blue-600 text-white"
-                          : disabled
-                            ? "border-zinc-900 bg-zinc-950 text-zinc-700"
-                            : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
-                      }`}
-                    >
-                      {category.name}
-                    </button>
-                  );
-                })}
-              </div>
+              <ProjectCategoryPicker
+                categories={projectCategories}
+                selectedIds={form.category_ids}
+                maxItems={maxProjectCategories}
+                onChange={(categoryIds) =>
+                  update("category_ids", categoryIds)
+                }
+              />
             )}
-            <p className="mt-3 text-xs font-mono text-zinc-500">
-              {form.category_ids.length}/{maxProjectCategories}{" "}
-              {techLabels ? "SELECTED" : "selected"}
-            </p>
           </div>
         </Field>
         <Field label={{ tech: "STATUS_STATE", friendly: "Status" }}>
