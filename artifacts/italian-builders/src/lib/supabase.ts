@@ -68,6 +68,25 @@ export type ProjectLookingFor = {
   message: string;
 };
 
+export type ProjectCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  group_name: "type" | "technology" | "market" | "industry" | "stage" | "other";
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProjectCategoryTag = {
+  project_id: string;
+  category_id: string;
+  position: number;
+  created_at: string;
+  project_categories?: ProjectCategory | null;
+};
+
 export type Project = {
   id: string;
   owner_id: string;
@@ -82,6 +101,7 @@ export type Project = {
   demo_url: string | null;
   image_url: string | null;
   looking_for: ProjectLookingFor[];
+  project_category_tags?: ProjectCategoryTag[];
   is_open_source: boolean;
   is_public: boolean;
   created_at: string;

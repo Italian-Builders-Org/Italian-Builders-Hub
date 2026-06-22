@@ -35,6 +35,7 @@ import {
   type Invite,
   type Profile,
   type Project,
+  type ProjectCategory,
   type ProjectLookingFor,
   type ProjectMember,
   type WaitlistSignup,
@@ -78,6 +79,7 @@ const maxLookingForMessageLength = 200;
 const maxProfileSkills = 12;
 const maxProfileLookingFor = 8;
 const maxProfileLanguages = 8;
+const maxProjectCategories = 6;
 const waitlistPageSize = 30;
 const profileSkillOptions = [
   "AI",
@@ -175,6 +177,37 @@ const profileSkillOptions = [
   "Windsurf",
   "Zapier",
 ];
+
+const projectCategorySelect =
+  "id, slug, name, group_name, sort_order, is_active, created_at, updated_at";
+const projectCategoryRelationSelect =
+  "project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))";
+
+function projectCategoryLabels(
+  project: Pick<Project, "category" | "project_category_tags">,
+) {
+  const relationLabels =
+    project.project_category_tags
+      ?.slice()
+      .sort((a, b) => a.position - b.position)
+      .map((tag) => tag.project_categories?.name)
+      .filter(Boolean) ?? [];
+  const labels = relationLabels.length
+    ? relationLabels
+    : [project.category].filter(Boolean);
+  return Array.from(new Set(labels)).slice(0, maxProjectCategories) as string[];
+}
+
+function projectCategoryIds(project: Project | null) {
+  return (
+    project?.project_category_tags
+      ?.slice()
+      .sort((a, b) => a.position - b.position)
+      .map((tag) => tag.category_id)
+      .filter(Boolean)
+      .slice(0, maxProjectCategories) ?? []
+  );
+}
 const profileLookingForOptions = [
   "Advisor",
   "Beta users",
@@ -1641,7 +1674,7 @@ export function BuilderProfilePage() {
           supabase
             .from("projects")
             .select(
-              "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id)",
+              `*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id), ${projectCategoryRelationSelect}`,
             )
             .eq("owner_id", nextProfile.id)
             .eq("is_public", true)
@@ -1943,6 +1976,7 @@ export function BuilderProfilePage() {
 function ProjectCard({ project }: { project: Project }) {
   const { techLabels } = useTechLabels();
   const contributorCount = project.project_members?.length ?? 0;
+  const categories = projectCategoryLabels(project);
   return (
     <a
       href={`/projects/${project.slug}`}
@@ -1971,6 +2005,18 @@ function ProjectCard({ project }: { project: Project }) {
               ? "DESCRIPTION_FIELD_EMPTY"
               : "No project description yet.")}
         </p>
+        {categories.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-1.5">
+            {categories.map((category) => (
+              <span
+                key={category}
+                className="dt-tag rounded-sm border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[10px] text-zinc-500"
+              >
+                {category}
+              </span>
+            ))}
+          </div>
+        )}
         {contributorCount > 0 && (
           <p className="mb-4 text-xs font-mono uppercase text-zinc-600">
             {techLabels
@@ -2003,7 +2049,7 @@ export function ProjectsDirectoryPage() {
       const { data } = await supabase
         .from("projects")
         .select(
-          "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id)",
+          `*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id), ${projectCategoryRelationSelect}`,
         )
         .eq("is_public", true)
         .order("created_at", { ascending: false });
@@ -2016,7 +2062,7 @@ export function ProjectsDirectoryPage() {
   const categories = [
     "All",
     ...Array.from(
-      new Set(projects.map((project) => project.category).filter(Boolean)),
+      new Set(projects.flatMap((project) => projectCategoryLabels(project))),
     ),
   ];
   const statuses = [
@@ -2029,12 +2075,13 @@ export function ProjectsDirectoryPage() {
     "paused",
   ];
   const filtered = projects.filter((project) => {
+    const projectCategories = projectCategoryLabels(project);
     const haystack =
-      `${project.name} ${project.tagline ?? ""} ${project.description ?? ""} ${project.category ?? ""}`.toLowerCase();
+      `${project.name} ${project.tagline ?? ""} ${project.description ?? ""} ${projectCategories.join(" ")}`.toLowerCase();
     return (
       haystack.includes(query.toLowerCase()) &&
       (status === "All" || project.status === status) &&
-      (category === "All" || project.category === category)
+      (category === "All" || projectCategories.includes(category))
     );
   });
 
@@ -2127,7 +2174,7 @@ export function ProjectDetailPage() {
       const { data } = await supabase
         .from("projects")
         .select(
-          "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(*, profiles!project_members_profile_id_fkey(username, full_name, avatar_url, headline))",
+          `*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(*, profiles!project_members_profile_id_fkey(username, full_name, avatar_url, headline)), ${projectCategoryRelationSelect}`,
         )
         .eq("slug", params.slug)
         .maybeSingle();
@@ -2174,7 +2221,8 @@ export function ProjectDetailPage() {
       />
       <HeroBlock
         eyebrow={
-          project.category || (techLabels ? "ARTIFACT_RECORD" : "Project")
+          projectCategoryLabels(project).join(" / ") ||
+          (techLabels ? "ARTIFACT_RECORD" : "Project")
         }
         title={project.name}
         copy={
@@ -4040,6 +4088,7 @@ type ProjectFormState = {
   tagline: string;
   description: string;
   category: string;
+  category_ids: string[];
   status: Project["status"];
   website_url: string;
   github_url: string;
@@ -4058,6 +4107,7 @@ function projectToForm(project: Project | null): ProjectFormState {
     tagline: project?.tagline ?? "",
     description: project?.description ?? "",
     category: project?.category ?? "",
+    category_ids: projectCategoryIds(project),
     status: project?.status ?? "building",
     website_url: project?.website_url ?? "",
     github_url: project?.github_url ?? "",
@@ -4141,6 +4191,9 @@ function ProjectEditor({
   const { techLabels } = useTechLabels();
   const [, navigate] = useLocation();
   const [form, setForm] = useState(() => projectToForm(project));
+  const [projectCategories, setProjectCategories] = useState<ProjectCategory[]>(
+    [],
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [fetchingOgImage, setFetchingOgImage] = useState(false);
@@ -4151,6 +4204,49 @@ function ProjectEditor({
     value: ProjectFormState[K],
   ) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProjectCategories() {
+      if (!supabase) return;
+      const { data, error: categoryError } = await supabase
+        .from("project_categories")
+        .select(projectCategorySelect)
+        .eq("is_active", true)
+        .order("group_name", { ascending: true })
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+      if (cancelled) return;
+      if (categoryError) {
+        setError(categoryError.message);
+        return;
+      }
+      setProjectCategories((data as ProjectCategory[] | null) ?? []);
+    }
+
+    loadProjectCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function toggleProjectCategory(categoryId: string) {
+    setForm((current) => {
+      const selected = current.category_ids.includes(categoryId);
+      if (selected) {
+        return {
+          ...current,
+          category_ids: current.category_ids.filter((id) => id !== categoryId),
+        };
+      }
+      if (current.category_ids.length >= maxProjectCategories) return current;
+      return {
+        ...current,
+        category_ids: [...current.category_ids, categoryId],
+      };
+    });
   }
 
   function preferredProjectUrl(current = form) {
@@ -4273,13 +4369,16 @@ function ProjectEditor({
     if (!supabase) return;
     setSaving(true);
     setError(null);
+    const selectedProjectCategories = form.category_ids
+      .map((id) => projectCategories.find((category) => category.id === id))
+      .filter(Boolean) as ProjectCategory[];
     const payload = {
       owner_id: userId,
       name: form.name,
       slug: form.slug || slugify(form.name),
       tagline: form.tagline || null,
       description: form.description || null,
-      category: form.category || null,
+      category: selectedProjectCategories[0]?.name || form.category || null,
       status: form.status,
       website_url: normalizeHttpUrlInput(form.website_url) || null,
       github_url:
@@ -4311,6 +4410,35 @@ function ProjectEditor({
       }
 
       const projectId = (result.data as { id: string } | null)?.id;
+      if (projectId) {
+        const { error: deleteCategoryError } = await supabase
+          .from("project_category_tags")
+          .delete()
+          .eq("project_id", projectId);
+        if (deleteCategoryError) {
+          setError(deleteCategoryError.message);
+          setSaving(false);
+          return;
+        }
+
+        if (form.category_ids.length > 0) {
+          const { error: insertCategoryError } = await supabase
+            .from("project_category_tags")
+            .insert(
+              form.category_ids.slice(0, maxProjectCategories).map((id, index) => ({
+                project_id: projectId,
+                category_id: id,
+                position: index,
+              })),
+            );
+          if (insertCategoryError) {
+            setError(insertCategoryError.message);
+            setSaving(false);
+            return;
+          }
+        }
+      }
+
       if (projectId && contributorProfiles && contributorProfiles.length > 0) {
         try {
           await inviteProjectMembers({
@@ -4362,12 +4490,49 @@ function ProjectEditor({
             onChange={(event) => update("tagline", event.target.value)}
           />
         </Field>
-        <Field label={{ tech: "CATEGORY_TAG", friendly: "Category" }}>
-          <Input
-            className={inputClass}
-            value={form.category}
-            onChange={(event) => update("category", event.target.value)}
-          />
+        <Field
+          label={{ tech: "CATEGORY_TAGS", friendly: "Categories" }}
+          hint={`Choose up to ${maxProjectCategories} tags.`}
+        >
+          <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-3">
+            {projectCategories.length === 0 ? (
+              <p className="text-xs text-zinc-500">
+                {techLabels
+                  ? "CATEGORY_REGISTRY_EMPTY"
+                  : "No categories are available yet."}
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {projectCategories.map((category) => {
+                  const selected = form.category_ids.includes(category.id);
+                  const disabled =
+                    !selected &&
+                    form.category_ids.length >= maxProjectCategories;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => toggleProjectCategory(category.id)}
+                      className={`dt-tag rounded-sm border px-2 py-1 text-[10px] transition-colors ${
+                        selected
+                          ? "border-blue-500 bg-blue-600 text-white"
+                          : disabled
+                            ? "border-zinc-900 bg-zinc-950 text-zinc-700"
+                            : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <p className="mt-3 text-xs font-mono text-zinc-500">
+              {form.category_ids.length}/{maxProjectCategories}{" "}
+              {techLabels ? "SELECTED" : "selected"}
+            </p>
+          </div>
         </Field>
         <Field label={{ tech: "STATUS_STATE", friendly: "Status" }}>
           <select
@@ -4727,7 +4892,7 @@ function DashboardProjectsInner({ userId }: { userId: string }) {
     }
     const { data } = await supabase
       .from("projects")
-      .select("*, project_members(id)")
+      .select(`*, project_members(id), ${projectCategoryRelationSelect}`)
       .eq("owner_id", userId)
       .order("created_at", { ascending: false });
     setProjects((data as Project[]) ?? []);
@@ -5147,7 +5312,7 @@ function ProjectEditorLoader({
     }
     const { data } = await supabase
       .from("projects")
-      .select("*")
+      .select(`*, ${projectCategoryRelationSelect}`)
       .eq("id", projectId)
       .maybeSingle();
     setProject((data as Project | null) ?? null);
@@ -6019,25 +6184,97 @@ function AdminInvitesInner() {
 }
 
 export function AdminMembersPage() {
-  return <RequireAuth admin>{() => <AdminMembersInner />}</RequireAuth>;
+  return (
+    <RequireAuth admin>
+      {({ userId, profile }) => (
+        <AdminMembersInner
+          currentUserId={userId}
+          currentPlatformRole={profile?.platform_role ?? "member"}
+        />
+      )}
+    </RequireAuth>
+  );
 }
 
-function AdminMembersInner() {
+function AdminMembersInner({
+  currentUserId,
+  currentPlatformRole,
+}: {
+  currentUserId: string;
+  currentPlatformRole: Profile["platform_role"];
+}) {
   const { techLabels } = useTechLabels();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      if (!supabase) return;
-      const { data } = await supabase
+  async function load() {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: loadError } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
+      if (loadError) throw loadError;
       setProfiles((data as Profile[]) ?? []);
+    } catch (err) {
+      setError(getError(err));
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     load();
   }, []);
+
+  async function deleteProfile(profile: Profile) {
+    const label = profile.email || `@${profile.username}`;
+    const confirmed = window.confirm(
+      `Permanently delete ${profile.full_name} (${label})? This removes the auth account, profile and owned personal projects.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingId(profile.id);
+    setError(null);
+    setMessage(null);
+    try {
+      const data = await adminApi<{
+        deletedProfile: { fullName: string; username: string };
+      }>("/api/admin/members/delete", {
+        method: "POST",
+        body: JSON.stringify({ profileId: profile.id }),
+      });
+      setProfiles((current) =>
+        current.filter((item) => item.id !== profile.id),
+      );
+      setMessage(
+        `${data.deletedProfile.fullName} (@${data.deletedProfile.username}) was deleted.`,
+      );
+    } catch (err) {
+      setError(getError(err));
+      await load();
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  function canDeleteProfile(profile: Profile) {
+    if (profile.id === currentUserId) return false;
+    if (profile.platform_role === "owner") return false;
+    if (profile.platform_role !== "member" && currentPlatformRole !== "owner") {
+      return false;
+    }
+    return true;
+  }
 
   const filtered = profiles.filter((profile) =>
     `${profile.full_name} ${profile.email ?? ""} ${profile.telegram_handle ?? ""} ${profile.username}`
@@ -6051,9 +6288,9 @@ function AdminMembersInner() {
         eyebrow={{ tech: "ADMIN_MEMBERS", friendly: "Admin members" }}
         title={{ tech: "Member records.", friendly: "Member profiles." }}
         copy={{
-          tech: "Review profile records and open public renders.",
+          tech: "Review profile records, open public renders and remove test accounts through the admin deletion endpoint.",
           friendly:
-            "Review member records and open their public profile pages.",
+            "Review member records, open public profile pages and delete accounts when users ask you to clean them up.",
         }}
       />
       <section className="container mx-auto px-4 py-12 md:px-6">
@@ -6065,32 +6302,78 @@ function AdminMembersInner() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
+        <ActionableErrorMessage message={error} />
+        {message && <StatusMessage message={message} />}
         <div className="space-y-3">
-          {filtered.map((profile) => (
-            <Card
-              key={profile.id}
-              className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between"
-            >
-              <div>
-                <h2 className="font-semibold text-zinc-100">
-                  {profile.full_name}{" "}
-                  <span className="text-sm font-normal text-zinc-500">
-                    @{profile.username}
-                  </span>
-                </h2>
-                <p className="text-sm text-zinc-500">
-                  {profile.platform_role} · {profile.visibility} ·{" "}
-                  {profile.email || profile.telegram_handle}
-                </p>
-              </div>
-              <a
-                href={`/builders/${profile.username}`}
-                className="inline-flex h-9 items-center rounded-sm border border-zinc-800 px-3 text-sm text-zinc-200 hover:bg-zinc-900"
-              >
-                {techLabels ? "PUBLIC_RENDER" : "Public profile"}
-              </a>
-            </Card>
-          ))}
+          {loading ? (
+            <SkeletonList />
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              title={{
+                tech: "NO_MEMBER_RECORDS",
+                friendly: "No member records found",
+              }}
+              copy={{
+                tech: "No profile record matches the current filter.",
+                friendly: "No members match the current search.",
+              }}
+            />
+          ) : (
+            filtered.map((profile) => {
+              const deleteDisabled =
+                deletingId !== null || !canDeleteProfile(profile);
+              return (
+                <Card
+                  key={profile.id}
+                  className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between"
+                >
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="font-semibold text-zinc-100">
+                        {profile.full_name}{" "}
+                        <span className="text-sm font-normal text-zinc-500">
+                          @{profile.username}
+                        </span>
+                      </h2>
+                      {profile.id === currentUserId && (
+                        <span className="rounded-sm border border-zinc-700 px-2 py-0.5 text-[11px] font-mono uppercase text-zinc-400">
+                          {techLabels ? "YOU" : "You"}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {profile.platform_role} · {profile.visibility} ·{" "}
+                      {profile.email || profile.telegram_handle}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 md:justify-end">
+                    <a
+                      href={`/builders/${profile.username}`}
+                      className="inline-flex h-9 items-center rounded-sm border border-zinc-800 px-3 text-sm text-zinc-200 hover:bg-zinc-900"
+                    >
+                      {techLabels ? "PUBLIC_RENDER" : "Public profile"}
+                    </a>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={deleteDisabled}
+                      className="h-9 rounded-sm border-red-500/40 bg-red-950/10 px-3 text-red-200 hover:bg-red-950/30 disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() => deleteProfile(profile)}
+                    >
+                      <Trash2 size={14} />
+                      {deletingId === profile.id
+                        ? techLabels
+                          ? "DELETING..."
+                          : "Deleting..."
+                        : techLabels
+                          ? "DELETE"
+                          : "Delete"}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })
+          )}
         </div>
       </section>
     </PageShell>

@@ -528,7 +528,7 @@ function useHomeDatabaseContent() {
           supabase
             .from("projects")
             .select(
-              "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id)",
+              "*, profiles(username, full_name, avatar_url, headline, telegram_handle), project_members(id), project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))",
               { count: "exact" },
             )
             .eq("is_public", true)
@@ -599,6 +599,21 @@ function profileTags(profile: Profile) {
 
 function formatCount(value: number) {
   return new Intl.NumberFormat("en").format(value);
+}
+
+function projectCategoryLabels(
+  project: Pick<Project, "category" | "project_category_tags">,
+) {
+  const relationLabels =
+    project.project_category_tags
+      ?.slice()
+      .sort((a, b) => a.position - b.position)
+      .map((tag) => tag.project_categories?.name)
+      .filter(Boolean) ?? [];
+  const labels = relationLabels.length
+    ? relationLabels
+    : [project.category].filter(Boolean);
+  return Array.from(new Set(labels)).slice(0, 6) as string[];
 }
 
 function statusColor(status: string) {
@@ -1238,7 +1253,7 @@ export function BuilderProjects({
       [
         "All",
         ...Array.from(
-          new Set(projects.map((project) => project.category).filter(Boolean)),
+          new Set(projects.flatMap((project) => projectCategoryLabels(project))),
         ),
       ] as string[],
     [projects],
@@ -1251,7 +1266,11 @@ export function BuilderProjects({
   }, [active, categories]);
 
   const filtered =
-    active === "All" ? projects : projects.filter((p) => p.category === active);
+    active === "All"
+      ? projects
+      : projects.filter((project) =>
+          projectCategoryLabels(project).includes(active),
+        );
   const visible = showAll ? filtered : filtered.slice(0, 6);
   const hasMore = filtered.length > visible.length;
 
@@ -1330,15 +1349,10 @@ export function BuilderProjects({
                 </div>
 
                 <div className="p-4 flex flex-col flex-grow">
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex justify-between items-start gap-3 mb-2">
                     <h3 className="font-bold text-base text-zinc-100 leading-none">
                       {project.name}
                     </h3>
-                    {project.category && (
-                      <span className="dt-tag text-[10px] text-zinc-500 border border-zinc-800 px-1.5 py-0.5 bg-zinc-900 rounded-sm">
-                        {project.category}
-                      </span>
-                    )}
                   </div>
 
                   <p className="text-sm text-zinc-400 mb-4 line-clamp-2">
@@ -1346,6 +1360,17 @@ export function BuilderProjects({
                       project.description ||
                       "A project from the Italian Builders community."}
                   </p>
+
+                  <div className="mb-4 flex flex-wrap gap-1.5">
+                    {projectCategoryLabels(project).map((category) => (
+                      <span
+                        key={category}
+                        className="dt-tag text-[10px] text-zinc-500 border border-zinc-800 px-1.5 py-0.5 bg-zinc-900 rounded-sm"
+                      >
+                        {category}
+                      </span>
+                    ))}
+                  </div>
 
                   <div className="mt-auto pt-3 border-t border-zinc-800 flex items-center justify-between">
                     <div className="flex items-center gap-2">
