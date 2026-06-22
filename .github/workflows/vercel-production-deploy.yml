@@ -6,11 +6,32 @@ on:
       - main
 
 jobs:
-  trigger:
-    name: Trigger Vercel production deploy
+  deploy:
+    name: Deploy production to Vercel
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger deploy hook
-        run: curl --fail --show-error --silent --request POST "$VERCEL_DEPLOY_HOOK_URL"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.28.0 --activate
+
+      - name: Pull Vercel environment
+        run: npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+
+      - name: Build
+        run: npx --yes vercel@latest build --prod --token "$VERCEL_TOKEN"
+
+      - name: Deploy
+        run: npx --yes vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN"
         env:
-          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
