@@ -249,6 +249,7 @@ const breadcrumbLabels: Record<string, BreadcrumbLabel> = {
   join: { friendly: "Join", tech: "ACCESS_REQUEST" },
   mission: { friendly: "Mission", tech: "MISSION" },
   "os-projects": { friendly: "Open source", tech: "OPEN_SOURCE" },
+  pantheon: { friendly: "Pantheon", tech: "PANTHEON" },
   privacy: { friendly: "Privacy", tech: "PRIVACY" },
   projects: { friendly: "Projects", tech: "PROJECTS" },
   "reset-password": { friendly: "Reset password", tech: "RESET_PASSWORD" },
@@ -500,6 +501,9 @@ export function Header() {
           <a href="/community-projects" className={navLabelClass}>
             {techLabels ? "/community-projects" : "Community projects"}
           </a>
+          <a href="/pantheon" className={navLabelClass}>
+            {techLabels ? "/pantheon" : "Pantheon"}
+          </a>
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
@@ -540,6 +544,13 @@ export function Header() {
               className={mobileNavClass}
             >
               {techLabels ? "/community-projects" : "Community projects"}
+            </a>
+            <a
+              href="/pantheon"
+              onClick={() => setMobileMenuOpen(false)}
+              className={mobileNavClass}
+            >
+              {techLabels ? "/pantheon" : "Pantheon"}
             </a>
           </nav>
           <div className="pt-4 border-t border-zinc-800 flex flex-col gap-3">
@@ -2255,6 +2266,14 @@ export function Footer() {
                   className="hover:text-white transition-colors"
                 >
                   Mission
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/pantheon"
+                  className="hover:text-white transition-colors"
+                >
+                  Pantheon
                 </a>
               </li>
               <li>

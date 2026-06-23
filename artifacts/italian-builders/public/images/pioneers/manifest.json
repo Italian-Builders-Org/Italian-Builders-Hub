@@ -1,0 +1,192 @@
+{
+  "leonardo-da-vinci": {
+    "portrait": "/images/pioneers/leonardo-da-vinci.png",
+    "work": "/images/pioneers/leonardo-da-vinci-work.jpg"
+  },
+  "michelangelo": {
+    "portrait": "/images/pioneers/michelangelo.jpg",
+    "work": "/images/pioneers/michelangelo-work.jpg"
+  },
+  "galileo-galilei": {
+    "portrait": "/images/pioneers/galileo-galilei.jpg",
+    "work": "/images/pioneers/galileo-galilei-work.png"
+  },
+  "alessandro-volta": {
+    "portrait": "/images/pioneers/alessandro-volta.jpg",
+    "work": "/images/pioneers/alessandro-volta-work.png"
+  },
+  "guglielmo-marconi": {
+    "portrait": "/images/pioneers/guglielmo-marconi.jpg",
+    "work": "/images/pioneers/guglielmo-marconi-work.jpg"
+  },
+  "enrico-fermi": {
+    "portrait": "/images/pioneers/enrico-fermi.jpg",
+    "work": "/images/pioneers/enrico-fermi-work.jpg"
+  },
+  "antonio-meucci": {
+    "portrait": "/images/pioneers/antonio-meucci.jpg",
+    "work": "/images/pioneers/antonio-meucci-work.jpg"
+  },
+  "federico-faggin": {
+    "portrait": "/images/pioneers/federico-faggin.jpg",
+    "work": "/images/pioneers/federico-faggin-work.jpg"
+  },
+  "adriano-olivetti": {
+    "portrait": "/images/pioneers/adriano-olivetti.jpg",
+    "work": "/images/pioneers/adriano-olivetti-work.jpg"
+  },
+  "fibonacci": {
+    "portrait": "/images/pioneers/fibonacci.jpg",
+    "work": "/images/pioneers/fibonacci-work.png"
+  },
+  "maria-montessori": {
+    "portrait": "/images/pioneers/maria-montessori.jpg",
+    "work": "/images/pioneers/maria-montessori-work.jpg"
+  },
+  "rita-levi-montalcini": {
+    "portrait": "/images/pioneers/rita-levi-montalcini.png",
+    "work": "/images/pioneers/rita-levi-montalcini-work.png"
+  },
+  "giulio-natta": {
+    "portrait": "/images/pioneers/giulio-natta.jpg",
+    "work": "/images/pioneers/giulio-natta-work.png"
+  },
+  "camillo-golgi": {
+    "portrait": "/images/pioneers/camillo-golgi.jpg",
+    "work": "/images/pioneers/camillo-golgi-work.png"
+  },
+  "filippo-brunelleschi": {
+    "portrait": "/images/pioneers/filippo-brunelleschi.jpg",
+    "work": "/images/pioneers/filippo-brunelleschi-work.jpg"
+  },
+  "andrea-palladio": {
+    "portrait": "/images/pioneers/andrea-palladio.jpg",
+    "work": "/images/pioneers/andrea-palladio-work.jpg"
+  },
+  "evangelista-torricelli": {
+    "portrait": "/images/pioneers/evangelista-torricelli.jpg",
+    "work": "/images/pioneers/evangelista-torricelli-work.jpg"
+  },
+  "luigi-galvani": {
+    "portrait": "/images/pioneers/luigi-galvani.jpg",
+    "work": "/images/pioneers/luigi-galvani-work.jpg"
+  },
+  "enzo-ferrari": {
+    "portrait": "/images/pioneers/enzo-ferrari.jpg",
+    "work": "/images/pioneers/enzo-ferrari-work.jpg"
+  },
+  "carlo-rubbia": {
+    "portrait": "/images/pioneers/carlo-rubbia.jpg",
+    "work": "/images/pioneers/carlo-rubbia-work.png"
+  },
+  "renzo-piano": {
+    "portrait": "/images/pioneers/renzo-piano.jpg",
+    "work": "/images/pioneers/renzo-piano-work.jpg"
+  },
+  "giuseppe-peano": {
+    "portrait": "/images/pioneers/giuseppe-peano.jpg",
+    "work": "/images/pioneers/giuseppe-peano-work.gif"
+  },
+  "lucretius": {
+    "portrait": "/images/pioneers/lucretius.jpg",
+    "work": "/images/pioneers/lucretius-work.jpg"
+  },
+  "vitruvius": {
+    "portrait": "/images/pioneers/vitruvius.jpg",
+    "work": "/images/pioneers/vitruvius-work.jpg"
+  },
+  "pliny-the-elder": {
+    "portrait": "/images/pioneers/pliny-the-elder.jpg",
+    "work": "/images/pioneers/pliny-the-elder-work.jpg"
+  },
+  "frontinus": {
+    "work": "/images/pioneers/frontinus-work.jpg"
+  },
+  "guido-of-arezzo": {
+    "portrait": "/images/pioneers/guido-of-arezzo.jpg",
+    "work": "/images/pioneers/guido-of-arezzo-work.jpg"
+  },
+  "marco-polo": {
+    "portrait": "/images/pioneers/marco-polo.png",
+    "work": "/images/pioneers/marco-polo-work.jpg"
+  },
+  "donatello": {
+    "portrait": "/images/pioneers/donatello.jpg",
+    "work": "/images/pioneers/donatello-work.jpg"
+  },
+  "luca-pacioli": {
+    "portrait": "/images/pioneers/luca-pacioli.jpg",
+    "work": "/images/pioneers/luca-pacioli-work.jpg"
+  },
+  "christopher-columbus": {
+    "portrait": "/images/pioneers/christopher-columbus.jpg",
+    "work": "/images/pioneers/christopher-columbus-work.png"
+  },
+  "amerigo-vespucci": {
+    "portrait": "/images/pioneers/amerigo-vespucci.jpg",
+    "work": "/images/pioneers/amerigo-vespucci-work.jpg"
+  },
+  "raphael": {
+    "portrait": "/images/pioneers/raphael.jpg",
+    "work": "/images/pioneers/raphael-work.jpg"
+  },
+  "gerolamo-cardano": {
+    "portrait": "/images/pioneers/gerolamo-cardano.jpg",
+    "work": "/images/pioneers/gerolamo-cardano-work.gif"
+  },
+  "caravaggio": {
+    "portrait": "/images/pioneers/caravaggio.jpg",
+    "work": "/images/pioneers/caravaggio-work.jpg"
+  },
+  "gian-lorenzo-bernini": {
+    "portrait": "/images/pioneers/gian-lorenzo-bernini.jpg",
+    "work": "/images/pioneers/gian-lorenzo-bernini-work.jpg"
+  },
+  "giovanni-domenico-cassini": {
+    "portrait": "/images/pioneers/giovanni-domenico-cassini.jpg",
+    "work": "/images/pioneers/giovanni-domenico-cassini-work.jpg"
+  },
+  "marcello-malpighi": {
+    "portrait": "/images/pioneers/marcello-malpighi.jpg",
+    "work": "/images/pioneers/marcello-malpighi-work.png"
+  },
+  "antonio-stradivari": {
+    "portrait": "/images/pioneers/antonio-stradivari.jpg",
+    "work": "/images/pioneers/antonio-stradivari-work.jpg"
+  },
+  "antonio-vivaldi": {
+    "portrait": "/images/pioneers/antonio-vivaldi.jpg",
+    "work": "/images/pioneers/antonio-vivaldi-work.jpg"
+  },
+  "joseph-louis-lagrange": {
+    "portrait": "/images/pioneers/joseph-louis-lagrange.jpg",
+    "work": "/images/pioneers/joseph-louis-lagrange-work.jpg"
+  },
+  "amedeo-avogadro": {
+    "portrait": "/images/pioneers/amedeo-avogadro.png",
+    "work": "/images/pioneers/amedeo-avogadro-work.png"
+  },
+  "giuseppe-verdi": {
+    "portrait": "/images/pioneers/giuseppe-verdi.jpg",
+    "work": "/images/pioneers/giuseppe-verdi-work.jpg"
+  },
+  "galileo-ferraris": {
+    "portrait": "/images/pioneers/galileo-ferraris.png",
+    "work": "/images/pioneers/galileo-ferraris-work.jpg"
+  },
+  "tullio-levi-civita": {
+    "portrait": "/images/pioneers/tullio-levi-civita.jpg"
+  },
+  "corradino-dascanio": {
+    "portrait": "/images/pioneers/corradino-dascanio.jpg",
+    "work": "/images/pioneers/corradino-dascanio-work.jpg"
+  },
+  "margherita-hack": {
+    "portrait": "/images/pioneers/margherita-hack.jpg",
+    "work": "/images/pioneers/margherita-hack-work.png"
+  },
+  "giorgio-parisi": {
+    "portrait": "/images/pioneers/giorgio-parisi.jpg",
+    "work": "/images/pioneers/giorgio-parisi-work.png"
+  }
+}

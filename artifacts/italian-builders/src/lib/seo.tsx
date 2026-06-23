@@ -216,6 +216,25 @@ function routeConfig(path: string): SeoConfig {
     };
   }
 
+  if (normalized === "/pantheon") {
+    return {
+      title: "Pantheon of Italian innovators | Italian Builders",
+      description:
+        "A library of the greatest Italian inventors, scientists, artists and builders, from Leonardo da Vinci and Galileo to Olivetti and Faggin, and why they shaped the modern world.",
+      path: "/pantheon",
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          "@id": pageId("/pantheon"),
+          name: "Pantheon of Italian innovators",
+          url: absoluteUrl("/pantheon"),
+          isPartOf: { "@id": `${siteOrigin}/#website` },
+        },
+      ],
+    };
+  }
+
   if (normalized === "/mission") {
     return {
       title: "Mission | Italian Builders",
