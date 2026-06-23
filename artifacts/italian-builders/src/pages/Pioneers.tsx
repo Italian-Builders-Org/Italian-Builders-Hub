@@ -13,6 +13,7 @@ import {
   type Pioneer,
 } from "@/data/pioneers";
 import { PIONEER_MEDIA, type PioneerMediaItem } from "@/data/pioneersMedia";
+import { RomanEyebrow } from "@/components/RomanAccent";
 
 const ALL = "All";
 
@@ -49,7 +50,7 @@ function BioBody({ pioneer }: { pioneer: Pioneer }) {
           <p
             className={
               index === 0
-                ? "text-zinc-200 first-letter:float-left first-letter:mr-2.5 first-letter:mt-1 first-letter:font-serif first-letter:text-5xl first-letter:font-bold first-letter:leading-[0.7] first-letter:text-blue-400"
+                ? "text-zinc-200 first-letter:float-left first-letter:mr-2.5 first-letter:mt-1 first-letter:font-serif first-letter:text-5xl first-letter:font-bold first-letter:leading-[0.7] first-letter:text-[hsl(38_62%_58%)]"
                 : "mt-4"
             }
           >
@@ -154,7 +155,7 @@ function PioneerDialog({
                   </div>
                 </div>
               </div>
-              <p className="mt-4 border-l-2 border-blue-500/50 pl-3 text-sm italic leading-relaxed text-zinc-300">
+              <p className="mt-4 border-l-2 border-[hsl(38_35%_42%/0.45)] pl-3 text-sm italic leading-relaxed text-zinc-300 dt-roman-quote">
                 {pioneer.tagline}
               </p>
             </div>
@@ -270,15 +271,15 @@ export default function PioneersPage() {
     <div className="dark-technical-theme min-h-screen bg-zinc-950">
       <Header />
       <main>
-        <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950 pt-16 pb-12 md:pt-24 md:pb-16">
+        <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950 pt-16 pb-12 md:pt-24 md:pb-16 dt-roman-hero">
           <div className="absolute inset-0 dt-grid-bg opacity-[0.5] pointer-events-none" />
           <div className="absolute -top-40 right-0 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
           <div className="container relative z-10 mx-auto px-4 md:px-6">
             <div className="max-w-3xl">
-              <div className="mb-4 text-xs font-mono font-semibold uppercase tracking-wider text-blue-400">
-                {techLabels ? "> PANTHEON --italians" : "Pantheon"}
-              </div>
-              <h1 className="text-4xl font-bold tracking-tight text-zinc-50 md:text-6xl">
+              <RomanEyebrow className="mb-4">
+                {techLabels ? "Pantheon" : "Pantheon"}
+              </RomanEyebrow>
+              <h1 className="text-4xl font-bold tracking-tight text-zinc-50 md:text-6xl dt-roman-display">
                 The Italians who built the future.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-relaxed text-zinc-400 md:text-lg">

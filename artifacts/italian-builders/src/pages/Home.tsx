@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { RomanDivider } from "@/components/RomanAccent";
 import { Input } from "@/components/ui/input";
 import {
   Breadcrumb,
@@ -480,7 +481,7 @@ export function Header() {
   const mobileNavClass = `text-sm text-zinc-400 ${techLabels ? "font-mono uppercase" : "font-medium"}`;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm relative dt-header-roman">
       <div className="container mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
         <a href="/" className="flex items-center">
           <img
@@ -1129,7 +1130,7 @@ function Hero({ content }: { content: HomeDatabaseContent }) {
     : `${formatCount(content.counts.builders)} builders indexed`;
 
   return (
-    <section className="relative pt-20 pb-24 md:pt-28 md:pb-32 border-b border-zinc-800 overflow-hidden bg-zinc-950">
+    <section className="relative pt-20 pb-24 md:pt-28 md:pb-32 border-b border-zinc-800 overflow-hidden bg-zinc-950 dt-roman-hero">
       <div className="absolute inset-0 dt-grid-bg opacity-[0.6] pointer-events-none" />
       <div className="absolute -top-40 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 
@@ -1141,7 +1142,7 @@ function Hero({ content }: { content: HomeDatabaseContent }) {
               <br />
               the people
               <br />
-              who <span className="text-blue-500 uppercase">build.</span>
+              who <span className="text-blue-500 uppercase dt-roman-display">build.</span>
             </h1>
 
             <p className="text-base md:text-lg text-zinc-400 mb-8 max-w-xl leading-relaxed">
@@ -1304,7 +1305,7 @@ export function FeaturedBuilders({
                 ? `DAILY_BUILDER_SET --date=${formattedDate}`
                 : "Featured builders"}
             </div>
-            <h2 className="text-3xl font-bold text-zinc-50 mb-2">
+            <h2 className="text-3xl font-bold text-zinc-50 mb-2 dt-roman-display">
               Builder Highlights
             </h2>
             <p className="text-sm text-zinc-500 font-mono">
@@ -1850,9 +1851,11 @@ export function Join() {
   };
 
   return (
+  <>
+    <RomanDivider className="mx-auto max-w-4xl opacity-80" />
     <section
       id="join"
-      className="py-24 bg-zinc-900 text-zinc-300 border-t-4 border-blue-600"
+      className="relative py-24 bg-zinc-900 text-zinc-300 border-t border-zinc-800 dt-roman-hero"
     >
       <div className="container mx-auto px-4 md:px-6 max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.86fr)_minmax(500px,1.14fr)] gap-16 lg:gap-14 xl:gap-16 items-start">
@@ -2175,6 +2178,7 @@ export function Join() {
         </div>
       </div>
     </section>
+  </>
   );
 }
 
@@ -2183,7 +2187,7 @@ export function Footer() {
   const { user, loading } = useSupabaseSession();
 
   return (
-    <footer className="bg-zinc-950 border-t border-zinc-900 pt-12 pb-8 text-zinc-400">
+    <footer className="bg-zinc-950 border-t border-zinc-900 pt-12 pb-8 text-zinc-400 dt-footer-roman">
       <div className="container mx-auto px-4 md:px-6">
         <div
           className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 ${techLabels ? "font-mono text-xs" : "text-sm"}`}
