@@ -386,10 +386,7 @@
   z-index: 0;
 }
 
-.dt-roman-hero > * {
-  position: relative;
-  z-index: 1;
-}
+/* Content wrappers inside hero sections should carry relative z-10 in markup */
 
 .dt-meander-border {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='8' viewBox='0 0 48 8'%3E%3Cpath fill='none' stroke='%23a68b5b' stroke-opacity='0.22' stroke-width='0.75' d='M0 4h6l3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3h6'/%3E%3C/svg%3E");
