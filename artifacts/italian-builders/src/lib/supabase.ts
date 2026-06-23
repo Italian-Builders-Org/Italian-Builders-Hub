@@ -79,6 +79,16 @@ export type ProjectCategory = {
   updated_at: string;
 };
 
+export type ItalianCity = {
+  istat_code: string;
+  name: string;
+  search_name: string;
+  region: string | null;
+  province_code: string | null;
+  latitude: number;
+  longitude: number;
+};
+
 export type ProjectCategoryTag = {
   project_id: string;
   category_id: string;

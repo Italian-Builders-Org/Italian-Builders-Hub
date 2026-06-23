@@ -18,8 +18,21 @@ export const CITY_COORDS: Record<string, [number, number]> = {
   padua: [45.4064, 11.8768],
 };
 
+export function normalizeItalianCitySearch(value?: string | null) {
+  return (
+    value
+      ?.trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .replace(/\s+/g, " ") ?? ""
+  );
+}
+
 export function cityKey(value?: string | null) {
-  return value?.split(",")[0]?.trim().toLowerCase().replace(/\s+/g, " ");
+  return normalizeItalianCitySearch(value?.split(",")[0]);
 }
 
 export function coordsForCityCountry(

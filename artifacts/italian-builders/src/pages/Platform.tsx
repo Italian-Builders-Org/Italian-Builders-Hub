@@ -34,6 +34,7 @@ import {
   type CommunityProject,
   type CommunityProjectMember,
   type Invite,
+  type ItalianCity,
   type Profile,
   type Project,
   type ProjectCategory,
@@ -52,7 +53,11 @@ import {
   normalizeSocialUrl,
   sanitizeHttpUrl,
 } from "@/lib/url-safety";
-import { coordsForCityCountry, locationLabel } from "@/lib/geo";
+import {
+  coordsForCityCountry,
+  locationLabel,
+  normalizeItalianCitySearch,
+} from "@/lib/geo";
 import {
   Seo,
   communityProjectSeo,
@@ -191,6 +196,8 @@ const projectCategoryRelationSelect =
   "project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))";
 const anonymousProfileSelect =
   "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
+const italianCitySelect =
+  "istat_code, name, search_name, region, province_code, latitude, longitude";
 const hiddenProjectCategorySlugs = new Set(["virtual-try-on"]);
 
 function projectCategoryLabels(
@@ -694,6 +701,60 @@ function inferredCoordinateText(city: string, country: string) {
         longitude: coordinateText(coords[1]),
       }
     : { latitude: "", longitude: "" };
+}
+
+function italianCityCoordinateText(city: ItalianCity) {
+  return {
+    latitude: coordinateText(city.latitude),
+    longitude: coordinateText(city.longitude),
+  };
+}
+
+function cityLookupEnabled(country: string) {
+  const normalized = country.trim().toLowerCase();
+  return !normalized || ["italy", "italia", "it"].includes(normalized);
+}
+
+function cityOptionLabel(city: ItalianCity) {
+  return [city.name, city.province_code, city.region].filter(Boolean).join(", ");
+}
+
+function useItalianCityOptions(query: string, enabled: boolean) {
+  const [options, setOptions] = useState<ItalianCity[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const normalizedQuery = normalizeItalianCitySearch(query);
+
+    async function loadOptions() {
+      if (!supabase || !enabled || normalizedQuery.length < 2) {
+        setOptions([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("italian_cities")
+        .select(italianCitySelect)
+        .ilike("search_name", `%${normalizedQuery}%`)
+        .order("name", { ascending: true })
+        .limit(10);
+
+      if (cancelled) return;
+      setLoading(false);
+      setOptions(error ? [] : ((data as ItalianCity[] | null) ?? []));
+    }
+
+    void loadOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, query]);
+
+  return { options, loading };
 }
 
 function formLocationLabel(form: Pick<ProfileFormState, "city" | "country">) {
@@ -2916,6 +2977,79 @@ function ProfileModeButton({
   );
 }
 
+function ItalianCityField({
+  value,
+  country,
+  onInput,
+  onSelect,
+}: {
+  value: string;
+  country: string;
+  onInput: (value: string) => void;
+  onSelect: (city: ItalianCity) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const { options, loading } = useItalianCityOptions(
+    value,
+    cityLookupEnabled(country),
+  );
+  const hasOptions = options.length > 0;
+
+  return (
+    <div className="relative">
+      <Input
+        className={inputClass}
+        value={value}
+        onChange={(event) => {
+          onInput(event.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          window.setTimeout(() => setOpen(false), 120);
+        }}
+        autoComplete="off"
+        required
+      />
+      {open && (hasOptions || loading) ? (
+        <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-30 overflow-hidden rounded-sm border border-zinc-800 bg-zinc-950 shadow-xl">
+          {loading && !hasOptions ? (
+            <div className="px-3 py-2 text-xs text-zinc-500">
+              Searching Italian municipalities...
+            </div>
+          ) : (
+            options.map((city) => (
+              <button
+                key={city.istat_code}
+                type="button"
+                title={cityOptionLabel(city)}
+                className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-zinc-200 transition-colors hover:bg-zinc-900"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onSelect(city);
+                  setOpen(false);
+                }}
+              >
+                <Search className="mt-0.5 size-3.5 shrink-0 text-zinc-500" />
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">
+                    {city.name}
+                  </span>
+                  <span className="block truncate text-xs text-zinc-500">
+                    {[city.province_code, city.region]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </span>
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ProfileEditorView({
   form,
   update,
@@ -2940,6 +3074,14 @@ function ProfileEditorView({
   function updateCountry(value: string) {
     const coords = inferredCoordinateText(form.city, value);
     update("country", value);
+    update("latitude", coords.latitude);
+    update("longitude", coords.longitude);
+  }
+
+  function selectItalianCity(city: ItalianCity) {
+    const coords = italianCityCoordinateText(city);
+    update("city", city.name);
+    update("country", "Italy");
     update("latitude", coords.latitude);
     update("longitude", coords.longitude);
   }
@@ -3143,11 +3285,11 @@ function ProfileEditorView({
             </div>
             <div className="space-y-4">
               <Field label={{ tech: "CITY_NODE", friendly: "City" }} required>
-                <Input
-                  className={inputClass}
+                <ItalianCityField
                   value={form.city}
-                  onChange={(event) => updateCity(event.target.value)}
-                  required
+                  country={form.country}
+                  onInput={updateCity}
+                  onSelect={selectItalianCity}
                 />
               </Field>
               <Field label={{ tech: "COUNTRY_CODE", friendly: "Country" }} required>
@@ -6266,7 +6408,17 @@ function AdminInvitesInner() {
             const expired = inviteExpired(invite);
             const canResend =
               Boolean(invite.email) &&
-              (invite.status === "pending" || invite.status === "expired");
+              (invite.status === "pending" ||
+                invite.status === "expired" ||
+                invite.status === "revoked");
+            const resendLabel =
+              invite.status === "revoked"
+                ? techLabels
+                  ? "REINVITE"
+                  : "Reinvite"
+                : techLabels
+                  ? "RESEND_INVITE"
+                  : "Resend invite";
             return (
               <Card
                 key={invite.id}
@@ -6298,9 +6450,7 @@ function AdminInvitesInner() {
                         ? techLabels
                           ? "RESENDING..."
                           : "Resending..."
-                        : techLabels
-                          ? "RESEND_INVITE"
-                          : "Resend invite"}
+                        : resendLabel}
                     </Button>
                   )}
                   <Button
