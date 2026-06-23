@@ -13,7 +13,7 @@ import {
   type Pioneer,
 } from "@/data/pioneers";
 import { PIONEER_MEDIA, type PioneerMediaItem } from "@/data/pioneersMedia";
-import { RomanEyebrow, romanHeroProps } from "@/components/RomanAccent";
+import { RomanEyebrow, RomanStatue, ROMAN_STATUES, romanHeroProps } from "@/components/RomanAccent";
 
 const ALL = "All";
 
@@ -279,6 +279,12 @@ export default function PioneersPage() {
         >
           <div className="absolute inset-0 dt-grid-bg opacity-[0.5] pointer-events-none" />
           <div className="absolute -top-40 right-0 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
+          <RomanStatue
+            src={ROMAN_STATUES.nike}
+            side="right"
+            variant="hero"
+            className="hidden sm:block"
+          />
           <div className="container relative z-10 mx-auto px-4 md:px-6">
             <div className="max-w-3xl">
               <RomanEyebrow className="mb-4">

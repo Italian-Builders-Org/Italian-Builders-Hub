@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { RomanDivider, romanHeroProps } from "@/components/RomanAccent";
+import { RomanDivider, RomanMottoStrip, RomanStatue, ROMAN_STATUES, romanHeroProps } from "@/components/RomanAccent";
 import { Input } from "@/components/ui/input";
 import {
   Breadcrumb,
@@ -1138,6 +1138,12 @@ function Hero({ content }: { content: HomeDatabaseContent }) {
     >
       <div className="absolute inset-0 dt-grid-bg opacity-[0.6] pointer-events-none" />
       <div className="absolute -top-40 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <RomanStatue
+        src={ROMAN_STATUES.discobolus}
+        side="left"
+        variant="hero"
+        className="hidden sm:block"
+      />
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="flex flex-col lg:flex-row gap-12 xl:gap-16 items-center">
@@ -2193,7 +2199,20 @@ export function Footer() {
 
   return (
     <footer className="bg-zinc-950 border-t border-zinc-900 pt-12 pb-8 text-zinc-400 dt-footer-roman">
-      <div className="container mx-auto px-4 md:px-6">
+      <RomanStatue
+        src={ROMAN_STATUES.discobolus}
+        side="left"
+        variant="footer"
+        className="hidden md:block"
+      />
+      <RomanStatue
+        src={ROMAN_STATUES.venus}
+        side="right"
+        variant="footer"
+        className="hidden md:block"
+      />
+      <div className="container relative z-10 mx-auto px-4 md:px-6">
+        <RomanMottoStrip techLabels={techLabels} />
         <div
           className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 ${techLabels ? "font-mono text-xs" : "text-sm"}`}
         >
@@ -2233,7 +2252,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase tracking-wider">
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-white dt-roman-display">
               Platform
             </h4>
             <ul className="space-y-2">
@@ -2265,7 +2284,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase tracking-wider">
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-white dt-roman-display">
               Resources
             </h4>
             <ul className="space-y-2">
@@ -2305,7 +2324,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-white font-bold mb-4 uppercase tracking-wider">
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-white dt-roman-display">
               Legal
             </h4>
             <ul className="space-y-2">
@@ -2334,8 +2353,10 @@ export function Footer() {
           </div>
         </div>
 
+        <RomanDivider className="mb-6 opacity-70" />
+
         <div
-          className={`pt-6 border-t border-zinc-900 flex flex-col md:flex-row items-center justify-between gap-4 ${techLabels ? "font-mono text-[10px]" : "text-xs"}`}
+          className={`flex flex-col items-center justify-between gap-4 md:flex-row ${techLabels ? "font-mono text-[10px]" : "text-xs"}`}
         >
           <p className="text-zinc-600">
             © {new Date().getFullYear()} ITALIAN BUILDERS. ALL RIGHTS RESERVED.

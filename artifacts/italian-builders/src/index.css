@@ -479,6 +479,8 @@
 }
 
 .dt-footer-roman {
+  position: relative;
+  overflow: hidden;
   border-top: 1px solid hsl(var(--roman-gold-muted) / 0.15);
 }
 
@@ -491,6 +493,86 @@
   background-repeat: repeat-x;
   background-position: center;
   background-size: 48px 8px;
+}
+
+.dt-footer-crest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  padding: 1.25rem 1rem;
+  border: 1px solid hsl(var(--roman-gold-muted) / 0.14);
+  border-radius: 2px;
+  background:
+    linear-gradient(180deg, hsl(var(--roman-gold) / 0.04), transparent 70%),
+    radial-gradient(ellipse 70% 80% at 50% 0%, hsl(var(--roman-gold) / 0.06), transparent 65%);
+}
+
+.dt-roman-motto {
+  font-family: var(--app-font-serif);
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--roman-gold) / 0.9);
+}
+
+.dt-roman-laurel {
+  flex-shrink: 0;
+}
+
+.dt-roman-statue {
+  pointer-events: none;
+  user-select: none;
+  object-fit: contain;
+  object-position: bottom;
+  filter: grayscale(1) contrast(1.05);
+}
+
+.dt-roman-statue--footer {
+  position: absolute;
+  bottom: 0;
+  z-index: 0;
+  opacity: 0.1;
+  max-height: 11rem;
+  width: auto;
+}
+
+.dt-roman-statue--footer.dt-roman-statue--left {
+  left: -1.5rem;
+  max-height: 13rem;
+}
+
+.dt-roman-statue--footer.dt-roman-statue--right {
+  right: -1.5rem;
+  max-height: 13rem;
+}
+
+.dt-roman-statue--hero {
+  position: absolute;
+  bottom: 0;
+  z-index: 1;
+  opacity: 0.14;
+  max-height: min(42vh, 22rem);
+  width: auto;
+}
+
+.dt-roman-statue--hero.dt-roman-statue--left {
+  left: 0;
+  transform: translateX(-8%);
+}
+
+.dt-roman-statue--hero.dt-roman-statue--right {
+  right: 0;
+  transform: translateX(8%);
+}
+
+@media (min-width: 1024px) {
+  .dt-roman-statue--hero {
+    opacity: 0.18;
+    max-height: min(48vh, 26rem);
+  }
 }
 
 @layer utilities {
