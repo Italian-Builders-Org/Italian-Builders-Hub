@@ -1,4 +1,3 @@
-import { CommunityChannelNote } from "@/components/CommunityChannelNote";
 import { Footer, Header, Join, useTechLabels } from "@/pages/Home";
 
 export default function JoinPage() {
@@ -16,10 +15,9 @@ export default function JoinPage() {
             <h1 className="text-4xl md:text-5xl font-bold text-zinc-50 mb-5 tracking-tight">
               Request access to Italian Builders.
             </h1>
-            <p className="text-base text-zinc-400 leading-relaxed mb-6">
+            <p className="text-base text-zinc-400 leading-relaxed">
               Tell us who you are, what you are building, and where the community can find your work.
             </p>
-            <CommunityChannelNote techLabels={techLabels} />
           </div>
         </section>
         <Join />

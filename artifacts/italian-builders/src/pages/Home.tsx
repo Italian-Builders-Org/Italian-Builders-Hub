@@ -8,7 +8,6 @@ import React, {
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { RomanDivider, RomanStatue, ROMAN_STATUES, romanHeroProps } from "@/components/RomanAccent";
-import { CommunityChannelNote } from "@/components/CommunityChannelNote";
 import { Input } from "@/components/ui/input";
 import {
   Breadcrumb,
@@ -1885,13 +1884,11 @@ export function Join() {
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight">
               {techLabels ? "Request Access" : "Join the Community"}
             </h2>
-            <p className={`${helperTextClass} mb-6`}>
+            <p className={`${helperTextClass} mb-10`}>
               {techLabels
                 ? "Submit your builder record. We will notify approved accounts when access opens."
                 : "Tell us who you are and what you're building. We'll let you know when the platform launches."}
             </p>
-
-            <CommunityChannelNote techLabels={techLabels} className="mb-10" />
 
             <div className="space-y-6">
               {WHO_FOR.map((item, i) => {
@@ -1956,8 +1953,8 @@ export function Join() {
                     </h3>
                     <p className={smallHelperClass}>
                       {techLabels
-                        ? "Verify email before creating a pending builder record. Telegram invite follows waitlist approval."
-                        : "Tell us who you are and what you're building. We verify your email first, then review your request before sending the private Telegram invite."}
+                        ? "Verify email before creating a pending builder record."
+                        : "Tell us who you are and what you're building. We'll verify your email before adding you."}
                     </p>
                   </div>
 

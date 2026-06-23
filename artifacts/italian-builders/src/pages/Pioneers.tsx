@@ -288,7 +288,7 @@ export default function PioneersPage() {
           <div className="container relative z-10 mx-auto px-4 md:px-6">
             <div className="max-w-3xl">
               <RomanEyebrow className="mb-4">
-                {techLabels ? "Pantheon" : "Pantheon"}
+                {techLabels ? "> PANTHEON --italians" : "Pantheon"}
               </RomanEyebrow>
               <h1 className="text-4xl font-bold tracking-tight text-zinc-50 md:text-6xl dt-roman-display">
                 The Italians who built the future.

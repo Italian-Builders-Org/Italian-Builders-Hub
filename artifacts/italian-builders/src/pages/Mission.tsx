@@ -1,5 +1,4 @@
 import { ArrowRight } from "lucide-react";
-import { CommunityChannelNote } from "@/components/CommunityChannelNote";
 import { RomanEyebrow } from "@/components/RomanAccent";
 import { Footer, Header, useTechLabels } from "@/pages/Home";
 
@@ -27,7 +26,7 @@ export default function MissionPage() {
           <div className="container relative z-10 mx-auto px-4 md:px-6">
             <div className="max-w-4xl">
               <RomanEyebrow className="mb-4">
-                {techLabels ? "Mission" : "Mission"}
+                {techLabels ? "MISSION_STATEMENT" : "Mission"}
               </RomanEyebrow>
               <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-zinc-50 md:text-6xl dt-roman-display">
                 Italian Builders exists to connect people who build.
@@ -45,26 +44,22 @@ export default function MissionPage() {
                 ))}
               </article>
 
-              <aside className="space-y-6 border-l border-zinc-800 pl-5 text-sm leading-6 text-zinc-500">
-                <div>
-                  <div className="mb-3">
-                    <RomanEyebrow>
-                      {techLabels ? "Core idea" : "Core idea"}
-                    </RomanEyebrow>
-                  </div>
-                  <p className="mb-5 border-0 pl-0 text-base not-italic text-zinc-300 dt-roman-quote">
-                    What unites us is that we choose to build.
-                  </p>
-                  <a
-                    href="/join"
-                    className="inline-flex items-center gap-2 rounded-sm border border-blue-500/40 px-3 py-2 text-xs font-semibold text-blue-200 transition-colors hover:border-blue-400 hover:text-white"
-                  >
-                    {techLabels ? "REQUEST_ACCESS" : "Join the community"}
-                    <ArrowRight size={14} />
-                  </a>
+              <aside className="border-l border-zinc-800 pl-5 text-sm leading-6 text-zinc-500">
+                <div className="mb-3">
+                  <RomanEyebrow>
+                    {techLabels ? "CORE_SIGNAL" : "Core idea"}
+                  </RomanEyebrow>
                 </div>
-
-                <CommunityChannelNote techLabels={techLabels} />
+                <p className="mb-5 text-zinc-300">
+                  What unites us is that we choose to build.
+                </p>
+                <a
+                  href="/join"
+                  className="inline-flex items-center gap-2 rounded-sm border border-blue-500/40 px-3 py-2 text-xs font-semibold text-blue-200 transition-colors hover:border-blue-400 hover:text-white"
+                >
+                  {techLabels ? "REQUEST_ACCESS" : "Join the community"}
+                  <ArrowRight size={14} />
+                </a>
               </aside>
             </div>
           </div>
