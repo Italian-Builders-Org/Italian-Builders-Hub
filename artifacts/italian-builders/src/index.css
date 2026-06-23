@@ -374,13 +374,17 @@
 }
 
 .dt-roman-hero::after {
+  content: none;
+}
+
+.dt-roman-hero--has-image::after {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("/images/brand-heritage.png");
+  background-image: var(--roman-hero-image);
   background-size: cover;
-  background-position: center 30%;
-  opacity: 0.07;
+  background-position: var(--roman-hero-position, center);
+  opacity: var(--roman-hero-opacity, 0.07);
   mix-blend-mode: luminosity;
   pointer-events: none;
   z-index: 0;

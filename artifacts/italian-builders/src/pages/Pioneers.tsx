@@ -13,7 +13,7 @@ import {
   type Pioneer,
 } from "@/data/pioneers";
 import { PIONEER_MEDIA, type PioneerMediaItem } from "@/data/pioneersMedia";
-import { RomanEyebrow } from "@/components/RomanAccent";
+import { RomanEyebrow, romanHeroProps } from "@/components/RomanAccent";
 
 const ALL = "All";
 
@@ -267,11 +267,16 @@ export default function PioneersPage() {
     }).sort((a, b) => a.birthYear - b.birthYear);
   }, [category, query]);
 
+  const heroBackground = romanHeroProps("pantheon");
+
   return (
     <div className="dark-technical-theme min-h-screen bg-zinc-950">
       <Header />
       <main>
-        <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950 pt-16 pb-12 md:pt-24 md:pb-16 dt-roman-hero">
+        <section
+          className={`relative overflow-hidden border-b border-zinc-800 bg-zinc-950 pt-16 pb-12 md:pt-24 md:pb-16 ${heroBackground.className}`}
+          style={heroBackground.style}
+        >
           <div className="absolute inset-0 dt-grid-bg opacity-[0.5] pointer-events-none" />
           <div className="absolute -top-40 right-0 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
           <div className="container relative z-10 mx-auto px-4 md:px-6">

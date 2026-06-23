@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { RomanDivider } from "@/components/RomanAccent";
+import { RomanDivider, romanHeroProps } from "@/components/RomanAccent";
 import { Input } from "@/components/ui/input";
 import {
   Breadcrumb,
@@ -1129,8 +1129,13 @@ function Hero({ content }: { content: HomeDatabaseContent }) {
     ? "Loading builders..."
     : `${formatCount(content.counts.builders)} builders indexed`;
 
+  const heroBackground = romanHeroProps("home");
+
   return (
-    <section className="relative pt-20 pb-24 md:pt-28 md:pb-32 border-b border-zinc-800 overflow-hidden bg-zinc-950 dt-roman-hero">
+    <section
+      className={`relative pt-20 pb-24 md:pt-28 md:pb-32 border-b border-zinc-800 overflow-hidden bg-zinc-950 ${heroBackground.className}`}
+      style={heroBackground.style}
+    >
       <div className="absolute inset-0 dt-grid-bg opacity-[0.6] pointer-events-none" />
       <div className="absolute -top-40 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 

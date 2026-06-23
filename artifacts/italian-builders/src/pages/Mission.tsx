@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import { RomanEyebrow } from "@/components/RomanAccent";
+import { RomanEyebrow, romanHeroProps } from "@/components/RomanAccent";
 import { Footer, Header, useTechLabels } from "@/pages/Home";
 
 const missionParagraphs = [
@@ -16,12 +16,16 @@ const missionParagraphs = [
 
 export default function MissionPage() {
   const { techLabels } = useTechLabels();
+  const heroBackground = romanHeroProps("mission");
 
   return (
     <div className="dark-technical-theme min-h-screen bg-zinc-950">
       <Header />
       <main>
-        <section className="border-b border-zinc-900 bg-zinc-950 pt-20 pb-14 md:pt-28 md:pb-20 dt-roman-hero">
+        <section
+          className={`border-b border-zinc-900 bg-zinc-950 pt-20 pb-14 md:pt-28 md:pb-20 ${heroBackground.className}`}
+          style={heroBackground.style}
+        >
           <div className="container mx-auto px-4 md:px-6">
             <div className="max-w-4xl">
               <RomanEyebrow className="mb-4">
