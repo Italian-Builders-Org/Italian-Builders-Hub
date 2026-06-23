@@ -141,9 +141,6 @@
   --app-font-sans: Inter, sans-serif;
   --app-font-serif: Cinzel, Georgia, "Times New Roman", serif;
   --app-font-mono: "forma-djr-mono", "JetBrains Mono", monospace;
-  --roman-gold: 38 62% 58%;
-  --roman-gold-muted: 38 35% 42%;
-  --roman-stone: 30 8% 14%;
   --radius: .5rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
@@ -281,34 +278,10 @@
   border: 1px solid #27272a;
   border-radius: 2px;
   box-shadow: none;
-  position: relative;
-}
-
-.dt-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    hsl(var(--roman-gold-muted) / 0.35) 20%,
-    hsl(var(--roman-gold) / 0.5) 50%,
-    hsl(var(--roman-gold-muted) / 0.35) 80%,
-    transparent
-  );
-  pointer-events: none;
-  opacity: 0.65;
 }
 
 .dt-card:hover {
   border-color: #3f3f46;
-}
-
-.dt-card:hover::before {
-  opacity: 1;
 }
 
 .dt-button {
@@ -366,9 +339,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 100%, hsl(var(--roman-gold) / 0.08), transparent 70%),
-    radial-gradient(ellipse 50% 40% at 85% 15%, hsl(217 91% 60% / 0.06), transparent 60%);
+  background: radial-gradient(ellipse 50% 40% at 85% 15%, hsl(217 91% 60% / 0.06), transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -393,7 +364,7 @@
 /* Content wrappers inside hero sections should carry relative z-10 in markup */
 
 .dt-meander-border {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='8' viewBox='0 0 48 8'%3E%3Cpath fill='none' stroke='%23a68b5b' stroke-opacity='0.22' stroke-width='0.75' d='M0 4h6l3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3h6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='8' viewBox='0 0 48 8'%3E%3Cpath fill='none' stroke='%2352525b' stroke-opacity='0.22' stroke-width='0.75' d='M0 4h6l3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3h6'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
   background-position: center;
   background-size: 48px 8px;
@@ -404,9 +375,9 @@
   background: linear-gradient(
     90deg,
     transparent,
-    hsl(var(--roman-gold-muted) / 0.25) 15%,
-    hsl(var(--roman-gold) / 0.45) 50%,
-    hsl(var(--roman-gold-muted) / 0.25) 85%,
+    #3f3f46 15%,
+    #52525b 50%,
+    #3f3f46 85%,
     transparent
   );
   position: relative;
@@ -420,7 +391,7 @@
   transform: translate(-50%, -50%);
   font-size: 0.45rem;
   line-height: 1;
-  color: hsl(var(--roman-gold) / 0.55);
+  color: #52525b;
   background: #09090b;
   padding: 0 0.5rem;
 }
@@ -434,17 +405,17 @@
   font-weight: 500;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: hsl(var(--roman-gold) / 0.85);
+  color: #60a5fa;
 }
 
 .dt-roman-eyebrow-mark {
   width: 1.25rem;
   height: 1px;
-  background: linear-gradient(90deg, transparent, hsl(var(--roman-gold-muted) / 0.6));
+  background: linear-gradient(90deg, transparent, #3f3f46);
 }
 
 .dt-roman-eyebrow-mark:last-child {
-  background: linear-gradient(270deg, transparent, hsl(var(--roman-gold-muted) / 0.6));
+  background: linear-gradient(270deg, transparent, #3f3f46);
 }
 
 .dark-technical-theme .dt-roman-display {
@@ -456,12 +427,8 @@
 .dark-technical-theme .dt-roman-quote {
   font-family: var(--app-font-serif);
   font-style: italic;
-  border-left: 2px solid hsl(var(--roman-gold-muted) / 0.45);
+  border-left: 2px solid #3f3f46;
   padding-left: 1rem;
-}
-
-.dt-header-roman {
-  border-bottom-color: hsl(var(--roman-gold-muted) / 0.18);
 }
 
 .dt-header-roman::after {
@@ -471,29 +438,11 @@
   right: 0;
   bottom: 0;
   height: 8px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='8' viewBox='0 0 48 8'%3E%3Cpath fill='none' stroke='%23a68b5b' stroke-opacity='0.18' stroke-width='0.75' d='M0 4h6l3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3h6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='8' viewBox='0 0 48 8'%3E%3Cpath fill='none' stroke='%2352525b' stroke-opacity='0.22' stroke-width='0.75' d='M0 4h6l3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3h6'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
   background-position: center bottom;
   background-size: 48px 8px;
   pointer-events: none;
-}
-
-.dt-footer-roman {
-  border-top: 1px solid hsl(var(--roman-gold-muted) / 0.15);
-  background:
-    radial-gradient(ellipse 80% 50% at 50% 100%, hsl(var(--roman-gold) / 0.035), transparent 70%),
-    #09090b;
-}
-
-.dt-footer-roman::before {
-  content: "";
-  display: block;
-  height: 8px;
-  margin-bottom: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='8' viewBox='0 0 48 8'%3E%3Cpath fill='none' stroke='%23a68b5b' stroke-opacity='0.15' stroke-width='0.75' d='M0 4h6l3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3h6'/%3E%3C/svg%3E");
-  background-repeat: repeat-x;
-  background-position: center;
-  background-size: 48px 8px;
 }
 
 .dt-roman-statue {

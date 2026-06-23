@@ -47,7 +47,7 @@ export default function MissionPage() {
                 ))}
               </article>
 
-              <aside className="border-l border-[hsl(38_35%_42%/0.35)] pl-5 text-sm leading-6 text-zinc-500">
+              <aside className="border-l border-zinc-800 pl-5 text-sm leading-6 text-zinc-500">
                 <div className="mb-3">
                   <RomanEyebrow>
                     {techLabels ? "Core idea" : "Core idea"}

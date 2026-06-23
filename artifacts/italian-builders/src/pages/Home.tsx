@@ -2198,7 +2198,7 @@ export function Footer() {
   const { user, loading } = useSupabaseSession();
 
   return (
-    <footer className="bg-zinc-950 border-t border-zinc-900 pt-12 pb-8 text-zinc-400 dt-footer-roman">
+    <footer className="bg-zinc-950 border-t border-zinc-900 pt-12 pb-8 text-zinc-400">
       <div className="container mx-auto px-4 md:px-6">
         <div
           className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 ${techLabels ? "font-mono text-xs" : "text-sm"}`}

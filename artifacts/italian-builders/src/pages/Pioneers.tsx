@@ -50,7 +50,7 @@ function BioBody({ pioneer }: { pioneer: Pioneer }) {
           <p
             className={
               index === 0
-                ? "text-zinc-200 first-letter:float-left first-letter:mr-2.5 first-letter:mt-1 first-letter:font-serif first-letter:text-5xl first-letter:font-bold first-letter:leading-[0.7] first-letter:text-[hsl(38_62%_58%)]"
+                ? "text-zinc-200 first-letter:float-left first-letter:mr-2.5 first-letter:mt-1 first-letter:font-serif first-letter:text-5xl first-letter:font-bold first-letter:leading-[0.7] first-letter:text-blue-400"
                 : "mt-4"
             }
           >
@@ -155,7 +155,7 @@ function PioneerDialog({
                   </div>
                 </div>
               </div>
-              <p className="mt-4 border-l-2 border-[hsl(38_35%_42%/0.45)] pl-3 text-sm italic leading-relaxed text-zinc-300 dt-roman-quote">
+              <p className="mt-4 border-l-2 border-zinc-700 pl-3 text-sm italic leading-relaxed text-zinc-300 dt-roman-quote">
                 {pioneer.tagline}
               </p>
             </div>
