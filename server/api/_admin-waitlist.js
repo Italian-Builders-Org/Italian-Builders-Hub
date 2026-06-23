@@ -146,10 +146,10 @@ async function sendAcceptedInviteEmail({
   name,
   redirectTo,
 }) {
-  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-    type: "invite",
+  const { data, error } = await generateInviteActionLink({
+    supabaseAdmin,
     email,
-    options: { redirectTo },
+    redirectTo,
   });
   if (error) throw error;
 
@@ -197,6 +197,37 @@ Italian Builders`,
     const payload = await response.json().catch(() => null);
     throw new Error(payload?.message || "Failed to send invite email.");
   }
+}
+
+async function generateInviteActionLink({ supabaseAdmin, email, redirectTo }) {
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { redirectTo },
+  });
+
+  if (!error) {
+    return { data };
+  }
+
+  if (!isExistingAuthUserError(error)) {
+    return { error };
+  }
+
+  return supabaseAdmin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo },
+  });
+}
+
+function isExistingAuthUserError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return (
+    message.includes("already registered") ||
+    message.includes("already been registered") ||
+    message.includes("user already exists")
+  );
 }
 
 function mapWaitlistRow(row, invite) {
@@ -355,11 +386,6 @@ async function resendDirectInvite(req, rawId) {
   }
   if (existing.status === "accepted") {
     throw Object.assign(new Error("Accepted invites cannot be resent."), {
-      statusCode: 400,
-    });
-  }
-  if (existing.status === "revoked") {
-    throw Object.assign(new Error("Revoked invites cannot be resent."), {
       statusCode: 400,
     });
   }
