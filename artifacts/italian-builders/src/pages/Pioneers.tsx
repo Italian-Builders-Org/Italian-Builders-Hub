@@ -43,10 +43,18 @@ function BioBody({ pioneer }: { pioneer: Pioneer }) {
   const trailing = media.filter((item) => item.after > lastIndex || item.after < 0);
 
   return (
-    <div className="text-sm leading-relaxed text-zinc-300">
+    <div className="text-[15px] leading-7 text-zinc-300">
       {pioneer.bio.map((paragraph, index) => (
         <div key={paragraph.slice(0, 32)}>
-          <p className={index > 0 ? "mt-3" : undefined}>{paragraph}</p>
+          <p
+            className={
+              index === 0
+                ? "text-zinc-200 first-letter:float-left first-letter:mr-2.5 first-letter:mt-1 first-letter:font-serif first-letter:text-5xl first-letter:font-bold first-letter:leading-[0.7] first-letter:text-blue-400"
+                : "mt-4"
+            }
+          >
+            {paragraph}
+          </p>
           {media
             .filter((item) => item.after === index)
             .map((item) => (
@@ -79,9 +87,9 @@ function PioneerCard({
           src={pioneer.portrait ?? pioneer.work?.image}
           alt={pioneer.name}
           loading="lazy"
-          className="h-full w-full object-cover object-top grayscale transition-all duration-300 group-hover:scale-[1.03] group-hover:grayscale-0"
+          className="h-full w-full object-cover object-top grayscale brightness-[0.85] transition-all duration-300 group-hover:scale-[1.04] group-hover:grayscale-0 group-hover:brightness-110"
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/10 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/10 to-transparent transition-opacity duration-300 group-hover:opacity-75" />
         <span className="dt-tag absolute left-2 top-2 rounded-sm border border-zinc-700 bg-zinc-950/80 px-1.5 py-0.5 text-[9px] text-zinc-300 backdrop-blur-sm">
           {pioneer.category}
         </span>
@@ -152,6 +160,16 @@ function PioneerDialog({
             </div>
 
             <div className="space-y-6 p-5 sm:p-6">
+              <div className="rounded-sm border border-blue-500/20 bg-blue-500/5 p-4">
+                <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-blue-400">
+                  <Sparkles size={12} />
+                  {techLabels ? "WHY_THIS_MATTERS" : "Why they matter"}
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-200">
+                  {pioneer.whyGreat}
+                </p>
+              </div>
+
               {pioneer.facts && pioneer.facts.length > 0 && (
                 <div>
                   <div className="mb-3 text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
@@ -170,27 +188,23 @@ function PioneerDialog({
                 </div>
               )}
 
-              <BioBody pioneer={pioneer} />
-
-              <div className="rounded-sm border border-blue-500/20 bg-blue-500/5 p-4">
-                <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-blue-400">
-                  <Sparkles size={12} />
-                  {techLabels ? "WHY_THIS_MATTERS" : "Why they matter"}
+              <div>
+                <div className="mb-3 flex items-center gap-3 text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
+                  <span>{techLabels ? "BIOGRAPHY" : "The story"}</span>
+                  <span className="h-px flex-1 bg-zinc-800" />
                 </div>
-                <p className="text-sm leading-relaxed text-zinc-200">
-                  {pioneer.whyGreat}
-                </p>
+                <BioBody pioneer={pioneer} />
               </div>
 
               <div>
                 <div className="mb-3 text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
                   {techLabels ? "KEY_CONTRIBUTIONS" : "Key contributions"}
                 </div>
-                <ul className="space-y-2">
+                <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {pioneer.contributions.map((item) => (
                     <li
                       key={item}
-                      className="flex items-start gap-2.5 text-sm text-zinc-300"
+                      className="flex items-start gap-2.5 rounded-sm border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-300"
                     >
                       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
                       <span>{item}</span>
