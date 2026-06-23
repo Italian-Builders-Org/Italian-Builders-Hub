@@ -11,11 +11,6 @@ export const ROMAN_HERO_BACKGROUNDS = {
     position: "center center",
     opacity: 0.09,
   },
-  mission: {
-    src: "/images/pioneers/adriano-olivetti-work.jpg",
-    position: "center 40%",
-    opacity: 0.08,
-  },
   builders: {
     src: "/images/pioneers/guglielmo-marconi-work.jpg",
     position: "center center",

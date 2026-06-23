@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
-import { RomanEyebrow, romanHeroProps } from "@/components/RomanAccent";
+import { CommunityChannelNote } from "@/components/CommunityChannelNote";
+import { RomanEyebrow } from "@/components/RomanAccent";
 import { Footer, Header, useTechLabels } from "@/pages/Home";
 
 const missionParagraphs = [
@@ -16,17 +17,14 @@ const missionParagraphs = [
 
 export default function MissionPage() {
   const { techLabels } = useTechLabels();
-  const heroBackground = romanHeroProps("mission");
 
   return (
     <div className="dark-technical-theme min-h-screen bg-zinc-950">
       <Header />
       <main>
-        <section
-          className={`border-b border-zinc-900 bg-zinc-950 pt-20 pb-14 md:pt-28 md:pb-20 ${heroBackground.className}`}
-          style={heroBackground.style}
-        >
-          <div className="container mx-auto px-4 md:px-6">
+        <section className="relative overflow-hidden border-b border-zinc-900 bg-zinc-950 pt-20 pb-14 md:pt-28 md:pb-20 dt-roman-hero">
+          <div className="absolute inset-0 dt-grid-bg opacity-[0.4] pointer-events-none" />
+          <div className="container relative z-10 mx-auto px-4 md:px-6">
             <div className="max-w-4xl">
               <RomanEyebrow className="mb-4">
                 {techLabels ? "Mission" : "Mission"}
@@ -47,22 +45,26 @@ export default function MissionPage() {
                 ))}
               </article>
 
-              <aside className="border-l border-zinc-800 pl-5 text-sm leading-6 text-zinc-500">
-                <div className="mb-3">
-                  <RomanEyebrow>
-                    {techLabels ? "Core idea" : "Core idea"}
-                  </RomanEyebrow>
+              <aside className="space-y-6 border-l border-zinc-800 pl-5 text-sm leading-6 text-zinc-500">
+                <div>
+                  <div className="mb-3">
+                    <RomanEyebrow>
+                      {techLabels ? "Core idea" : "Core idea"}
+                    </RomanEyebrow>
+                  </div>
+                  <p className="mb-5 border-0 pl-0 text-base not-italic text-zinc-300 dt-roman-quote">
+                    What unites us is that we choose to build.
+                  </p>
+                  <a
+                    href="/join"
+                    className="inline-flex items-center gap-2 rounded-sm border border-blue-500/40 px-3 py-2 text-xs font-semibold text-blue-200 transition-colors hover:border-blue-400 hover:text-white"
+                  >
+                    {techLabels ? "REQUEST_ACCESS" : "Join the community"}
+                    <ArrowRight size={14} />
+                  </a>
                 </div>
-                <p className="mb-5 text-zinc-300 dt-roman-quote border-0 pl-0 not-italic font-serif text-base">
-                  What unites us is that we choose to build.
-                </p>
-                <a
-                  href="/join"
-                  className="inline-flex items-center gap-2 rounded-sm border border-blue-500/40 px-3 py-2 text-xs font-semibold text-blue-200 transition-colors hover:border-blue-400 hover:text-white"
-                >
-                  {techLabels ? "REQUEST_ACCESS" : "Join the community"}
-                  <ArrowRight size={14} />
-                </a>
+
+                <CommunityChannelNote techLabels={techLabels} />
               </aside>
             </div>
           </div>
