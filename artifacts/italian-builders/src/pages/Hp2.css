@@ -110,12 +110,16 @@
 }
 
 .hp2-hero-title {
-  max-width: 17ch;
+  max-width: 12ch;
   font-family: var(--hp2-title);
-  font-size: clamp(44px, 7.2vw, 104px);
+  font-size: clamp(52px, 9vw, 132px);
   font-weight: 900;
   letter-spacing: 0;
   line-height: 0.86;
+}
+
+.hp2-hero-line {
+  display: block;
 }
 
 .hp2-hero-word {
@@ -138,11 +142,11 @@
 }
 
 .hp2-hero-build {
-  display: block;
-  margin-top: 0.02em;
+  display: inline-block;
+  margin-left: 0.04em;
   color: var(--hp2-green);
-  font-size: 1.24em;
-  line-height: 0.8;
+  font-size: 1.14em;
+  line-height: 0.78;
 }
 
 @keyframes hp2-hero-word-in {
@@ -390,35 +394,173 @@
 
 .hp2-join {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 28px;
-  align-items: center;
-  padding: clamp(48px, 8vw, 96px) clamp(18px, 4vw, 60px);
+  grid-template-columns: minmax(260px, 0.82fr) minmax(420px, 1.18fr);
+  gap: clamp(34px, 6vw, 86px);
+  align-items: start;
+  padding: clamp(54px, 8vw, 106px) clamp(18px, 4vw, 60px);
   background: var(--hp2-green);
   color: oklch(0.98 0.01 116);
 }
 
-.hp2-join p {
-  max-width: 900px;
-  font-family: var(--hp2-title);
-  font-size: clamp(40px, 7vw, 118px);
-  font-weight: 900;
-  line-height: 0.88;
+.hp2-join .hp2-section-num {
+  color: currentColor;
 }
 
-.hp2-join a {
+.hp2-join-copy {
+  position: sticky;
+  top: 112px;
+}
+
+.hp2-join-copy h2 {
+  max-width: 7.6ch;
+  font-family: var(--hp2-title);
+  font-size: clamp(48px, 8vw, 122px);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.82;
+}
+
+.hp2-join-copy p {
+  max-width: 430px;
+  margin-top: 24px;
+  color: oklch(0.96 0.025 116 / 0.82);
+  font-size: clamp(18px, 2vw, 25px);
+  line-height: 1.28;
+}
+
+.hp2-join-form,
+.hp2-join-success {
+  border: 2px solid oklch(0.98 0.01 116 / 0.92);
+  background: oklch(0.98 0.018 116 / 0.11);
+  padding: clamp(18px, 3vw, 32px);
+}
+
+.hp2-join-form {
+  display: grid;
+  gap: 18px;
+}
+
+.hp2-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.hp2-join-form label {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  font-family: var(--hp2-mono);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.hp2-join-form input,
+.hp2-join-form select,
+.hp2-join-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 2px solid oklch(0.98 0.01 116 / 0.82);
+  border-radius: 0;
+  background: oklch(0.98 0.018 116 / 0.96);
+  color: var(--hp2-ink);
+  font: 700 15px/1.2 var(--hp2-body);
+  outline: none;
+}
+
+.hp2-join-form input,
+.hp2-join-form select {
+  height: 46px;
+  padding: 0 12px;
+}
+
+.hp2-join-form textarea {
+  resize: vertical;
+  padding: 12px;
+}
+
+.hp2-join-form input::placeholder,
+.hp2-join-form textarea::placeholder {
+  color: oklch(0.42 0.018 112 / 0.7);
+}
+
+.hp2-join-form input:focus,
+.hp2-join-form select:focus,
+.hp2-join-form textarea:focus {
+  border-color: var(--hp2-ink);
+  box-shadow: 0 0 0 2px oklch(0.98 0.01 116 / 0.88);
+}
+
+.hp2-form-check {
+  min-height: 74px;
+  border: 1px solid oklch(0.98 0.01 116 / 0.52);
+  padding: 10px;
+}
+
+.hp2-form-check > span,
+.hp2-join-error {
+  margin: 0;
+  font-family: var(--hp2-mono);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.hp2-join-error {
+  border: 1px solid oklch(0.72 0.19 28 / 0.75);
+  background: oklch(0.25 0.12 28 / 0.32);
+  padding: 12px;
+}
+
+.hp2-turnstile {
+  min-height: 65px;
+}
+
+.hp2-join-form button,
+.hp2-join-success button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 50px;
+  min-height: 52px;
   border: 2px solid currentColor;
-  padding: 0 20px;
+  border-radius: 0;
+  background: var(--hp2-ink);
+  color: oklch(0.98 0.01 116);
+  cursor: pointer;
   font-family: var(--hp2-mono);
   font-size: 12px;
   font-weight: 800;
-  text-decoration: none;
   text-transform: uppercase;
+}
+
+.hp2-join-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.hp2-join-success {
+  display: grid;
+  gap: 18px;
+}
+
+.hp2-join-success strong {
+  font-family: var(--hp2-title);
+  font-size: clamp(34px, 5vw, 68px);
+  font-weight: 900;
+  line-height: 0.92;
+}
+
+.hp2-join-success span {
+  max-width: 480px;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.hp2-join-success button {
+  width: fit-content;
+  padding: 0 18px;
 }
 
 .hp2-footer {
@@ -509,6 +651,10 @@
     height: 420px;
   }
 
+  .hp2-join-copy {
+    position: static;
+  }
+
   .hp2-footer-links {
     grid-template-columns: repeat(2, minmax(130px, 1fr));
   }
@@ -537,6 +683,10 @@
 
   .hp2-builder-main strong {
     font-size: 21px;
+  }
+
+  .hp2-form-grid {
+    grid-template-columns: 1fr;
   }
 
   .hp2-footer-links {

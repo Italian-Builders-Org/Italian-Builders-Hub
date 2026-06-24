@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from "react";
 import { ArrowRight, MapPin } from "lucide-react";
 import {
   getGetDirectoryStatsQueryKey,
@@ -59,6 +67,13 @@ type Hp2Content = {
 
 const profileSelect =
   "id, username, full_name, headline, bio, avatar_url, location, city, country, latitude, longitude, role, skills, created_at";
+const hp2TurnstileScriptSrc =
+  "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const hp2TurnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
+  | string
+  | undefined;
+
+let hp2TurnstileScriptPromise: Promise<void> | null = null;
 
 const hp2PrimaryLinks = [
   { href: "/builders", label: "Builders" },
@@ -105,23 +120,64 @@ const hp2FooterGroups = [
   },
 ];
 
-const heroWords = [
-  "What",
-  "unites",
-  "us",
-  "is",
-  "not",
-  "what",
-  "we",
-  "build.",
-  "What",
-  "unites",
-  "us",
-  "is",
-  "that",
+const hp2Roles = [
+  "Builder",
+  "Developer",
+  "Designer",
+  "Founder",
+  "Investor",
+  "Student",
+  "Supporter",
+  "Other",
 ];
 
-const heroHighlightWords = ["we", "choose", "to"];
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: Record<string, unknown>,
+      ) => string;
+      remove: (widgetId: string) => void;
+      reset: (widgetId: string) => void;
+    };
+  }
+}
+
+function loadHp2TurnstileScript() {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.turnstile) return Promise.resolve();
+  if (hp2TurnstileScriptPromise) return hp2TurnstileScriptPromise;
+
+  hp2TurnstileScriptPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      `script[src="${hp2TurnstileScriptSrc}"]`,
+    );
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(), { once: true });
+      existingScript.addEventListener(
+        "error",
+        () => reject(new Error("Could not load security check.")),
+        { once: true },
+      );
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = hp2TurnstileScriptSrc;
+    script.async = true;
+    script.defer = true;
+    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener(
+      "error",
+      () => reject(new Error("Could not load security check.")),
+      { once: true },
+    );
+    document.head.appendChild(script);
+  });
+
+  return hp2TurnstileScriptPromise;
+}
 
 function validCoordinate(lat?: number | null, lng?: number | null) {
   return (
@@ -306,6 +362,250 @@ function WordReveal({ children }: { children: string }) {
   );
 }
 
+function Hp2TurnstileChallenge({
+  siteKey,
+  resetNonce,
+  onVerify,
+  onExpire,
+  onError,
+}: {
+  siteKey: string;
+  resetNonce: number;
+  onVerify: (token: string) => void;
+  onExpire: () => void;
+  onError: (message: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const widgetIdRef = useRef<string | null>(null);
+  const didMountRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadHp2TurnstileScript()
+      .then(() => {
+        if (cancelled || !containerRef.current || !window.turnstile) return;
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          sitekey: siteKey,
+          theme: "light",
+          callback: onVerify,
+          "expired-callback": onExpire,
+          "error-callback": () =>
+            onError("Security check failed. Please try again."),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          onError("Security check could not load. Please refresh and retry.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+      }
+      widgetIdRef.current = null;
+    };
+  }, [onError, onExpire, onVerify, siteKey]);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    if (widgetIdRef.current && window.turnstile) {
+      window.turnstile.reset(widgetIdRef.current);
+      onExpire();
+    }
+  }, [onExpire, resetNonce]);
+
+  return <div ref={containerRef} className="hp2-turnstile" />;
+}
+
+function Hp2DirectoryJoinForm() {
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetNonce, setTurnstileResetNonce] = useState(0);
+  const isTurnstileConfigured = Boolean(hp2TurnstileSiteKey);
+  const canSubmit = isTurnstileConfigured && Boolean(turnstileToken);
+
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+    setErrorMsg((current) =>
+      current.includes("security check") || current.includes("Security check")
+        ? ""
+        : current,
+    );
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken("");
+  }, []);
+
+  const handleTurnstileError = useCallback((message: string) => {
+    setTurnstileToken("");
+    setErrorMsg(message);
+  }, []);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMsg("");
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const getValue = (key: string) => {
+      const value = formData.get(key)?.toString().trim();
+      return value || null;
+    };
+
+    try {
+      if (!isTurnstileConfigured) {
+        throw new Error("Security check is not configured. Please try later.");
+      }
+      if (!turnstileToken) {
+        throw new Error("Complete the security check before submitting.");
+      }
+
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: String(formData.get("name") ?? "").trim(),
+          email: String(formData.get("email") ?? "")
+            .trim()
+            .toLowerCase(),
+          role: String(formData.get("role") ?? "").trim(),
+          building: getValue("building"),
+          telegramHandle: getValue("telegram"),
+          website: getValue("website"),
+          projectUrl: getValue("project"),
+          turnstileToken,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.error || "Could not submit the form. Please try again.",
+        );
+      }
+
+      setSubmitted(true);
+      form.reset();
+    } catch (error) {
+      setErrorMsg(
+        error instanceof Error
+          ? error.message
+          : "Could not submit the form. Please try again.",
+      );
+      setTurnstileToken("");
+      setTurnstileResetNonce((current) => current + 1);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="hp2-join-success" role="status">
+        <strong>Check your email.</strong>
+        <span>
+          Open the verification link we sent you. After that, your request will
+          be added to the directory queue.
+        </span>
+        <button type="button" onClick={() => setSubmitted(false)}>
+          Submit another
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="hp2-join-form" onSubmit={handleSubmit}>
+      {errorMsg && (
+        <p className="hp2-join-error" role="alert">
+          {errorMsg}
+        </p>
+      )}
+
+      <div className="hp2-form-grid">
+        <label>
+          <span>Name</span>
+          <input name="name" required placeholder="Your name" />
+        </label>
+        <label>
+          <span>Email</span>
+          <input
+            name="email"
+            required
+            type="email"
+            placeholder="you@domain.com"
+          />
+        </label>
+        <label>
+          <span>Role</span>
+          <select name="role" required defaultValue={hp2Roles[0]}>
+            {hp2Roles.map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Telegram</span>
+          <input name="telegram" required placeholder="@username" />
+        </label>
+      </div>
+
+      <label>
+        <span>What are you building?</span>
+        <textarea
+          name="building"
+          rows={3}
+          placeholder="A short description of your work, project, or idea"
+        />
+      </label>
+
+      <div className="hp2-form-grid">
+        <label>
+          <span>Website</span>
+          <input name="website" type="url" placeholder="https://..." />
+        </label>
+        <label>
+          <span>Project URL</span>
+          <input name="project" type="url" placeholder="https://..." />
+        </label>
+      </div>
+
+      <div className="hp2-form-check">
+        {isTurnstileConfigured && hp2TurnstileSiteKey ? (
+          <Hp2TurnstileChallenge
+            siteKey={hp2TurnstileSiteKey}
+            resetNonce={turnstileResetNonce}
+            onVerify={handleTurnstileVerify}
+            onExpire={handleTurnstileExpire}
+            onError={handleTurnstileError}
+          />
+        ) : (
+          <span>Security check is not configured yet.</span>
+        )}
+      </div>
+
+      <button type="submit" disabled={isSubmitting || !canSubmit}>
+        {isSubmitting ? "Submitting..." : "Join the directory"}
+        <ArrowRight size={18} />
+      </button>
+    </form>
+  );
+}
+
 export default function Hp2Page() {
   const { builders, builderCount, cityCount, projectCount } = useHp2Content();
   const activeBuilder = builders[0] ?? null;
@@ -333,31 +633,24 @@ export default function Hp2Page() {
           <div className="hp2-kicker">Community manifesto, preview 02</div>
           <h1
             className="hp2-hero-title css-text-balance"
-            aria-label="What unites us is not what we build. What unites us is that we choose to BUILD."
+            aria-label="Connecting the people who BUILD."
           >
             <span aria-hidden="true">
-              {heroWords.map((word, index) => (
-                <AnimatedHeroWord key={`${word}-${index}`} index={index}>
-                  {word}
-                </AnimatedHeroWord>
-              ))}
-              <span className="hp2-hero-highlight">
-                {heroHighlightWords.map((word, index) => (
-                  <AnimatedHeroWord
-                    key={`${word}-${index}`}
-                    index={heroWords.length + index}
-                    className="hp2-hero-highlight-word"
-                  >
-                    {word}
-                  </AnimatedHeroWord>
-                ))}
+              <span className="hp2-hero-line">
+                <AnimatedHeroWord index={0}>Connecting</AnimatedHeroWord>
               </span>
-              <AnimatedHeroWord
-                index={heroWords.length + heroHighlightWords.length}
-                className="hp2-hero-build"
-              >
-                BUILD.
-              </AnimatedHeroWord>
+              <span className="hp2-hero-line">
+                <AnimatedHeroWord index={1}>the</AnimatedHeroWord>
+                {" "}
+                <AnimatedHeroWord index={2}>people</AnimatedHeroWord>
+              </span>
+              <span className="hp2-hero-line hp2-hero-highlight">
+                <AnimatedHeroWord index={3}>who</AnimatedHeroWord>
+                {" "}
+                <AnimatedHeroWord index={4} className="hp2-hero-build">
+                  BUILD.
+                </AnimatedHeroWord>
+              </span>
             </span>
           </h1>
           <div className="hp2-hero-bottom">
@@ -477,12 +770,15 @@ export default function Hp2Page() {
         </section>
 
         <section id="join" className="hp2-join">
-          <p className="css-text-balance">
-            If you choose to build, there is a home for you here.
-          </p>
-          <a href="/join">
-            Request access <ArrowRight size={18} />
-          </a>
+          <div className="hp2-join-copy">
+            <div className="hp2-section-num">03</div>
+            <h2 className="css-text-balance">Join the directory</h2>
+            <p className="css-text-balance">
+              Add your builder record and tell the community what you are
+              building.
+            </p>
+          </div>
+          <Hp2DirectoryJoinForm />
         </section>
       </main>
 
