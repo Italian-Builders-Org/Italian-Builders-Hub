@@ -361,8 +361,8 @@
   align-self: start;
   min-height: 560px;
   border: 2px solid var(--hp2-ink);
-  background: oklch(0.16 0.02 250);
-  color: oklch(0.96 0.01 250);
+  background: oklch(0.18 0.028 142);
+  color: oklch(0.96 0.018 96);
   overflow: hidden;
 }
 
@@ -372,7 +372,7 @@
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid oklch(1 0 0 / 0.16);
+  border-bottom: 1px solid oklch(0.96 0.018 96 / 0.22);
   padding: 14px 16px;
   font-family: var(--hp2-mono);
   font-size: 10px;
@@ -584,7 +584,7 @@
 
 .hp2-footer-links {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 28px;
 }
 
@@ -608,6 +608,7 @@
   color: var(--hp2-ink);
   font-size: 14px;
   font-weight: 700;
+  overflow-wrap: anywhere;
   text-decoration: none;
 }
 

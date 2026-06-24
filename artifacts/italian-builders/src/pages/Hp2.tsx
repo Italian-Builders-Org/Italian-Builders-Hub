@@ -16,7 +16,7 @@ import {
   useListBuilders,
   useListProjects,
 } from "@workspace/api-client-react";
-import { BuilderGlobe, type HomeMapBuilder } from "@/pages/Home";
+import type { HomeMapBuilder } from "@/pages/Home";
 import {
   STATIC_BUILDERS,
   STATIC_DIRECTORY_STATS,
@@ -65,6 +65,13 @@ type Hp2Content = {
   loading: boolean;
 };
 
+type Hp2GlobePoint = {
+  lat: number;
+  lng: number;
+  color: string;
+  radius: number;
+};
+
 const profileSelect =
   "id, username, full_name, headline, bio, avatar_url, location, city, country, latitude, longitude, role, skills, created_at";
 const hp2TurnstileScriptSrc =
@@ -72,6 +79,14 @@ const hp2TurnstileScriptSrc =
 const hp2TurnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
   | string
   | undefined;
+const hp2EuropeGeoJsonUrl = "/maps/europe-italy-vector.geojson";
+const hp2MapOceanColor = "#101a14";
+const hp2MapCountryColor = "rgba(199, 184, 145, 0.82)";
+const hp2MapItalyColor = "rgba(27, 138, 69, 0.96)";
+const hp2MapItalyStroke = "rgba(238, 232, 207, 0.86)";
+const hp2MapPinColor = "#b92c2c";
+const hp2MapPinOutline = "rgba(248, 242, 218, 0.92)";
+const hp2MapPinRing = "rgba(27, 138, 69, 0.46)";
 
 let hp2TurnstileScriptPromise: Promise<void> | null = null;
 
@@ -238,6 +253,23 @@ function fallbackBuilderToBuilder(builder: (typeof STATIC_BUILDERS)[number]) {
   } satisfies Hp2Builder;
 }
 
+function randomizeBuilders(builders: Hp2Builder[]) {
+  const shuffled = builders.slice();
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const nextIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[nextIndex]] = [
+      shuffled[nextIndex],
+      shuffled[index],
+    ];
+  }
+
+  return shuffled.map((builder, index) => ({
+    ...builder,
+    number: String(index + 1).padStart(3, "0"),
+  }));
+}
+
 function useHp2Content(): Hp2Content {
   const { data: apiBuilders, isLoading: apiLoading } = useListBuilders({
     query: { queryKey: getListBuildersQueryKey() },
@@ -280,13 +312,20 @@ function useHp2Content(): Hp2Content {
   }, []);
 
   const builders = useMemo(() => {
+    let sourceBuilders: Hp2Builder[];
+
     if (profiles.length > 0) {
-      return profiles.map(profileToBuilder);
+      sourceBuilders = profiles.map(profileToBuilder);
+    } else {
+      const directoryBuilders = hasItems(apiBuilders)
+        ? apiBuilders
+        : STATIC_BUILDERS;
+      sourceBuilders = directoryBuilders
+        .slice(0, 10)
+        .map(fallbackBuilderToBuilder);
     }
-    const directoryBuilders = hasItems(apiBuilders)
-      ? apiBuilders
-      : STATIC_BUILDERS;
-    return directoryBuilders.slice(0, 10).map(fallbackBuilderToBuilder);
+
+    return randomizeBuilders(sourceBuilders);
   }, [apiBuilders, profiles]);
 
   const stats = isDirectoryStats(apiStats) ? apiStats : STATIC_DIRECTORY_STATS;
@@ -359,6 +398,260 @@ function WordReveal({ children }: { children: string }) {
         </span>
       ))}
     </span>
+  );
+}
+
+function Hp2BuilderGlobe({
+  builders,
+  activeBuilder,
+}: {
+  builders: HomeMapBuilder[];
+  activeBuilder: HomeMapBuilder | null;
+}) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const globeRef = useRef<any>(null);
+  const activeBuilderRef = useRef(activeBuilder);
+  const buildersRef = useRef(builders);
+
+  const pointData = (
+    allBuilders: HomeMapBuilder[],
+    active: HomeMapBuilder | null,
+  ): Hp2GlobePoint[] => {
+    const base = allBuilders.map((builder) => ({
+      lat: builder.lat,
+      lng: builder.lng,
+      color:
+        builder.id === active?.id ? hp2MapPinOutline : hp2MapPinColor,
+      radius: builder.id === active?.id ? 0.17 : 0.075,
+    }));
+
+    return active
+      ? [
+          ...base,
+          {
+            lat: active.lat,
+            lng: active.lng,
+            color: hp2MapPinColor,
+            radius: 0.12,
+          },
+        ]
+      : base;
+  };
+
+  const activeRing = (builder: HomeMapBuilder | null): Hp2GlobePoint[] => {
+    return builder
+      ? [
+          {
+            lat: builder.lat,
+            lng: builder.lng,
+            color: hp2MapPinRing,
+            radius: 0.12,
+          },
+        ]
+      : [];
+  };
+
+  useEffect(() => {
+    activeBuilderRef.current = activeBuilder;
+    buildersRef.current = builders;
+    globeRef.current?.pointsData(pointData(builders, activeBuilder));
+    globeRef.current?.ringsData(activeRing(activeBuilder));
+  }, [builders, activeBuilder]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    let scene: any = null;
+    let renderer: any = null;
+    let resizeObserver: ResizeObserver | null = null;
+    let removeScrollListener: (() => void) | null = null;
+    let targetScroll = 0;
+    let easedScroll = 0;
+    let frame = 0;
+    let disposed = false;
+
+    Promise.all([import("three"), import("three-globe")])
+      .then(([THREE, threeGlobeModule]) => {
+        if (disposed) return;
+
+        const ThreeGlobe = threeGlobeModule.default;
+        scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(18, 1, 0.1, 1200);
+        camera.position.set(0, 0, 160);
+
+        try {
+          renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        } catch {
+          scene.clear();
+          return;
+        }
+
+        renderer.setClearColor(0x000000, 0);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.domElement.style.display = "block";
+        renderer.domElement.style.position = "relative";
+        renderer.domElement.style.zIndex = "0";
+        renderer.domElement.style.pointerEvents = "none";
+        host.appendChild(renderer.domElement);
+
+        const globe = new ThreeGlobe({
+          waitForGlobeReady: false,
+          animateIn: false,
+        })
+          .showAtmosphere(true)
+          .atmosphereColor(hp2MapItalyColor)
+          .atmosphereAltitude(0.09)
+          .globeCurvatureResolution(2)
+          .pointsData(pointData(buildersRef.current, activeBuilderRef.current))
+          .pointLat("lat")
+          .pointLng("lng")
+          .pointColor("color")
+          .pointAltitude(0.013)
+          .pointRadius("radius")
+          .pointResolution(16)
+          .pointsMerge(false)
+          .pointsTransitionDuration(600)
+          .ringsData(activeRing(activeBuilderRef.current))
+          .ringLat("lat")
+          .ringLng("lng")
+          .ringColor("color")
+          .ringMaxRadius(0.95)
+          .ringPropagationSpeed(0.38)
+          .ringRepeatPeriod(1400)
+          .polygonsData([])
+          .polygonCapColor((feature: any) =>
+            feature.properties?.ISO_A2 === "IT"
+              ? hp2MapItalyColor
+              : hp2MapCountryColor,
+          )
+          .polygonSideColor((feature: any) =>
+            feature.properties?.ISO_A2 === "IT"
+              ? "rgba(27, 138, 69, 0.24)"
+              : "rgba(108, 90, 52, 0.12)",
+          )
+          .polygonStrokeColor((feature: any) =>
+            feature.properties?.ISO_A2 === "IT"
+              ? hp2MapItalyStroke
+              : "rgba(238, 232, 207, 0.08)",
+          )
+          .polygonAltitude((feature: any) =>
+            feature.properties?.ISO_A2 === "IT" ? 0.007 : 0.004,
+          )
+          .polygonCapCurvatureResolution(1);
+
+        globeRef.current = globe;
+        scene.add(globe);
+
+        globe.globeMaterial(
+          new THREE.MeshBasicMaterial({ color: hp2MapOceanColor }),
+        );
+
+        const ambient = new THREE.AmbientLight(0xf0e6c7, 2.4);
+        const keyLight = new THREE.DirectionalLight(0xf7f1d5, 2.8);
+        keyLight.position.set(-90, 80, 140);
+        const rimLight = new THREE.DirectionalLight(0x1b8a45, 1.5);
+        rimLight.position.set(120, -40, -80);
+        scene.add(ambient, keyLight, rimLight);
+
+        const italyCoords = globe.getCoords(42.85, 12.45, 0);
+        const italyVector = new THREE.Vector3(
+          italyCoords.x,
+          italyCoords.y,
+          italyCoords.z,
+        ).normalize();
+        const italyTargetVector = new THREE.Vector3(0, 0.02, 1).normalize();
+        const baseQuaternion = new THREE.Quaternion().setFromUnitVectors(
+          italyVector,
+          italyTargetVector,
+        );
+        const scrollQuaternion = new THREE.Quaternion();
+        const driftQuaternion = new THREE.Quaternion();
+        const xAxis = new THREE.Vector3(1, 0, 0);
+        const yAxis = new THREE.Vector3(0, 1, 0);
+
+        const resize = () => {
+          const width = host.clientWidth || 720;
+          const height = host.clientHeight || 520;
+          renderer.setSize(width, height);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+        };
+
+        const updateScroll = () => {
+          const panel = host.closest("[data-globe-panel]");
+          const rect =
+            panel?.getBoundingClientRect() ?? host.getBoundingClientRect();
+          const viewport = window.innerHeight || 1;
+          const centerDelta =
+            (rect.top + rect.height / 2 - viewport / 2) / viewport;
+          targetScroll = Math.max(-1, Math.min(1, centerDelta));
+        };
+
+        const animate = () => {
+          if (disposed) return;
+          easedScroll += (targetScroll - easedScroll) * 0.06;
+          const scrollAmount = Math.abs(easedScroll);
+          const time = performance.now() * 0.00035;
+
+          scrollQuaternion.setFromAxisAngle(xAxis, easedScroll * 0.045);
+          driftQuaternion.setFromAxisAngle(yAxis, Math.sin(time) * 0.018);
+          globe.quaternion
+            .copy(scrollQuaternion)
+            .multiply(driftQuaternion)
+            .multiply(baseQuaternion);
+          camera.position.z = 160 + scrollAmount * 105;
+
+          renderer.render(scene, camera);
+          frame = requestAnimationFrame(animate);
+        };
+
+        fetch(hp2EuropeGeoJsonUrl)
+          .then((res) =>
+            res.ok
+              ? res.json()
+              : Promise.reject(new Error(`GeoJSON ${res.status}`)),
+          )
+          .then((europe) => {
+            if (disposed) return;
+            globe.polygonsData(europe.features ?? []);
+          })
+          .catch(() => {
+            globe.polygonsData([]);
+          });
+
+        resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(host);
+        window.addEventListener("scroll", updateScroll, { passive: true });
+        removeScrollListener = () =>
+          window.removeEventListener("scroll", updateScroll);
+        resize();
+        updateScroll();
+        animate();
+      })
+      .catch(() => {
+        globeRef.current = null;
+      });
+
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      removeScrollListener?.();
+      globeRef.current = null;
+      if (renderer?.domElement.parentNode === host) {
+        host.removeChild(renderer.domElement);
+      }
+      renderer?.dispose();
+      scene?.clear();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={hostRef}
+      className="relative z-0 h-full w-full overflow-hidden"
+    />
   );
 }
 
@@ -762,7 +1055,10 @@ export default function Hp2Page() {
                 <span>{builders.length} visible builders</span>
               </div>
               <div className="hp2-map-canvas">
-                <BuilderGlobe builders={builders} activeBuilder={activeBuilder} />
+                <Hp2BuilderGlobe
+                  builders={builders}
+                  activeBuilder={activeBuilder}
+                />
               </div>
             </aside>
           </div>
