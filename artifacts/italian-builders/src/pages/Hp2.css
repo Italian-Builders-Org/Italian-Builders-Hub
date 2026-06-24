@@ -110,12 +110,12 @@
 }
 
 .hp2-hero-title {
-  max-width: 12ch;
+  max-width: 10ch;
   font-family: var(--hp2-title);
-  font-size: clamp(52px, 9vw, 132px);
+  font-size: clamp(66px, 13.4vw, 190px);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 0.86;
+  line-height: 0.78;
 }
 
 .hp2-hero-line {
@@ -134,19 +134,15 @@
 
 .hp2-hero-highlight {
   display: inline;
-  color: var(--hp2-green);
-}
-
-.hp2-hero-highlight-word {
-  color: var(--hp2-green);
+  color: inherit;
 }
 
 .hp2-hero-build {
   display: inline-block;
   margin-left: 0.04em;
   color: var(--hp2-green);
-  font-size: 1.14em;
-  line-height: 0.78;
+  font-size: 1.06em;
+  line-height: 0.74;
 }
 
 @keyframes hp2-hero-word-in {

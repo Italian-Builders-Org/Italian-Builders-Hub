@@ -630,10 +630,9 @@ export default function Hp2Page() {
 
       <main>
         <section className="hp2-hero">
-          <div className="hp2-kicker">Community manifesto, preview 02</div>
           <h1
             className="hp2-hero-title css-text-balance"
-            aria-label="Connecting the people who BUILD."
+            aria-label="Connecting the people who Build."
           >
             <span aria-hidden="true">
               <span className="hp2-hero-line">
@@ -648,7 +647,7 @@ export default function Hp2Page() {
                 <AnimatedHeroWord index={3}>who</AnimatedHeroWord>
                 {" "}
                 <AnimatedHeroWord index={4} className="hp2-hero-build">
-                  BUILD.
+                  Build.
                 </AnimatedHeroWord>
               </span>
             </span>
