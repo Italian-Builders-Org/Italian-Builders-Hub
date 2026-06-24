@@ -89,12 +89,12 @@
 
 .hp2-hero {
   display: grid;
-  min-height: 80dvh;
+  min-height: 66dvh;
   align-content: space-between;
-  gap: clamp(28px, 5vw, 64px);
+  gap: clamp(14px, 2.4vw, 30px);
   border-bottom: 2px solid var(--hp2-ink);
-  padding: clamp(34px, 5vw, 58px) clamp(18px, 4vw, 60px)
-    clamp(24px, 3.5vw, 42px);
+  padding: clamp(22px, 3vw, 36px) clamp(18px, 4vw, 60px)
+    clamp(12px, 2vw, 22px);
 }
 
 .hp2-kicker,
@@ -110,12 +110,12 @@
 }
 
 .hp2-hero-title {
-  max-width: 10ch;
+  max-width: 10.5ch;
   font-family: var(--hp2-title);
-  font-size: clamp(66px, 13.4vw, 190px);
+  font-size: clamp(58px, 10.8vw, 154px);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 0.78;
+  line-height: 1.05;
 }
 
 .hp2-hero-line {
@@ -142,7 +142,7 @@
   margin-left: 0.04em;
   color: var(--hp2-green);
   font-size: 1.06em;
-  line-height: 0.74;
+  line-height: 1;
 }
 
 @keyframes hp2-hero-word-in {
@@ -206,6 +206,7 @@
 }
 
 .hp2-manifesto {
+  padding-top: clamp(34px, 4vw, 62px);
   text-align: center;
 }
 
@@ -286,23 +287,32 @@
 
 .hp2-builder-row {
   display: grid;
-  grid-template-columns: 54px 54px minmax(0, 1fr) minmax(120px, auto) 24px;
+  grid-template-columns: 54px minmax(0, 1fr) minmax(120px, auto) 24px;
   gap: 16px;
   align-items: center;
   min-height: 84px;
   border-bottom: 1px solid var(--hp2-rule);
   text-decoration: none;
+  transition:
+    background-color 180ms ease-out,
+    color 180ms ease-out;
 }
 
-.hp2-builder-row:hover .hp2-builder-main strong {
+.hp2-builder-row:hover .hp2-builder-main strong,
+.hp2-builder-row:focus-visible .hp2-builder-main strong,
+.hp2-builder-row.is-active .hp2-builder-main strong {
   color: var(--hp2-green);
 }
 
-.hp2-builder-num {
-  color: var(--hp2-green);
-  font-family: var(--hp2-mono);
-  font-size: 12px;
-  font-weight: 800;
+.hp2-builder-row.is-active {
+  background: oklch(0.92 0.035 112 / 0.72);
+}
+
+.hp2-builder-row.is-active img,
+.hp2-builder-row:hover img,
+.hp2-builder-row:focus-visible img {
+  border-color: var(--hp2-green);
+  filter: grayscale(0);
 }
 
 .hp2-builder-row img {
@@ -627,7 +637,7 @@
   }
 
   .hp2-hero {
-    min-height: 80dvh;
+    min-height: 68dvh;
   }
 
   .hp2-hero-bottom,
@@ -664,7 +674,7 @@
   }
 
   .hp2-builder-row {
-    grid-template-columns: 42px 48px minmax(0, 1fr) 18px;
+    grid-template-columns: 48px minmax(0, 1fr) 18px;
     min-height: 78px;
     gap: 12px;
   }

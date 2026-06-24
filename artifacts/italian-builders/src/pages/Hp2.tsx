@@ -53,7 +53,6 @@ type Hp2Profile = Pick<
 >;
 
 type Hp2Builder = HomeMapBuilder & {
-  number: string;
   href?: string;
 };
 
@@ -213,13 +212,12 @@ function profileCoords(profile: Hp2Profile) {
   );
 }
 
-function profileToBuilder(profile: Hp2Profile, index: number): Hp2Builder {
+function profileToBuilder(profile: Hp2Profile): Hp2Builder {
   const coords = profileCoords(profile);
   const role = profile.headline || profile.role || "Builder";
 
   return {
     id: profile.id,
-    number: String(index + 1).padStart(3, "0"),
     name: profile.full_name,
     username: profile.username,
     href: profile.username ? `/builders/${profile.username}` : undefined,
@@ -241,7 +239,6 @@ function fallbackBuilderToBuilder(builder: (typeof STATIC_BUILDERS)[number]) {
   const coords = fallbackCoordsForLocation(builder.location);
   return {
     id: builder.id,
-    number: String(builder.id).padStart(3, "0"),
     name: builder.name,
     role: builder.role,
     location: builder.location,
@@ -264,10 +261,7 @@ function randomizeBuilders(builders: Hp2Builder[]) {
     ];
   }
 
-  return shuffled.map((builder, index) => ({
-    ...builder,
-    number: String(index + 1).padStart(3, "0"),
-  }));
+  return shuffled;
 }
 
 function useHp2Content(): Hp2Content {
@@ -365,29 +359,31 @@ function AnimatedHeroWord({
   );
 }
 
-function WordReveal({ children }: { children: string }) {
-  const ref = useRef<HTMLSpanElement | null>(null);
+function SequentialWordReveal({
+  children,
+  active,
+  onComplete,
+}: {
+  children: string;
+  active: boolean;
+  onComplete: () => void;
+}) {
   const words = useMemo(() => children.split(/\s+/).filter(Boolean), [children]);
+  const completedRef = useRef(false);
 
   useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
+    if (!active || completedRef.current) return;
+    const duration = words.length * 36 + 760;
+    const timer = window.setTimeout(() => {
+      completedRef.current = true;
+      onComplete();
+    }, duration);
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        element.classList.add("is-visible");
-        observer.disconnect();
-      },
-      { threshold: 0.2 },
-    );
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
+    return () => window.clearTimeout(timer);
+  }, [active, onComplete, words.length]);
 
   return (
-    <span ref={ref} className="hp2-word-reveal">
+    <span className={`hp2-word-reveal ${active ? "is-visible" : ""}`}>
       {words.map((word, index) => (
         <span
           key={`${word}-${index}`}
@@ -398,6 +394,69 @@ function WordReveal({ children }: { children: string }) {
         </span>
       ))}
     </span>
+  );
+}
+
+function ManifestoSequence() {
+  const items = useMemo(
+    () => [
+      "Italian Builders exists to connect people who build. Our goal is to create the home for Italian builders of all ages and experience levels, a place where ideas, projects, knowledge, and opportunities can be shared.",
+      "Talent is not the problem. Across Italy, builders are already creating remarkable products, companies, and technologies every day. Too often, they remain isolated or never meet the people who could help them take the next step.",
+      "Our mission is to make those connections easier, more frequent, and more natural. The best opportunities are born from relationships, and great projects often begin when the right people meet at the right time.",
+    ],
+    [],
+  );
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [visibleItems, setVisibleItems] = useState<boolean[]>(
+    items.map(() => false),
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const paragraphs = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-manifesto-step]"),
+    );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setVisibleItems((current) => {
+          const next = current.slice();
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            const index = Number(
+              (entry.target as HTMLElement).dataset.manifestoStep,
+            );
+            if (Number.isInteger(index)) next[index] = true;
+          });
+          return next;
+        });
+      },
+      { rootMargin: "-18% 0px -24% 0px", threshold: 0.18 },
+    );
+
+    paragraphs.forEach((paragraph) => observer.observe(paragraph));
+    return () => observer.disconnect();
+  }, []);
+
+  const handleComplete = useCallback(() => {
+    setActiveIndex((current) => Math.min(current + 1, items.length - 1));
+  }, [items.length]);
+
+  return (
+    <div ref={containerRef} className="hp2-manifesto-copy">
+      {items.map((item, index) => (
+        <p key={item} data-manifesto-step={index}>
+          <SequentialWordReveal
+            active={visibleItems[index] && index <= activeIndex}
+            onComplete={handleComplete}
+          >
+            {item}
+          </SequentialWordReveal>
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -901,7 +960,26 @@ function Hp2DirectoryJoinForm() {
 
 export default function Hp2Page() {
   const { builders, builderCount, cityCount, projectCount } = useHp2Content();
-  const activeBuilder = builders[0] ?? null;
+  const [activeBuilderId, setActiveBuilderId] = useState<
+    string | number | null
+  >(null);
+  const activeBuilder = useMemo(
+    () =>
+      builders.find((builder) => builder.id === activeBuilderId) ??
+      builders[0] ??
+      null,
+    [activeBuilderId, builders],
+  );
+
+  useEffect(() => {
+    if (builders.length === 0) {
+      setActiveBuilderId(null);
+      return;
+    }
+    if (!builders.some((builder) => builder.id === activeBuilderId)) {
+      setActiveBuilderId(builders[0].id);
+    }
+  }, [activeBuilderId, builders]);
 
   return (
     <div className="hp2-page">
@@ -977,32 +1055,7 @@ export default function Hp2Page() {
         <section id="manifesto" className="hp2-manifesto">
           <div className="hp2-section-num">01</div>
           <h2>The Manifesto</h2>
-          <div className="hp2-manifesto-copy">
-            <p>
-              <WordReveal>
-                Italian Builders exists to connect people who build. Our goal is
-                to create the home for Italian builders of all ages and
-                experience levels, a place where ideas, projects, knowledge, and
-                opportunities can be shared.
-              </WordReveal>
-            </p>
-            <p>
-              <WordReveal>
-                Talent is not the problem. Across Italy, builders are already
-                creating remarkable products, companies, and technologies every
-                day. Too often, they remain isolated or never meet the people who
-                could help them take the next step.
-              </WordReveal>
-            </p>
-            <p>
-              <WordReveal>
-                Our mission is to make those connections easier, more frequent,
-                and more natural. The best opportunities are born from
-                relationships, and great projects often begin when the right
-                people meet at the right time.
-              </WordReveal>
-            </p>
-          </div>
+          <ManifestoSequence />
         </section>
 
         <section id="directory" className="hp2-directory">
@@ -1012,9 +1065,9 @@ export default function Hp2Page() {
               <h2>The Directory</h2>
             </div>
             <p>
-              Numbered profiles, real builder photos where available, and the
-              existing Italian Builders map language connected to the current
-              public profile data.
+              Builder profiles, real photos where available, and the existing
+              Italian Builders map language connected to the current public
+              profile data.
             </p>
           </div>
 
@@ -1023,7 +1076,6 @@ export default function Hp2Page() {
               {builders.map((builder) => {
                 const content = (
                   <>
-                    <span className="hp2-builder-num">{builder.number}</span>
                     <img src={builder.avatarUrl} alt={builder.name} />
                     <span className="hp2-builder-main">
                       <strong>{builder.name}</strong>
@@ -1036,13 +1088,32 @@ export default function Hp2Page() {
                     <ArrowRight className="hp2-builder-arrow" size={16} />
                   </>
                 );
+                const isActive = builder.id === activeBuilder?.id;
+                const rowClassName = `hp2-builder-row ${
+                  isActive ? "is-active" : ""
+                }`;
+                const rowEvents = {
+                  onMouseEnter: () => setActiveBuilderId(builder.id),
+                  onMouseMove: () => setActiveBuilderId(builder.id),
+                  onPointerEnter: () => setActiveBuilderId(builder.id),
+                  onFocus: () => setActiveBuilderId(builder.id),
+                };
 
                 return builder.href ? (
-                  <a key={builder.id} href={builder.href} className="hp2-builder-row">
+                  <a
+                    key={builder.id}
+                    href={builder.href}
+                    className={rowClassName}
+                    {...rowEvents}
+                  >
                     {content}
                   </a>
                 ) : (
-                  <div key={builder.id} className="hp2-builder-row">
+                  <div
+                    key={builder.id}
+                    className={rowClassName}
+                    {...rowEvents}
+                  >
                     {content}
                   </div>
                 );
