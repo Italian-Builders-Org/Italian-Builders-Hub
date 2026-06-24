@@ -3,11 +3,19 @@ import { ArrowRight, MapPin } from "lucide-react";
 import {
   getGetDirectoryStatsQueryKey,
   getListBuildersQueryKey,
+  getListProjectsQueryKey,
   useGetDirectoryStats,
   useListBuilders,
+  useListProjects,
 } from "@workspace/api-client-react";
 import { BuilderGlobe, type HomeMapBuilder } from "@/pages/Home";
-import { STATIC_BUILDERS, STATIC_DIRECTORY_STATS, hasItems, isDirectoryStats } from "@/data/directory";
+import {
+  STATIC_BUILDERS,
+  STATIC_DIRECTORY_STATS,
+  STATIC_PROJECTS,
+  hasItems,
+  isDirectoryStats,
+} from "@/data/directory";
 import { defaultAvatarUrl } from "@/lib/assets";
 import {
   coordsForCityCountry,
@@ -45,11 +53,75 @@ type Hp2Content = {
   builders: Hp2Builder[];
   builderCount: string;
   cityCount: string;
+  projectCount: string;
   loading: boolean;
 };
 
 const profileSelect =
   "id, username, full_name, headline, bio, avatar_url, location, city, country, latitude, longitude, role, skills, created_at";
+
+const hp2PrimaryLinks = [
+  { href: "/builders", label: "Builders" },
+  { href: "/projects", label: "Projects" },
+  { href: "/community-projects", label: "Community projects" },
+  { href: "/pantheon", label: "Pantheon" },
+];
+
+const hp2FooterGroups = [
+  {
+    title: "Platform",
+    links: [
+      { href: "/builders", label: "Directory" },
+      { href: "/projects", label: "Showcase" },
+      { href: "/community-projects", label: "Community projects" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { href: "/mission", label: "Mission" },
+      { href: "/pantheon", label: "Pantheon" },
+      { href: "/join", label: "Join waitlist" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { href: "/privacy", label: "Privacy policy" },
+      { href: "/terms", label: "Terms of service" },
+      { href: "mailto:info@italianbuilders.co", label: "Contact us" },
+    ],
+  },
+  {
+    title: "Social",
+    links: [
+      { href: "https://x.com/italianbldrs", label: "X" },
+      {
+        href: "https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all",
+        label: "LinkedIn",
+      },
+      { href: "/dashboard", label: "Builders login" },
+    ],
+  },
+];
+
+const heroWords = [
+  "What",
+  "unites",
+  "us",
+  "is",
+  "not",
+  "what",
+  "we",
+  "build.",
+  "What",
+  "unites",
+  "us",
+  "is",
+  "that",
+];
+
+const heroHighlightWords = ["we", "choose", "to"];
 
 function validCoordinate(lat?: number | null, lng?: number | null) {
   return (
@@ -117,6 +189,9 @@ function useHp2Content(): Hp2Content {
   const { data: apiStats } = useGetDirectoryStats({
     query: { queryKey: getGetDirectoryStatsQueryKey() },
   });
+  const { data: apiProjects } = useListProjects(undefined, {
+    query: { queryKey: getListProjectsQueryKey() },
+  });
   const [profiles, setProfiles] = useState<Hp2Profile[]>([]);
   const [profileCount, setProfileCount] = useState<number | null>(null);
   const [profileLoading, setProfileLoading] = useState(Boolean(supabase));
@@ -159,6 +234,7 @@ function useHp2Content(): Hp2Content {
   }, [apiBuilders, profiles]);
 
   const stats = isDirectoryStats(apiStats) ? apiStats : STATIC_DIRECTORY_STATS;
+  const projects = hasItems(apiProjects) ? apiProjects : STATIC_PROJECTS;
   const cityCount = String(
     new Set(builders.map((builder) => builder.location.split(",")[0].trim()))
       .size || stats.cities,
@@ -170,8 +246,28 @@ function useHp2Content(): Hp2Content {
       ? new Intl.NumberFormat("en").format(profileCount)
       : stats.builders,
     cityCount,
+    projectCount: new Intl.NumberFormat("en").format(projects.length),
     loading: profileLoading || apiLoading,
   };
+}
+
+function AnimatedHeroWord({
+  children,
+  index,
+  className = "",
+}: {
+  children: string;
+  index: number;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`hp2-hero-word ${className}`}
+      style={{ "--hero-word-index": index } as CSSProperties}
+    >
+      {children}
+    </span>
+  );
 }
 
 function WordReveal({ children }: { children: string }) {
@@ -211,16 +307,21 @@ function WordReveal({ children }: { children: string }) {
 }
 
 export default function Hp2Page() {
-  const { builders, builderCount, cityCount, loading } = useHp2Content();
+  const { builders, builderCount, cityCount, projectCount } = useHp2Content();
   const activeBuilder = builders[0] ?? null;
 
   return (
     <div className="hp2-page">
       <header className="hp2-mast">
         <a href="/" className="hp2-logo-link" aria-label="Italian Builders">
-          <img src="/logo-vector.svg" alt="Italian Builders" />
+          <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
         </a>
         <nav aria-label="Hidden homepage preview sections">
+          {hp2PrimaryLinks.map((link) => (
+            <a key={link.href} href={link.href}>
+              {link.label}
+            </a>
+          ))}
           <a href="#manifesto">Manifesto</a>
           <a href="#directory">Directory</a>
           <a href="#join">Join</a>
@@ -230,9 +331,34 @@ export default function Hp2Page() {
       <main>
         <section className="hp2-hero">
           <div className="hp2-kicker">Community manifesto, preview 02</div>
-          <h1>
-            What unites us is not what we build. What unites us is that we
-            choose to <span>build</span>.
+          <h1
+            className="hp2-hero-title css-text-balance"
+            aria-label="What unites us is not what we build. What unites us is that we choose to BUILD."
+          >
+            <span aria-hidden="true">
+              {heroWords.map((word, index) => (
+                <AnimatedHeroWord key={`${word}-${index}`} index={index}>
+                  {word}
+                </AnimatedHeroWord>
+              ))}
+              <span className="hp2-hero-highlight">
+                {heroHighlightWords.map((word, index) => (
+                  <AnimatedHeroWord
+                    key={`${word}-${index}`}
+                    index={heroWords.length + index}
+                    className="hp2-hero-highlight-word"
+                  >
+                    {word}
+                  </AnimatedHeroWord>
+                ))}
+              </span>
+              <AnimatedHeroWord
+                index={heroWords.length + heroHighlightWords.length}
+                className="hp2-hero-build"
+              >
+                BUILD.
+              </AnimatedHeroWord>
+            </span>
           </h1>
           <div className="hp2-hero-bottom">
             <p>
@@ -240,6 +366,13 @@ export default function Hp2Page() {
               founders, creators, researchers, and entrepreneurs across Italy.
             </p>
             <div className="hp2-stats" aria-label="Italian Builders statistics">
+              <div>
+                <strong>635</strong>
+                <small>
+                  Members
+                  <span>Telegram</span>
+                </small>
+              </div>
               <div>
                 <strong>{builderCount}</strong>
                 <small>builders</small>
@@ -249,8 +382,8 @@ export default function Hp2Page() {
                 <small>cities</small>
               </div>
               <div>
-                <strong>{loading ? "..." : builders.length}</strong>
-                <small>featured now</small>
+                <strong>{projectCount}</strong>
+                <small>projects</small>
               </div>
             </div>
           </div>
@@ -344,12 +477,42 @@ export default function Hp2Page() {
         </section>
 
         <section id="join" className="hp2-join">
-          <p>If you choose to build, there is a home for you here.</p>
+          <p className="css-text-balance">
+            If you choose to build, there is a home for you here.
+          </p>
           <a href="/join">
             Request access <ArrowRight size={18} />
           </a>
         </section>
       </main>
+
+      <footer className="hp2-footer">
+        <div className="hp2-footer-brand">
+          <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
+          <p className="css-text-balance">
+            Connecting people who build. A community for builders, founders,
+            developers, designers and creators across Italy.
+          </p>
+        </div>
+
+        <div className="hp2-footer-links">
+          {hp2FooterGroups.map((group) => (
+            <section key={group.title} aria-label={group.title}>
+              <h2>{group.title}</h2>
+              {group.links.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target={link.href.startsWith("http") ? "_blank" : undefined}
+                  rel={link.href.startsWith("http") ? "noreferrer" : undefined}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </section>
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }
