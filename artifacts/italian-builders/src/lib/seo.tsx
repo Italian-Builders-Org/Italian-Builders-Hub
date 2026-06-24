@@ -244,6 +244,16 @@ function routeConfig(path: string): SeoConfig {
     };
   }
 
+  if (normalized === "/hp-2") {
+    return {
+      title: "Homepage preview 02 | Italian Builders",
+      description:
+        "Hidden alternate homepage proposal for the Italian Builders community.",
+      path: "/hp-2",
+      ...noIndex,
+    };
+  }
+
   if (normalized === "/join") {
     return {
       title: "Request access | Italian Builders",

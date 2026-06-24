@@ -574,7 +574,7 @@ type GlobePoint = {
   radius: number;
 };
 
-type HomeMapBuilder = {
+export type HomeMapBuilder = {
   id: string | number;
   name: string;
   username?: string;
@@ -838,7 +838,7 @@ function DatabaseStatusBanner({ error }: { error: string | null }) {
   );
 }
 
-function BuilderGlobe({
+export function BuilderGlobe({
   builders,
   activeBuilder,
 }: {

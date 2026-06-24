@@ -12,6 +12,7 @@ import OpenSourcePage from "@/pages/OpenSource";
 import JoinPage from "@/pages/Join";
 import MissionPage from "@/pages/Mission";
 import PioneersPage from "@/pages/Pioneers";
+import Hp2Page from "@/pages/Hp2";
 import { PrivacyPolicyPage, TermsOfServicePage } from "@/pages/Legal";
 import { TechLabelProvider } from "@/pages/Home";
 import {
@@ -59,6 +60,7 @@ function Router() {
         <Route path="/os-projects" component={OpenSourcePage} />
         <Route path="/pantheon" component={PioneersPage} />
         <Route path="/mission" component={MissionPage} />
+        <Route path="/hp-2" component={Hp2Page} />
         <Route path="/privacy" component={PrivacyPolicyPage} />
         <Route path="/terms" component={TermsOfServicePage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
