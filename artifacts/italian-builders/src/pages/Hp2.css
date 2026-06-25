@@ -667,6 +667,10 @@
     clamp(38px, 6vw, 78px);
 }
 
+.hp2-subhero > * {
+  min-width: 0;
+}
+
 .hp2-subhero-label {
   margin: 0 0 18px;
   color: var(--hp2-green);
@@ -684,6 +688,7 @@
   font-weight: 900;
   letter-spacing: 0;
   line-height: 0.92;
+  overflow-wrap: anywhere;
 }
 
 .hp2-subhero-side {
@@ -791,7 +796,7 @@
 }
 
 .hp2-pioneer-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .hp2-person-card,
@@ -1029,7 +1034,7 @@
 
 .hp2-pioneer-card img {
   width: 100%;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1;
   border-bottom: 2px solid var(--hp2-ink);
   object-fit: cover;
   object-position: top;
@@ -1178,6 +1183,8 @@
   padding: 10px;
   color: var(--hp2-ink);
   font-weight: 800;
+  min-width: 0;
+  overflow-wrap: anywhere;
   text-decoration: none;
 }
 
@@ -1401,6 +1408,10 @@
     position: static;
   }
 
+  .hp2-pioneer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .hp2-footer-links {
     grid-template-columns: repeat(2, minmax(130px, 1fr));
   }
@@ -1429,6 +1440,10 @@
 
   .hp2-builder-main strong {
     font-size: 21px;
+  }
+
+  .hp2-pioneer-grid {
+    grid-template-columns: 1fr;
   }
 
   .hp2-form-grid {

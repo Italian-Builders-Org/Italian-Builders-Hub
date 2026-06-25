@@ -208,7 +208,6 @@ function stylePathForTarget(targetStyle: "dark" | "r2") {
       pathname.startsWith("/projects/") ||
       pathname === "/community-projects" ||
       pathname.startsWith("/community-projects/") ||
-      pathname === "/os-projects" ||
       pathname === "/pantheon" ||
       pathname === "/mission" ||
       pathname === "/join" ||

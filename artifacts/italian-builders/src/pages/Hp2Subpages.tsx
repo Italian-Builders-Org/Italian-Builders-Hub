@@ -2,17 +2,12 @@ import { useEffect, useState } from "react";
 import { useParams } from "wouter";
 import {
   ArrowRight,
-  Code2,
   ExternalLink,
   Github,
   Globe,
   MapPin,
   Search,
 } from "lucide-react";
-import {
-  getListOsProjectsQueryKey,
-  useListOsProjects,
-} from "@workspace/api-client-react";
 import { Hp2DirectoryJoinForm } from "@/pages/Hp2";
 import { StyleSwitch } from "@/pages/Home";
 import {
@@ -22,7 +17,6 @@ import {
 } from "@/data/pioneers";
 import {
   STATIC_BUILDERS,
-  STATIC_OS_PROJECTS,
   STATIC_PROJECTS,
   hasItems,
 } from "@/data/directory";
@@ -44,7 +38,6 @@ const r2PrimaryLinks = [
   { href: "/hp-2/builders", label: "Builders" },
   { href: "/hp-2/projects", label: "Projects" },
   { href: "/hp-2/community-projects", label: "Community projects" },
-  { href: "/hp-2/os-projects", label: "Open source" },
   { href: "/hp-2/pantheon", label: "Pantheon" },
   { href: "/hp-2/mission", label: "Mission" },
 ];
@@ -1014,40 +1007,6 @@ export function Hp2CommunityProjectDetailPage() {
   );
 }
 
-export function Hp2OpenSourcePage() {
-  const { data: osProjectsData, isLoading } = useListOsProjects({
-    query: { queryKey: getListOsProjectsQueryKey() },
-  });
-  const osProjects = hasItems(osProjectsData) ? osProjectsData : STATIC_OS_PROJECTS;
-
-  return (
-    <R2Shell>
-      <R2Hero
-        label="Open source"
-        title="Shared infrastructure for Italian builders."
-        copy="Community-maintained tools that make discovery, collaboration, and open building easier."
-      />
-      <section className="hp2-list-section">
-        {isLoading ? (
-          <R2Loading label="Loading open-source projects..." />
-        ) : (
-          <div className="hp2-card-grid">
-            {osProjects.map((project) => (
-              <article key={project.id} className="hp2-os-card">
-                <Code2 size={22} />
-                <span>{project.status}</span>
-                <h2>{project.title}</h2>
-                <p>{project.description}</p>
-                <small>{project.category}</small>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    </R2Shell>
-  );
-}
-
 export function Hp2PantheonPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
@@ -1085,7 +1044,15 @@ export function Hp2PantheonPage() {
 function R2PioneerCard({ pioneer }: { pioneer: Pioneer }) {
   return (
     <article className="hp2-pioneer-card">
-      <img src={pioneer.portrait ?? pioneer.work?.image} alt={pioneer.name} />
+      <img
+        src={pioneer.portrait ?? pioneer.work?.image}
+        alt={pioneer.name}
+        loading="lazy"
+        decoding="async"
+        width="360"
+        height="360"
+        sizes="(max-width: 680px) 100vw, (max-width: 980px) 50vw, 25vw"
+      />
       <div>
         <span>{pioneer.category}</span>
         <h2>{pioneer.name}</h2>

@@ -366,7 +366,6 @@ function platformPath(path: string, r2: boolean) {
     path.startsWith("/builders") ||
     path.startsWith("/projects") ||
     path.startsWith("/community-projects") ||
-    path.startsWith("/os-projects") ||
     path.startsWith("/pantheon") ||
     path.startsWith("/mission") ||
     path.startsWith("/join") ||
