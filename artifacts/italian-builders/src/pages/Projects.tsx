@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { getListProjectsQueryKey, useListProjects } from "@workspace/api-client-react";
+import { romanHeroProps } from "@/components/RomanAccent";
 import { Header, Footer, useTechLabels } from "@/pages/Home";
 import { STATIC_PROJECTS, hasItems } from "@/data/directory";
 
@@ -11,18 +12,22 @@ export default function ProjectsPage() {
   const projects = hasItems(projectsData) ? projectsData : STATIC_PROJECTS;
 
   const categories = Array.from(new Set(projects.map((project) => project.category)));
+  const heroBackground = romanHeroProps("projects");
 
   return (
     <div className="dark-technical-theme min-h-screen">
       <Header />
       <main>
-        <section className="bg-zinc-950 border-b border-zinc-800 pt-18 pb-12 md:pt-24 md:pb-16">
+        <section
+          className={`bg-zinc-950 border-b border-zinc-800 pt-18 pb-12 md:pt-24 md:pb-16 ${heroBackground.className}`}
+          style={heroBackground.style}
+        >
           <div className="container mx-auto px-4 md:px-6">
             <div className="max-w-3xl">
               <div className="text-xs font-mono text-blue-400 mb-3 font-semibold tracking-wider">
                 {techLabels ? "> ARTIFACT_REGISTRY --public" : "Project showcase"}
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-zinc-50 mb-5 tracking-tight">
+              <h1 className="text-4xl md:text-5xl font-bold text-zinc-50 mb-5 tracking-tight dt-roman-display">
                 Products shipping from the network.
               </h1>
               <p className="text-base text-zinc-400 leading-relaxed">

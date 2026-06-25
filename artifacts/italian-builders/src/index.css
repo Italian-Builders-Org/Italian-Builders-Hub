@@ -1,5 +1,5 @@
 @import url("https://use.typekit.net/kkh2lui.css");
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cinzel:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -139,7 +139,7 @@
   --chart-5: 27 87% 67%;
 
   --app-font-sans: Inter, sans-serif;
-  --app-font-serif: Georgia, serif;
+  --app-font-serif: Cinzel, Georgia, "Times New Roman", serif;
   --app-font-mono: "forma-djr-mono", "JetBrains Mono", monospace;
   --radius: .5rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
@@ -327,6 +327,156 @@
 }
 .dt-pulse-ring {
   animation: dt-pulse-ring 2s ease-out infinite;
+}
+
+/* Roman heritage accents — subtle, layered on the existing dark-technical theme */
+.dt-roman-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.dt-roman-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 50% 40% at 85% 15%, hsl(217 91% 60% / 0.06), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dt-roman-hero::after {
+  content: none;
+}
+
+.dt-roman-hero--has-image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--roman-hero-image);
+  background-size: cover;
+  background-position: var(--roman-hero-position, center);
+  opacity: var(--roman-hero-opacity, 0.07);
+  mix-blend-mode: luminosity;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Content wrappers inside hero sections should carry relative z-10 in markup */
+
+.dt-meander-border {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='8' viewBox='0 0 48 8'%3E%3Cpath fill='none' stroke='%2352525b' stroke-opacity='0.22' stroke-width='0.75' d='M0 4h6l3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3h6'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+  background-size: 48px 8px;
+}
+
+.dt-roman-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #3f3f46 15%,
+    #52525b 50%,
+    #3f3f46 85%,
+    transparent
+  );
+  position: relative;
+}
+
+.dt-roman-divider::after {
+  content: "◆";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.45rem;
+  line-height: 1;
+  color: #52525b;
+  background: #09090b;
+  padding: 0 0.5rem;
+}
+
+.dt-roman-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--app-font-serif);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #60a5fa;
+}
+
+.dt-roman-eyebrow-mark {
+  width: 1.25rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #3f3f46);
+}
+
+.dt-roman-eyebrow-mark:last-child {
+  background: linear-gradient(270deg, transparent, #3f3f46);
+}
+
+.dark-technical-theme .dt-roman-display {
+  font-family: var(--app-font-serif);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.dark-technical-theme .dt-roman-quote {
+  font-family: var(--app-font-serif);
+  font-style: italic;
+  border-left: 2px solid #3f3f46;
+  padding-left: 1rem;
+}
+
+.dt-header-roman::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='8' viewBox='0 0 48 8'%3E%3Cpath fill='none' stroke='%2352525b' stroke-opacity='0.22' stroke-width='0.75' d='M0 4h6l3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3 3-3 3 3h6'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center bottom;
+  background-size: 48px 8px;
+  pointer-events: none;
+}
+
+.dt-roman-statue {
+  pointer-events: none;
+  user-select: none;
+  object-fit: contain;
+  object-position: bottom;
+  filter: grayscale(1) contrast(1.05);
+}
+
+.dt-roman-statue--hero {
+  position: absolute;
+  bottom: 0;
+  z-index: 1;
+  opacity: 0.14;
+  max-height: min(42vh, 22rem);
+  width: auto;
+}
+
+.dt-roman-statue--hero.dt-roman-statue--left {
+  left: 0;
+  transform: translateX(-8%);
+}
+
+.dt-roman-statue--hero.dt-roman-statue--right {
+  right: 0;
+  transform: translateX(8%);
+}
+
+@media (min-width: 1024px) {
+  .dt-roman-statue--hero {
+    opacity: 0.18;
+    max-height: min(48vh, 26rem);
+  }
 }
 
 @layer utilities {

@@ -5,6 +5,7 @@ import {
   useGetDirectoryStats,
   useListBuilders,
 } from "@workspace/api-client-react";
+import { romanHeroProps } from "@/components/RomanAccent";
 import { Header, Footer, useTechLabels } from "@/pages/Home";
 import { STATIC_BUILDERS, STATIC_DIRECTORY_STATS, hasItems, isDirectoryStats } from "@/data/directory";
 
@@ -18,19 +19,23 @@ export default function BuildersPage() {
   });
   const builders = hasItems(buildersData) ? buildersData : STATIC_BUILDERS;
   const stats = isDirectoryStats(statsData) ? statsData : STATIC_DIRECTORY_STATS;
+  const heroBackground = romanHeroProps("builders");
 
   return (
     <div className="dark-technical-theme min-h-screen">
       <Header />
       <main>
-        <section className="bg-zinc-950 border-b border-zinc-800 pt-18 pb-12 md:pt-24 md:pb-16">
+        <section
+          className={`bg-zinc-950 border-b border-zinc-800 pt-18 pb-12 md:pt-24 md:pb-16 ${heroBackground.className}`}
+          style={heroBackground.style}
+        >
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
               <div>
                 <div className="text-xs font-mono text-blue-400 mb-3 font-semibold tracking-wider">
                   {techLabels ? "> DIRECTORY_SCAN --verified" : "Builder directory"}
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold text-zinc-50 mb-5 tracking-tight">
+                <h1 className="text-4xl md:text-5xl font-bold text-zinc-50 mb-5 tracking-tight dt-roman-display">
                   Italian builder graph.
                 </h1>
                 <p className="text-base text-zinc-400 max-w-2xl leading-relaxed">

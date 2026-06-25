@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { RomanEyebrow } from "@/components/RomanAccent";
 import { Footer, Header, useTechLabels } from "@/pages/Home";
 
 const missionParagraphs = [
@@ -20,13 +21,14 @@ export default function MissionPage() {
     <div className="dark-technical-theme min-h-screen bg-zinc-950">
       <Header />
       <main>
-        <section className="border-b border-zinc-900 bg-zinc-950 pt-20 pb-14 md:pt-28 md:pb-20">
-          <div className="container mx-auto px-4 md:px-6">
+        <section className="relative overflow-hidden border-b border-zinc-900 bg-zinc-950 pt-20 pb-14 md:pt-28 md:pb-20 dt-roman-hero">
+          <div className="absolute inset-0 dt-grid-bg opacity-[0.4] pointer-events-none" />
+          <div className="container relative z-10 mx-auto px-4 md:px-6">
             <div className="max-w-4xl">
-              <div className="mb-4 text-xs font-mono font-semibold uppercase tracking-wider text-blue-400">
+              <RomanEyebrow className="mb-4">
                 {techLabels ? "MISSION_STATEMENT" : "Mission"}
-              </div>
-              <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-zinc-50 md:text-6xl">
+              </RomanEyebrow>
+              <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-zinc-50 md:text-6xl dt-roman-display">
                 Italian Builders exists to connect people who build.
               </h1>
             </div>
@@ -43,8 +45,10 @@ export default function MissionPage() {
               </article>
 
               <aside className="border-l border-zinc-800 pl-5 text-sm leading-6 text-zinc-500">
-                <div className="mb-3 text-xs font-mono font-semibold uppercase tracking-wider text-zinc-400">
-                  {techLabels ? "CORE_SIGNAL" : "Core idea"}
+                <div className="mb-3">
+                  <RomanEyebrow>
+                    {techLabels ? "CORE_SIGNAL" : "Core idea"}
+                  </RomanEyebrow>
                 </div>
                 <p className="mb-5 text-zinc-300">
                   What unites us is that we choose to build.

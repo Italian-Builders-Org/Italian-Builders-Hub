@@ -13,6 +13,7 @@ import {
   type Pioneer,
 } from "@/data/pioneers";
 import { PIONEER_MEDIA, type PioneerMediaItem } from "@/data/pioneersMedia";
+import { RomanEyebrow, RomanStatue, ROMAN_STATUES, romanHeroProps } from "@/components/RomanAccent";
 
 const ALL = "All";
 
@@ -154,7 +155,7 @@ function PioneerDialog({
                   </div>
                 </div>
               </div>
-              <p className="mt-4 border-l-2 border-blue-500/50 pl-3 text-sm italic leading-relaxed text-zinc-300">
+              <p className="mt-4 border-l-2 border-zinc-700 pl-3 text-sm italic leading-relaxed text-zinc-300 dt-roman-quote">
                 {pioneer.tagline}
               </p>
             </div>
@@ -266,19 +267,30 @@ export default function PioneersPage() {
     }).sort((a, b) => a.birthYear - b.birthYear);
   }, [category, query]);
 
+  const heroBackground = romanHeroProps("pantheon");
+
   return (
     <div className="dark-technical-theme min-h-screen bg-zinc-950">
       <Header />
       <main>
-        <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950 pt-16 pb-12 md:pt-24 md:pb-16">
+        <section
+          className={`relative overflow-hidden border-b border-zinc-800 bg-zinc-950 pt-16 pb-12 md:pt-24 md:pb-16 ${heroBackground.className}`}
+          style={heroBackground.style}
+        >
           <div className="absolute inset-0 dt-grid-bg opacity-[0.5] pointer-events-none" />
           <div className="absolute -top-40 right-0 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
+          <RomanStatue
+            src={ROMAN_STATUES.nike}
+            side="right"
+            variant="hero"
+            className="hidden sm:block"
+          />
           <div className="container relative z-10 mx-auto px-4 md:px-6">
             <div className="max-w-3xl">
-              <div className="mb-4 text-xs font-mono font-semibold uppercase tracking-wider text-blue-400">
+              <RomanEyebrow className="mb-4">
                 {techLabels ? "> PANTHEON --italians" : "Pantheon"}
-              </div>
-              <h1 className="text-4xl font-bold tracking-tight text-zinc-50 md:text-6xl">
+              </RomanEyebrow>
+              <h1 className="text-4xl font-bold tracking-tight text-zinc-50 md:text-6xl dt-roman-display">
                 The Italians who built the future.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-relaxed text-zinc-400 md:text-lg">
