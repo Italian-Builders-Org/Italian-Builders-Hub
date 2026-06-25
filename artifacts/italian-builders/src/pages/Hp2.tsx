@@ -1053,7 +1053,6 @@ export default function Hp2Page() {
         </section>
 
         <section id="manifesto" className="hp2-manifesto">
-          <div className="hp2-section-num">01</div>
           <h2>The Manifesto</h2>
           <ManifestoSequence />
         </section>
@@ -1061,7 +1060,6 @@ export default function Hp2Page() {
         <section id="directory" className="hp2-directory">
           <div className="hp2-directory-head">
             <div>
-              <div className="hp2-section-num">02</div>
               <h2>The Directory</h2>
             </div>
             <p>
@@ -1137,7 +1135,6 @@ export default function Hp2Page() {
 
         <section id="join" className="hp2-join">
           <div className="hp2-join-copy">
-            <div className="hp2-section-num">03</div>
             <h2 className="css-text-balance">Join the directory</h2>
             <p className="css-text-balance">
               Add your builder record and tell the community what you are

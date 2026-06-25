@@ -97,18 +97,6 @@
     clamp(12px, 2vw, 22px);
 }
 
-.hp2-kicker,
-.hp2-section-num {
-  font-family: var(--hp2-mono);
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.hp2-kicker {
-  color: var(--hp2-green);
-}
-
 .hp2-hero-title {
   max-width: 10.5ch;
   font-family: var(--hp2-title);
@@ -208,11 +196,6 @@
 .hp2-manifesto {
   padding-top: clamp(34px, 4vw, 62px);
   text-align: center;
-}
-
-.hp2-section-num {
-  margin-bottom: 18px;
-  color: var(--hp2-green);
 }
 
 .hp2-manifesto h2,
@@ -406,10 +389,6 @@
   padding: clamp(54px, 8vw, 106px) clamp(18px, 4vw, 60px);
   background: var(--hp2-green);
   color: oklch(0.98 0.01 116);
-}
-
-.hp2-join .hp2-section-num {
-  color: currentColor;
 }
 
 .hp2-join-copy {
