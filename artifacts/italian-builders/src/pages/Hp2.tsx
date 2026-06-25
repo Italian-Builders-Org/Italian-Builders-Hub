@@ -129,6 +129,10 @@ const hp2FooterGroups = [
         href: "https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all",
         label: "LinkedIn",
       },
+      {
+        href: "https://github.com/Italian-Builders-Org",
+        label: "GitHub",
+      },
       { href: "/dashboard", label: "Builders login" },
     ],
   },

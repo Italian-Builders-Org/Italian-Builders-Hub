@@ -31,6 +31,7 @@ import {
   Send,
   Twitter,
   Linkedin,
+  Github,
   Globe,
   Link as LinkIcon,
   CheckCircle2,
@@ -2293,6 +2294,15 @@ export function Footer() {
                 aria-label="LinkedIn"
               >
                 <Linkedin size={16} />
+              </a>
+              <a
+                href="https://github.com/Italian-Builders-Org"
+                target="_blank"
+                rel="noreferrer"
+                className="text-zinc-500 hover:text-white transition-colors"
+                aria-label="GitHub"
+              >
+                <Github size={16} />
               </a>
             </div>
           </div>

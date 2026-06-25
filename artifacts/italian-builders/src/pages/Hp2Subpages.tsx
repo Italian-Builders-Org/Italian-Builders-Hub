@@ -125,6 +125,13 @@ function R2Footer() {
           >
             LinkedIn
           </a>
+          <a
+            href="https://github.com/Italian-Builders-Org"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub
+          </a>
           <a href="/dashboard">Builders login</a>
         </section>
       </div>

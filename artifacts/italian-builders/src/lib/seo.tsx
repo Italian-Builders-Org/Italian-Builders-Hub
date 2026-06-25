@@ -9,11 +9,13 @@ import type {
 
 const siteName = "Italian Builders";
 const siteOrigin =
-  (import.meta.env.VITE_APP_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
-  "https://italianbuilders.co";
+  (import.meta.env.VITE_APP_BASE_URL as string | undefined)?.replace(
+    /\/$/,
+    "",
+  ) || "https://italianbuilders.co";
 const defaultDescription =
   "Discover founders, makers, technical contributors, and operators building from Italy.";
-const defaultImage = absoluteUrl("/opengraph.jpg");
+const defaultImage = absoluteUrl("/api/og-home-image");
 const socialProfiles = [
   "https://x.com/italianbldrs",
   "https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all",
@@ -350,7 +352,10 @@ function applySeo(config: SeoConfig) {
     property: "og:type",
     content: config.type || "website",
   });
-  setMeta('meta[property="og:url"]', { property: "og:url", content: canonical });
+  setMeta('meta[property="og:url"]', {
+    property: "og:url",
+    content: canonical,
+  });
   setMeta('meta[property="og:image"]', {
     property: "og:image",
     content: image,
@@ -358,6 +363,18 @@ function applySeo(config: SeoConfig) {
   setMeta('meta[property="og:image:secure_url"]', {
     property: "og:image:secure_url",
     content: image,
+  });
+  setMeta('meta[property="og:image:type"]', {
+    property: "og:image:type",
+    content: "image/png",
+  });
+  setMeta('meta[property="og:image:width"]', {
+    property: "og:image:width",
+    content: "1200",
+  });
+  setMeta('meta[property="og:image:height"]', {
+    property: "og:image:height",
+    content: "630",
   });
   setMeta('meta[property="og:image:alt"]', {
     property: "og:image:alt",
@@ -423,7 +440,10 @@ export function profileSeo(profile: Profile): SeoConfig {
   const path = `/builders/${profile.username}`;
   const title = `${profile.full_name} | Italian Builders`;
   const description = truncate(
-    profile.bio || profile.headline || profile.role || "Builder on Italian Builders",
+    profile.bio ||
+      profile.headline ||
+      profile.role ||
+      "Builder on Italian Builders",
     155,
   );
   const sameAs = [
@@ -455,7 +475,9 @@ export function profileSeo(profile: Profile): SeoConfig {
           name: profile.full_name,
           alternateName: profile.username,
           description,
-          image: profile.avatar_url ? absoluteUrl(profile.avatar_url) : undefined,
+          image: profile.avatar_url
+            ? absoluteUrl(profile.avatar_url)
+            : undefined,
           jobTitle: profile.headline || profile.role || undefined,
           knowsAbout: profile.skills?.length ? profile.skills : undefined,
           sameAs: sameAs.length ? sameAs : undefined,
@@ -477,13 +499,17 @@ export function projectSeo(project: Project): SeoConfig {
   const path = `/projects/${project.slug}`;
   const title = `${project.name} | Italian Builders`;
   const description = truncate(
-    project.tagline || project.description || "A project from the Italian Builders community.",
+    project.tagline ||
+      project.description ||
+      "A project from the Italian Builders community.",
     155,
   );
   const image = project.image_url || defaultImage;
   const contributors = [
     project.profiles,
-    ...(project.project_members || []).map((member: ProjectMember) => member.profiles),
+    ...(project.project_members || []).map(
+      (member: ProjectMember) => member.profiles,
+    ),
   ].filter(Boolean);
 
   return {
@@ -519,7 +545,11 @@ export function projectSeo(project: Project): SeoConfig {
             ? absoluteUrl(`/builders/${profile.username}`)
             : undefined,
         })),
-        sameAs: [project.website_url, project.demo_url, project.github_url].filter(Boolean),
+        sameAs: [
+          project.website_url,
+          project.demo_url,
+          project.github_url,
+        ].filter(Boolean),
         keywords: projectCategoryNames(project),
       },
     ],
@@ -530,7 +560,9 @@ export function communityProjectSeo(project: CommunityProject): SeoConfig {
   const path = `/community-projects/${project.slug}`;
   const title = `${project.name} | Italian Builders`;
   const description = truncate(
-    project.tagline || project.description || "A shared Italian Builders community project.",
+    project.tagline ||
+      project.description ||
+      "A shared Italian Builders community project.",
     155,
   );
 

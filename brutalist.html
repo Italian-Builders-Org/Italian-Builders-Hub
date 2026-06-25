@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Italian Builders — Costruiamo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,700&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #F4F1EA;
+    --paper-2: #ECE8DC;
+    --ink: #0E0E0C;
+    --ink-soft: #3A3A36;
+    --ink-mute: #6B6760;
+    --verde: #00C28A;
+    --verde-deep: #009E6E;
+    --rule: #0E0E0C;
+    --hair: rgba(14,14,12,0.14);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Instrument Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Scroll progress rule — down the left gutter */
+  .progress {
+    position: fixed;
+    left: 30px; top: 0; bottom: 0;
+    width: 2px; background: var(--hair);
+    z-index: 50;
+  }
+  .progress::after {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 100%; background: var(--verde);
+    transform-origin: top;
+    transform: scaleY(var(--p, 0));
+    transition: transform .1s linear;
+  }
+
+  /* 12-col grid overlay tool — visible faintly as the "commitment to structure" */
+  .grid-trace {
+    position: fixed;
+    left: 60px; right: 60px; top: 0; bottom: 0;
+    display: grid; grid-template-columns: repeat(12, 1fr);
+    gap: 0; pointer-events: none; z-index: 1; opacity: 0.5;
+  }
+  .grid-trace > span { border-right: 1px solid rgba(14,14,12,0.035); }
+  .grid-trace > span:first-child { border-left: 1px solid rgba(14,14,12,0.035); }
+
+  main { position: relative; z-index: 3; }
+
+  /* ---------- MASTHEAD ---------- */
+  .mast {
+    border-bottom: 2px solid var(--ink);
+    padding: 22px 60px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 32px;
+    position: sticky; top: 0; background: var(--paper); z-index: 40;
+  }
+  .mast::before {
+    content: "";
+    position: absolute; left: 0; top: 0; height: 100%; width: 60px;
+    border-right: 1px solid var(--hair);
+  }
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    display: flex; align-items: baseline; gap: 0;
+  }
+  .brand .it { font-style: italic; font-weight: 400; font-size: 15px; color: var(--ink-mute); margin-right: 2px; }
+  .brand .dot { color: var(--verde); }
+  .mast nav {
+    display: flex; gap: 30px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .mast nav a { color: var(--ink); text-decoration: none; position: relative; }
+  .mast nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: -5px; height: 2px; background: var(--verde); transform: scaleX(0); transform-origin: left; transition: transform .25s ease; }
+  .mast nav a:hover::after { transform: scaleX(1); }
+  .mast .issue {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-mute);
+    display: flex; gap: 16px; align-items: center;
+  }
+  .mast .issue b { color: var(--ink); font-weight: 700; }
+
+  /* ---------- KICKER + RULE ---------- */
+  .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 14px;
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .kicker .ln { flex: 1; height: 1px; background: var(--ink); opacity: 0.7; max-width: 80px; }
+
+  .gutter-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em;
+    color: var(--verde-deep);
+    font-weight: 700;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    padding: 90px 60px 120px;
+    position: relative;
+    border-bottom: 1px solid var(--ink);
+  }
+  .hero .kicker { margin-bottom: 56px; }
+  .hero-headline {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-variation-settings: "opsz" 144, "SOFT" 0;
+    font-size: clamp(48px, 9.4vw, 168px);
+    line-height: 0.86;
+    letter-spacing: -0.045em;
+    color: var(--ink);
+    max-width: 1200px;
+  }
+  .hero-headline .l { display: block; }
+  .hero-headline em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--ink-soft);
+    font-variation-settings: "opsz" 144;
+  }
+  .hero-headline .build {
+    color: var(--verde);
+    position: relative;
+    display: inline-block;
+  }
+  .hero-headline .build::after {
+    content: "";
+    position: absolute; left: -6px; right: -6px; bottom: 0.08em; height: 0.12em;
+    background: var(--verde); opacity: 0.18; z-index: -1;
+  }
+
+  /* breakout pull — crosses the right margin */
+  .hero-pull {
+    position: absolute;
+    right: 60px; top: 132px;
+    width: 240px;
+    border-left: 2px solid var(--verde);
+    padding: 8px 0 8px 18px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 19px;
+    line-height: 1.35;
+    color: var(--ink);
+    max-width: 240px;
+  }
+  .hero-pull .cite {
+    display: block; margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace; font-style: normal;
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
+  .hero-foot {
+    margin-top: 72px;
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 32px;
+    align-items: end;
+  }
+  .hero-foot .lead {
+    grid-column: 1 / span 5;
+    font-size: 18px; line-height: 1.5; color: var(--ink-soft);
+    max-width: 440px;
+  }
+  .hero-foot .lead strong { color: var(--ink); font-weight: 600; }
+  .hero-stats {
+    grid-column: 7 / span 6;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--ink);
+    padding-top: 18px;
+  }
+  .stat .n {
+    font-family: 'Fraunces', serif; font-weight: 700;
+    font-size: 46px; line-height: 1; letter-spacing: -0.02em;
+  }
+  .stat .n.live { color: var(--verde-deep); }
+  .stat .l {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-mute); margin-top: 10px;
+    max-width: 140px;
+  }
+
+  /* ---------- SECTIONS ---------- */
+  section { padding: 110px 60px; position: relative; border-bottom: 1px solid var(--ink); }
+  .sec-head {
+    display: grid; grid-template-columns: 60px 1fr auto; align-items: baseline;
+    gap: 32px; margin-bottom: 64px;
+  }
+  .sec-head .gutter { color: var(--verde-deep); }
+  .sec-head h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(30px, 4.6vw, 64px);
+    letter-spacing: -0.03em; line-height: 0.95;
+  }
+  .sec-head h2 em { font-style: italic; font-weight: 400; color: var(--ink-soft); }
+  .sec-head .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-mute);
+    align-self: end;
+  }
+
+  /* ---------- MANIFESTO — editorial columns with a breakout quote ---------- */
+  .manifesto-body {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 32px;
+    max-width: 1200px;
+  }
+  .col-text {
+    grid-column: 1 / span 7;
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 21px; line-height: 1.55;
+    color: var(--ink);
+  }
+  .col-text p { margin-bottom: 24px; }
+  .col-text p:first-child::first-letter {
+    font-family: 'Fraunces', serif; font-weight: 900;
+    float: left; font-size: 84px; line-height: 0.78;
+    padding: 6px 12px 0 0; color: var(--ink);
+  }
+  .col-text .mark { color: var(--verde-deep); }
+  .col-text .mark.under { background: linear-gradient(180deg, transparent 72%, rgba(0,194,138,0.28) 72%); padding: 0 2px; }
+  .col-text strong { font-weight: 700; }
+
+  .col-quote {
+    grid-column: 9 / span 4;
+    padding-left: 26px; border-left: 2px solid var(--ink);
+    align-self: start; margin-top: 8px;
+  }
+  .col-quote blockquote {
+    font-family: 'Fraunces', serif; font-style: italic; font-weight: 400;
+    font-size: 26px; line-height: 1.25; letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .col-quote blockquote .big {
+    display: block; font-weight: 900; font-style: normal;
+    font-size: 64px; line-height: 0.8; color: var(--verde); margin-bottom: 14px;
+  }
+  .col-quote .attr {
+    margin-top: 24px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute);
+  }
+
+  /* ---------- CREED — the belief manifesto list ---------- */
+  .creed { display: grid; grid-template-columns: repeat(12, 1fr); gap: 22px 32px; max-width: 1200px; }
+  .creed-item {
+    grid-column: span 4;
+    border-top: 1px solid var(--ink);
+    padding-top: 22px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .creed-item .n {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.16em; color: var(--verde-deep); font-weight: 700;
+  }
+  .creed-item h3 {
+    font-family: 'Fraunces', serif; font-weight: 700;
+    font-size: 24px; line-height: 1.05; letter-spacing: -0.02em;
+  }
+  .creed-item p {
+    font-size: 15px; color: var(--ink-soft); line-height: 1.55;
+  }
+  .creed-item.full { grid-column: 1 / -1; border-top: 2px solid var(--ink); padding-top: 26px; margin-top: 12px; }
+  .creed-item.full h3 {
+    font-size: clamp(30px, 4.2vw, 56px);
+    font-weight: 900; letter-spacing: -0.03em;
+  }
+  .creed-item.full h3 .hi { color: var(--verde); }
+  .creed-item.full p { max-width: 540px; }
+
+  /* ---------- BUILDERS directory — editorial table ---------- */
+  .builders-table {
+    width: 100%; border-collapse: collapse;
+    font-family: 'Instrument Sans', sans-serif;
+  }
+  .builders-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-mute); font-weight: 700;
+    text-align: left; padding: 0 0 14px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .builders-table td {
+    padding: 22px 16px 22px 0;
+    border-bottom: 1px solid var(--hair);
+    vertical-align: top;
+  }
+  .builders-table tr:hover td { background: rgba(0,194,138,0.05); }
+  .builders-table tr:hover .name { color: var(--verde-deep); }
+  .builders-table .idx {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--ink-mute); width: 50px;
+  }
+  .builders-table .name {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px;
+    letter-spacing: -0.01em; width: 240px;
+    transition: color .2s ease;
+  }
+  .builders-table .craft { font-size: 14px; color: var(--ink-soft); width: 180px; }
+  .builders-table .city {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.08em; color: var(--ink-mute); width: 120px; text-transform: uppercase;
+  }
+  .builders-table .work {
+    font-family: 'Fraunces', serif; font-style: italic; font-size: 17px; color: var(--ink);
+  }
+
+  /* ---------- CTA ---------- */
+  .cta { padding: 130px 60px 140px; text-align: left; }
+  .cta .kicker { margin-bottom: 36px; }
+  .cta h2 {
+    font-family: 'Fraunces', serif; font-weight: 900;
+    font-size: clamp(44px, 8vw, 140px); line-height: 0.84; letter-spacing: -0.04em;
+    max-width: 1100px;
+  }
+  .cta h2 em { font-style: italic; font-weight: 400; color: var(--ink-soft); }
+  .cta h2 .hi { color: var(--verde); }
+  .cta-row {
+    margin-top: 56px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 32px; align-items: center;
+  }
+  .cta-row p { grid-column: 1 / span 6; font-size: 18px; color: var(--ink-soft); max-width: 460px; }
+  .cta-actions { grid-column: 8 / span 5; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700;
+    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+    background: var(--ink); color: var(--paper);
+    padding: 18px 28px; border: none; cursor: pointer;
+    transition: background .2s ease, color .2s ease;
+  }
+  .btn:hover { background: var(--verde-deep); color: var(--paper); }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+  .btn.ghost:hover { background: var(--ink); color: var(--paper); }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    padding: 36px 60px 56px;
+    border-top: 2px solid var(--ink);
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  footer .col { grid-column: span 3; display: flex; flex-direction: column; gap: 6px; }
+  footer .col:first-child { grid-column: 1 / span 4; }
+  footer .lbl { color: var(--verde-deep); font-weight: 700; }
+  footer .big {
+    font-family: 'Fraunces', serif; text-transform: none; letter-spacing: -0.02em;
+    font-weight: 700; font-size: 18px; color: var(--ink);
+    margin-bottom: 6px;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .mast nav { display: none; }
+    .hero, section, .cta, footer { padding-left: 24px; padding-right: 24px; }
+    .mast { padding: 18px 24px; }
+    .mast::before { width: 24px; }
+    .progress { left: 12px; }
+    .grid-trace { display: none; }
+    .hero-pull { position: static; width: auto; max-width: none; margin-top: 40px; }
+    .hero-foot { grid-template-columns: 1fr; }
+    .hero-foot .lead, .hero-foot .hero-stats { grid-column: 1 / -1; }
+    .hero-stats { border-top: 1px solid var(--ink); margin-top: 24px; }
+    .manifesto-body, .creed { grid-template-columns: 1fr; gap: 24px; }
+    .col-text, .col-quote, .creed-item, .creed-item.full { grid-column: 1 / -1; }
+    .col-quote { border-left: none; padding-left: 0; border-top: 2px solid var(--ink); padding-top: 24px; margin-top: 32px; }
+    .builders-table .name { font-size: 18px; width: auto; }
+    .builders-table .craft, .builders-table .city { width: auto; }
+    .cta-row { grid-template-columns: 1fr; }
+    .cta-row p, .cta-actions { grid-column: 1 / -1; }
+    footer { grid-template-columns: 1fr 1fr; }
+    footer .col { grid-column: span 1; }
+    footer .col:first-child { grid-column: 1 / -1; margin-bottom: 16px; }
+  }
+
+  /* ---------- Entrance animations — one orchestrated load ---------- */
+  @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes wordIn { from { opacity: 0; transform: translateY(34px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .hero .kicker { animation: fade .6s ease both; }
+  .hero-headline .l { opacity: 0; animation: wordIn .9s cubic-bezier(.2,.8,.2,1) both; }
+  .hero-headline .l:nth-child(1) { animation-delay: .15s; }
+  .hero-headline .l:nth-child(2) { animation-delay: .32s; }
+  .hero-headline .l:nth-child(3) { animation-delay: .5s; }
+  .hero-pull { animation: rise .9s .7s cubic-bezier(.2,.8,.2,1) both; }
+  .hero-foot .lead { animation: rise .9s .8s ease both; }
+  .hero-stats { animation: fade 1s .9s ease both; }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1); }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
+    .hero-headline .l { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"></div>
+<div class="grid-trace" aria-hidden="true">
+  <span></span><span></span><span></span><span></span><span></span><span></span>
+  <span></span><span></span><span></span><span></span><span></span><span></span>
+</div>
+
+<main>
+
+  <!-- MASTHEAD -->
+  <header class="mast">
+    <div class="brand"><span class="it">il</span>Italian<span class="dot">·</span>Builders</div>
+    <nav>
+      <a href="#manifesto">Manifesto</a>
+      <a href="#creed">Creed</a>
+      <a href="#directory">Directory</a>
+      <a href="#join">Join</a>
+    </nav>
+    <div class="issue">
+      <span>Vol. <b>01</b></span>
+      <span>Estate <b>2026</b></span>
+      <span>Ed. Milano</span>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" style="border-top:0; padding-top:110px;">
+    <div class="kicker"><span>IB · Community Manifesto</span><span class="ln"></span><span>01 — 04</span></div>
+
+    <h1 class="hero-headline">
+      <span class="l">What unites us</span>
+      <span class="l"><em>is not</em> what we build.</span>
+      <span class="l">What unites us is</span>
+      <span class="l">that we choose to <span class="build">build</span>.</span>
+    </h1>
+
+    <aside class="hero-pull">
+      A home for Italian builders of all ages and experience levels — not a product, not a platform. A place where the right people meet at the right time.
+      <span class="cite">— From the manifesto, §1</span>
+    </aside>
+
+    <div class="hero-foot">
+      <p class="lead">
+        Italian Builders exists to <strong>connect people who build</strong> — developers, designers, founders, creators, researchers, and entrepreneurs, from Bolzano to Palermo. The talent is already here. The connection, too often, is not.
+      </p>
+      <div class="hero-stats">
+        <div class="stat"><div class="n live">412</div><div class="l">builders connected · live</div></div>
+        <div class="stat"><div class="n">29</div><div class="l">cities represented</div></div>
+        <div class="stat"><div class="n">17</div><div class="l">collaborations shipped</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MANIFESTO -->
+  <section id="manifesto">
+    <div class="sec-head">
+      <span class="gutter gutter-num">§01</span>
+      <h2>The <em>Manifesto</em></h2>
+      <span class="tag">read aloud</span>
+    </div>
+
+    <div class="manifesto-body reveal">
+      <div class="col-text">
+        <p>Italian Builders exists to <span class="mark under">connect people who build</span>. Our goal is to create the home for Italian builders of all ages and experience levels — a place where ideas, projects, knowledge, and opportunities can be shared.</p>
+        <p>We believe <strong>talent is not the problem</strong>. Across Italy, developers, designers, founders, creators, researchers, and entrepreneurs are building remarkable products, companies, and technologies every day. Too often, however, these people remain isolated, work alone, or never meet the collaborators, partners, investors, or friends who could help them take the next step.</p>
+        <p>Our mission is to make those connections <span class="mark under">easier, more frequent, and more natural</span>.</p>
+        <p>We want to create a space where people can meet, share what they are building, exchange ideas, collaborate, and bring new projects to life together. We believe the best opportunities are born from relationships, and that great projects are often the result of the right people meeting at the right time.</p>
+      </div>
+      <div class="col-quote">
+        <blockquote>
+          <span class="big">“</span>
+          What unites us is not what we build. What unites us is that we choose to build.
+        </blockquote>
+        <div class="attr">— Closing line · §7</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CREED -->
+  <section id="creed">
+    <div class="sec-head">
+      <span class="gutter gutter-num">§02</span>
+      <h2>What we <em>believe</em></h2>
+      <span class="tag">six tenets</span>
+    </div>
+
+    <div class="creed reveal">
+      <article class="creed-item">
+        <span class="n">T.01</span>
+        <h3>Talent is not the problem.</h3>
+        <p>Talent exists in every region. The gap is connection — not ability. We close that gap.</p>
+      </article>
+      <article class="creed-item">
+        <span class="n">T.02</span>
+        <h3>Builders should not work alone.</h3>
+        <p>Isolation is the enemy of great work. The collaborator you need is closer than you think.</p>
+      </article>
+      <article class="creed-item">
+        <span class="n">T.03</span>
+        <h3>Opportunities come from relationships.</h3>
+        <p>Not from cold outreach. From the right people meeting at the right time, more than once.</p>
+      </article>
+      <article class="creed-item">
+        <span class="n">T.04</span>
+        <h3>The medium is secondary.</h3>
+        <p>Software, hardware, AI, content, open-source — what unites us is not what we build, but that we build.</p>
+      </article>
+      <article class="creed-item">
+        <span class="n">T.05</span>
+        <h3>Connections should feel natural.</h3>
+        <p>Forced networking rots. We design for serendipity — meetings that turn into projects.</p>
+      </article>
+      <article class="creed-item">
+        <span class="n">T.06</span>
+        <h3>Italy deserves its own house.</h3>
+        <p>From Bolzano to Palermo, builders exist everywhere. They deserve a home that is theirs.</p>
+      </article>
+      <article class="creed-item full">
+        <span class="n">T.07 — The closing tenet</span>
+        <h3>What unites us is that we choose to <span class="hi">build</span>.</h3>
+        <p>Everything else — the craft, the city, the company stage, the age — is detail. The act of choosing to build is the only membership requirement, and it is enough.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- DIRECTORY -->
+  <section id="directory">
+    <div class="sec-head">
+      <span class="gutter gutter-num">§03</span>
+      <h2>The <em>Directory</em></h2>
+      <span class="tag">who's here · what they're building</span>
+    </div>
+
+    <table class="builders-table reveal">
+      <thead>
+        <tr>
+          <th>№</th><th>Builder</th><th>Craft</th><th>City</th><th>Currently building</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="idx">042</td><td class="name">Giulia Reni</td><td class="craft">Developer · OSS</td><td class="city">Bologna</td><td class="work">A local-first sync engine</td></tr>
+        <tr><td class="idx">081</td><td class="name">Marco De Santis</td><td class="craft">Founder · Hardware</td><td class="city">Torino</td><td class="work">Low-cost soil sensors for small farms</td></tr>
+        <tr><td class="idx">119</td><td class="name">Lucia Ferri</td><td class="craft">Designer · Brand</td><td class="city">Milano</td><td class="work">Identity system for cultural festivals</td></tr>
+        <tr><td class="idx">157</td><td class="name">Tommaso Greco</td><td class="craft">Researcher · AI</td><td class="city">Padova</td><td class="work">Efficient inference on edge devices</td></tr>
+        <tr><td class="idx">198</td><td class="name">Sofia Basile</td><td class="craft">Creator · Content</td><td class="city">Roma</td><td class="work">A series on Italian indie founders</td></tr>
+        <tr><td class="idx">233</td><td class="name">Enrico Lombardi</td><td class="craft">Entrepreneur · Automation</td><td class="city">Firenze</td><td class="work">Workflow tools for small workshops</td></tr>
+        <tr><td class="idx">274</td><td class="name">Anna Costa</td><td class="craft">Developer · Web</td><td class="city">Napoli</td><td class="work">Open data dashboards for municipalities</td></tr>
+        <tr><td class="idx">312</td><td class="name">Davide Russo</td><td class="craft">Founder · SaaS</td><td class="city">Bergamo</td><td class="work">Billing for European indie studios</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- JOIN CTA -->
+  <section id="join" class="cta">
+    <div class="kicker"><span>Final call</span><span class="ln"></span><span>§04</span></div>
+    <h2>If you <em>choose</em> to <span class="hi">build</span>,<br/>there is a home for you here.</h2>
+    <div class="cta-row">
+      <p>Italian Builders is open to every age, every region, every craft. Come share what you're working on — and meet the people you've been missing.</p>
+      <div class="cta-actions">
+        <button class="btn" onclick="alert('Invite flow goes here — Discord, Slack, or a sign-up form.')">Join Italian Builders</button>
+        <button class="btn ghost" onclick="document.getElementById('manifesto').scrollIntoView({behavior:'smooth'})">Read the manifesto</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="col">
+      <span class="big">Italian Builders</span>
+      <span>Costruiamo · a home for people who build</span>
+    </div>
+    <div class="col">
+      <span class="lbl">Sections</span>
+      <span>Manifesto</span>
+      <span>Creed</span>
+      <span>Directory</span>
+    </div>
+    <div class="col">
+      <span class="lbl">Edition</span>
+      <span>Vol. 01 · Estate 2026</span>
+      <span>Ed. Milano</span>
+    </div>
+    <div class="col">
+      <span class="lbl">Built by</span>
+      <span>builders · for builders</span>
+      <span>MMXXVI</span>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+  // Scroll-progress rule down the left gutter
+  const progress = document.querySelector('.progress');
+  const updateProgress = () => {
+    const h = document.documentElement;
+    const max = (h.scrollHeight - h.clientHeight) || 1;
+    const p = Math.min(1, Math.max(0, h.scrollTop / max));
+    progress.style.setProperty('--p', p.toFixed(4));
+  };
+  addEventListener('scroll', updateProgress, { passive: true });
+  addEventListener('resize', updateProgress);
+  updateProgress();
+
+  // Reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
