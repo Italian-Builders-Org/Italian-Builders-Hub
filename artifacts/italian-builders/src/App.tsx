@@ -92,6 +92,45 @@ function Router() {
         <Route path="/hp-2/join" component={Hp2JoinPage} />
         <Route path="/hp-2/privacy" component={Hp2PrivacyPage} />
         <Route path="/hp-2/terms" component={Hp2TermsPage} />
+        <Route path="/hp-2/reset-password" component={ResetPasswordPage} />
+        <Route path="/hp-2/invite/:token" component={InvitePage} />
+        <Route path="/hp-2/dashboard" component={DashboardPage} />
+        <Route
+          path="/hp-2/dashboard/contributions"
+          component={DashboardContributionsPage}
+        />
+        <Route
+          path="/hp-2/dashboard/profile"
+          component={DashboardProfilePage}
+        />
+        <Route
+          path="/hp-2/dashboard/projects"
+          component={DashboardProjectsPage}
+        />
+        <Route
+          path="/hp-2/dashboard/projects/new"
+          component={ProjectEditorPage}
+        />
+        <Route
+          path="/hp-2/dashboard/projects/:id"
+          component={ProjectEditorPage}
+        />
+        <Route path="/hp-2/admin" component={AdminPage} />
+        <Route path="/hp-2/admin/waitlist" component={AdminWaitlistPage} />
+        <Route path="/hp-2/admin/invites" component={AdminInvitesPage} />
+        <Route path="/hp-2/admin/members" component={AdminMembersPage} />
+        <Route
+          path="/hp-2/admin/community-projects"
+          component={AdminCommunityProjectsPage}
+        />
+        <Route
+          path="/hp-2/admin/community-projects/new"
+          component={AdminCommunityProjectEditorPage}
+        />
+        <Route
+          path="/hp-2/admin/community-projects/:id"
+          component={AdminCommunityProjectEditorPage}
+        />
         <Route path="/hp-2" component={Hp2Page} />
         <Route path="/privacy" component={PrivacyPolicyPage} />
         <Route path="/terms" component={TermsOfServicePage} />

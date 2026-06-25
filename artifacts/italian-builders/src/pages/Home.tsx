@@ -212,7 +212,13 @@ function stylePathForTarget(targetStyle: "dark" | "r2") {
       pathname === "/mission" ||
       pathname === "/join" ||
       pathname === "/privacy" ||
-      pathname === "/terms"
+      pathname === "/terms" ||
+      pathname === "/reset-password" ||
+      pathname.startsWith("/invite/") ||
+      pathname === "/dashboard" ||
+      pathname.startsWith("/dashboard/") ||
+      pathname === "/admin" ||
+      pathname.startsWith("/admin/")
     ) {
       return `/hp-2${pathname}${search}${hash}`;
     }

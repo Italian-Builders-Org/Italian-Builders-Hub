@@ -25,7 +25,7 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import { Header, Footer, useTechLabels } from "@/pages/Home";
+import { Header, Footer, StyleSwitch, useTechLabels } from "@/pages/Home";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { defaultAvatarUrl } from "@/lib/assets";
@@ -351,7 +351,101 @@ function telegramDeepLink(handle?: string | null, text?: string) {
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
 
+function useR2PlatformMode() {
+  const [location] = useLocation();
+  return location.startsWith("/hp-2");
+}
+
+function platformPath(path: string, r2: boolean) {
+  if (!r2 || !path.startsWith("/")) return path;
+  if (path.startsWith("/hp-2")) return path;
+  if (
+    path === "/" ||
+    path.startsWith("/dashboard") ||
+    path.startsWith("/admin") ||
+    path.startsWith("/builders") ||
+    path.startsWith("/projects") ||
+    path.startsWith("/community-projects") ||
+    path.startsWith("/os-projects") ||
+    path.startsWith("/pantheon") ||
+    path.startsWith("/mission") ||
+    path.startsWith("/join") ||
+    path.startsWith("/privacy") ||
+    path.startsWith("/terms")
+  ) {
+    return path === "/" ? "/hp-2" : `/hp-2${path}`;
+  }
+  return path;
+}
+
+function usePlatformHref(path: string) {
+  return platformPath(path, useR2PlatformMode());
+}
+
+function usePlatformNavigate() {
+  const [, navigate] = useLocation();
+  const r2 = useR2PlatformMode();
+  return (path: string) => navigate(platformPath(path, r2));
+}
+
+function R2PlatformHeader() {
+  return (
+    <header className="hp2-mast hp2-platform-mast">
+      <a href="/hp-2" className="hp2-logo-link" aria-label="Italian Builders">
+        <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
+      </a>
+      <nav aria-label="R2 member navigation">
+        <a href="/hp-2/dashboard">Dashboard</a>
+        <a href="/hp-2/dashboard/profile">Profile</a>
+        <a href="/hp-2/dashboard/projects">Projects</a>
+        <a href="/hp-2/dashboard/contributions">Contributions</a>
+        <StyleSwitch currentStyle="r2" />
+      </nav>
+    </header>
+  );
+}
+
+function R2PlatformFooter() {
+  return (
+    <footer className="hp2-footer hp2-platform-footer">
+      <div className="hp2-footer-brand">
+        <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
+        <p className="css-text-balance">
+          Member tools for maintaining your profile, projects, and contribution
+          records.
+        </p>
+      </div>
+      <div className="hp2-footer-links">
+        <section aria-label="Member">
+          <h2>Member</h2>
+          <a href="/hp-2/dashboard">Dashboard</a>
+          <a href="/hp-2/dashboard/profile">Profile</a>
+          <a href="/hp-2/dashboard/projects">Projects</a>
+        </section>
+        <section aria-label="Public">
+          <h2>Public</h2>
+          <a href="/hp-2/builders">Builders</a>
+          <a href="/hp-2/projects">Project showcase</a>
+          <a href="/hp-2/community-projects">Community projects</a>
+        </section>
+      </div>
+    </footer>
+  );
+}
+
 function PageShell({ children }: { children: React.ReactNode }) {
+  const r2 = useR2PlatformMode();
+
+  if (r2) {
+    return (
+      <div className="hp2-page hp2-subpage hp2-platform">
+        <R2PlatformHeader />
+        <main>{children}</main>
+        <R2PlatformFooter />
+      </div>
+    );
+  }
+
   return (
     <div className="dark-technical-theme min-h-screen bg-zinc-950">
       <Header />
@@ -1428,7 +1522,7 @@ function SignInPanel({
 
 export function ResetPasswordPage() {
   const { techLabels } = useTechLabels();
-  const [, navigate] = useLocation();
+  const navigate = usePlatformNavigate();
   const [checking, setChecking] = useState(true);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
   const [password, setPassword] = useState("");
@@ -1829,6 +1923,7 @@ export function BuildersDirectoryPage() {
 
 export function BuilderProfilePage() {
   const { techLabels } = useTechLabels();
+  const profileEditHref = usePlatformHref("/dashboard/profile");
   const { user } = useSupabaseSession();
   const params = useParams<{ username: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -2000,7 +2095,7 @@ export function BuilderProfilePage() {
             </div>
             {isOwnProfile && (
               <a
-                href="/dashboard/profile"
+                href={profileEditHref}
                 className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-3 text-xs font-semibold text-zinc-100 hover:border-blue-500/50 hover:text-blue-100"
               >
                 <PencilLine size={14} />
@@ -3642,7 +3737,7 @@ function ProfileForm({
   initialForm?: Partial<ProfileFormState>;
 }) {
   const { techLabels } = useTechLabels();
-  const [, navigate] = useLocation();
+  const navigate = usePlatformNavigate();
   const [form, setForm] = useState(() =>
     mergeProfileFormSeed(profileToForm(initialProfile), initialForm),
   );
@@ -3911,6 +4006,7 @@ function ProfileForm({
 
 export function InvitePage() {
   const { techLabels } = useTechLabels();
+  const dashboardHref = usePlatformHref("/dashboard");
   const params = useParams<{ token: string }>();
   const { user, loading: sessionLoading } = useSupabaseSession();
   const {
@@ -4018,7 +4114,7 @@ export function InvitePage() {
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <a
-                href="/dashboard"
+                href={dashboardHref}
                 className="inline-flex h-10 items-center justify-center rounded-sm bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500"
               >
                 {techLabels ? "OPEN_DASHBOARD" : "Open dashboard"}
@@ -4153,6 +4249,10 @@ function inviteToProfileForm(
 
 export function DashboardPage() {
   const { techLabels } = useTechLabels();
+  const profileHref = usePlatformHref("/dashboard/profile");
+  const projectsHref = usePlatformHref("/dashboard/projects");
+  const contributionsHref = usePlatformHref("/dashboard/contributions");
+  const adminHref = usePlatformHref("/admin");
 
   return (
     <RequireAuth>
@@ -4172,7 +4272,7 @@ export function DashboardPage() {
             }}
           />
           <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-2 md:px-6 xl:grid-cols-5">
-            <a href="/dashboard/profile" className="dt-card p-5">
+            <a href={profileHref} className="dt-card p-5">
               <h2 className="mb-2 font-bold text-zinc-100">
                 {techLabels ? "PROFILE_RECORD" : "Profile"}
               </h2>
@@ -4182,7 +4282,7 @@ export function DashboardPage() {
                   : "Edit public profile and social links."}
               </p>
             </a>
-            <a href="/dashboard/projects" className="dt-card p-5">
+            <a href={projectsHref} className="dt-card p-5">
               <h2 className="mb-2 font-bold text-zinc-100">
                 {techLabels ? "ARTIFACTS" : "Projects"}
               </h2>
@@ -4192,7 +4292,7 @@ export function DashboardPage() {
                   : "Create, edit and publish personal projects."}
               </p>
             </a>
-            <a href="/dashboard/contributions" className="dt-card p-5">
+            <a href={contributionsHref} className="dt-card p-5">
               <h2 className="mb-2 font-bold text-zinc-100">
                 {techLabels ? "CONTRIBUTION_ROLES" : "Contribution roles"}
               </h2>
@@ -4216,7 +4316,7 @@ export function DashboardPage() {
             )}
             {(profile?.platform_role === "admin" ||
               profile?.platform_role === "owner") && (
-              <a href="/admin" className="dt-card p-5">
+              <a href={adminHref} className="dt-card p-5">
                 <h2 className="mb-2 font-bold text-zinc-100">
                   {techLabels ? "ADMIN_CONSOLE" : "Admin"}
                 </h2>
@@ -4504,7 +4604,7 @@ function ProjectEditor({
   project: Project | null;
 }) {
   const { techLabels } = useTechLabels();
-  const [, navigate] = useLocation();
+  const navigate = usePlatformNavigate();
   const [form, setForm] = useState(() => projectToForm(project));
   const [projectCategories, setProjectCategories] = useState<ProjectCategory[]>(
     [],
@@ -5170,6 +5270,7 @@ export function DashboardProjectsPage() {
 
 function DashboardProjectsInner({ userId }: { userId: string }) {
   const { techLabels } = useTechLabels();
+  const newProjectHref = usePlatformHref("/dashboard/projects/new");
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -5212,7 +5313,7 @@ function DashboardProjectsInner({ userId }: { userId: string }) {
         }}
         action={
           <a
-            href="/dashboard/projects/new"
+            href={newProjectHref}
             className="inline-flex h-10 items-center gap-2 rounded-sm bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500"
           >
             <Plus size={16} /> {techLabels ? "NEW_ARTIFACT" : "New project"}
@@ -5288,6 +5389,8 @@ export function DashboardContributionsPage() {
 
 function DashboardContributionsInner({ userId }: { userId: string }) {
   const { techLabels } = useTechLabels();
+  const projectsHref = usePlatformHref("/dashboard/projects");
+  const communityProjectsHref = usePlatformHref("/community-projects");
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
   const [communityMembers, setCommunityMembers] = useState<
     CommunityProjectMember[]
@@ -5359,7 +5462,7 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
                   : "No project invitations yet. A project owner needs to add your handle from the project editor before you can describe your role."
               }
               emptyAction={
-                <InlineActionLink href="/dashboard/projects">
+                <InlineActionLink href={projectsHref}>
                   {techLabels ? "OPEN_ARTIFACTS" : "Open your projects"}
                 </InlineActionLink>
               }
@@ -5403,7 +5506,7 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
                   : "No community project assignments yet. An admin can assign you from a community project."
               }
               emptyAction={
-                <InlineActionLink href="/community-projects">
+                <InlineActionLink href={communityProjectsHref}>
                   {techLabels
                     ? "BROWSE_WORKSTREAMS"
                     : "Browse community projects"}
@@ -5661,6 +5764,10 @@ function ProjectEditorLoader({
 
 export function AdminPage() {
   const { techLabels } = useTechLabels();
+  const waitlistHref = usePlatformHref("/admin/waitlist");
+  const invitesHref = usePlatformHref("/admin/invites");
+  const membersHref = usePlatformHref("/admin/members");
+  const communityProjectsHref = usePlatformHref("/admin/community-projects");
 
   return (
     <RequireAuth admin>
@@ -5679,7 +5786,7 @@ export function AdminPage() {
             }}
           />
           <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-2 md:px-6 xl:grid-cols-4">
-            <a href="/admin/waitlist" className="dt-card p-5">
+            <a href={waitlistHref} className="dt-card p-5">
               <UserPlus className="mb-4 text-blue-400" size={20} />
               <h2 className="mb-2 font-bold text-zinc-100">
                 {techLabels ? "WAITLIST_QUEUE" : "Waitlist"}
@@ -5690,7 +5797,7 @@ export function AdminPage() {
                   : "Review access requests and activate people from the waitlist."}
               </p>
             </a>
-            <a href="/admin/invites" className="dt-card p-5">
+            <a href={invitesHref} className="dt-card p-5">
               <UserPlus className="mb-4 text-blue-400" size={20} />
               <h2 className="mb-2 font-bold text-zinc-100">
                 {techLabels ? "INVITE_TOKENS" : "Invites"}
@@ -5701,7 +5808,7 @@ export function AdminPage() {
                   : "Create, copy and revoke invite links."}
               </p>
             </a>
-            <a href="/admin/members" className="dt-card p-5">
+            <a href={membersHref} className="dt-card p-5">
               <Search className="mb-4 text-blue-400" size={20} />
               <h2 className="mb-2 font-bold text-zinc-100">
                 {techLabels ? "MEMBER_RECORDS" : "Members"}
@@ -5712,7 +5819,7 @@ export function AdminPage() {
                   : "Review profiles and open public pages."}
               </p>
             </a>
-            <a href="/admin/community-projects" className="dt-card p-5">
+            <a href={communityProjectsHref} className="dt-card p-5">
               <Github className="mb-4 text-blue-400" size={20} />
               <h2 className="mb-2 font-bold text-zinc-100">
                 {techLabels ? "SHARED_WORKSTREAMS" : "Community projects"}
@@ -6716,6 +6823,7 @@ export function AdminCommunityProjectsPage() {
 
 function AdminCommunityProjectsInner() {
   const { techLabels } = useTechLabels();
+  const newCommunityProjectHref = usePlatformHref("/admin/community-projects/new");
   const [projects, setProjects] = useState<CommunityProject[]>([]);
 
   async function load() {
@@ -6755,7 +6863,7 @@ function AdminCommunityProjectsInner() {
         }}
         action={
           <a
-            href="/admin/community-projects/new"
+            href={newCommunityProjectHref}
             className="inline-flex h-10 items-center gap-2 rounded-sm bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500"
           >
             <Plus size={16} /> {techLabels ? "NEW_WORKSTREAM" : "New project"}
@@ -6907,7 +7015,7 @@ function CommunityProjectEditor({
   project: CommunityProject | null;
 }) {
   const { techLabels } = useTechLabels();
-  const [, navigate] = useLocation();
+  const navigate = usePlatformNavigate();
   const [form, setForm] = useState(() => communityProjectToForm(project));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
