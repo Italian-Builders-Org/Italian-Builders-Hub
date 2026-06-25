@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Switch as ToggleSwitch } from "@/components/ui/switch";
 import {
   Menu,
   X,
@@ -194,23 +193,92 @@ export function useTechLabels() {
   return React.useContext(TechLabelsContext);
 }
 
-function TechLabelToggle({ compact = false }: { compact?: boolean }) {
-  const { techLabels, setTechLabels } = useTechLabels();
+function stylePathForTarget(targetStyle: "dark" | "r2") {
+  if (typeof window === "undefined") return targetStyle === "r2" ? "/hp-2" : "/";
+
+  const { pathname, search, hash } = window.location;
+  if (targetStyle === "r2") {
+    if (pathname === "/") return `/hp-2${search}${hash}`;
+    if (pathname.startsWith("/hp-2")) return `${pathname}${search}${hash}`;
+    if (
+      pathname === "/builders" ||
+      pathname.startsWith("/builders/") ||
+      pathname === "/projects" ||
+      pathname.startsWith("/projects/") ||
+      pathname === "/community-projects" ||
+      pathname.startsWith("/community-projects/") ||
+      pathname === "/os-projects" ||
+      pathname === "/pantheon" ||
+      pathname === "/mission" ||
+      pathname === "/join" ||
+      pathname === "/privacy" ||
+      pathname === "/terms"
+    ) {
+      return `/hp-2${pathname}${search}${hash}`;
+    }
+    return `/hp-2${search}${hash}`;
+  }
+
+  if (pathname === "/hp-2") return `/${search}${hash}`;
+  if (pathname.startsWith("/hp-2/")) {
+    return `${pathname.replace(/^\/hp-2/, "")}${search}${hash}`;
+  }
+  return `${pathname}${search}${hash}`;
+}
+
+export function StyleSwitch({
+  currentStyle = "dark",
+  compact = false,
+}: {
+  currentStyle?: "dark" | "r2";
+  compact?: boolean;
+}) {
+  const darkHref = stylePathForTarget("dark");
+  const r2Href = stylePathForTarget("r2");
+  const isR2 = currentStyle === "r2";
 
   return (
-    <label
-      className={`flex items-center gap-2 text-zinc-400 ${compact ? "justify-between" : ""}`}
+    <div
+      className={
+        isR2
+          ? `hp2-style-switch ${compact ? "is-compact" : ""}`
+          : `flex items-center gap-2 text-zinc-400 ${compact ? "justify-between" : ""}`
+      }
+      aria-label="Style selector"
     >
-      <span className="text-[10px] font-mono uppercase tracking-wider">
-        {techLabels ? "Community labels" : "Friendly labels"}
+      <span
+        className={
+          isR2
+            ? "hp2-style-switch-label"
+            : "text-[10px] font-mono uppercase tracking-wider"
+        }
+      >
+        Style
       </span>
-      <ToggleSwitch
-        checked={techLabels}
-        onCheckedChange={setTechLabels}
-        aria-label="Toggle community labels"
-        className="h-4 w-8 border border-zinc-700 bg-zinc-800 data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-zinc-800"
-      />
-    </label>
+      <span
+        className={
+          isR2
+            ? "hp2-style-switch-options"
+            : "inline-flex overflow-hidden rounded-sm border border-zinc-800 bg-zinc-950 text-[10px] font-mono font-semibold uppercase"
+        }
+      >
+        {isR2 ? (
+          <a href={darkHref}>Dark</a>
+        ) : (
+          <span className="bg-zinc-800 px-2 py-1 text-zinc-100">Dark</span>
+        )}
+        {isR2 ? (
+          <span>R2</span>
+        ) : (
+          <a
+            href={r2Href}
+            className="px-2 py-1 text-zinc-500 transition-colors hover:text-zinc-100"
+          >
+            R2
+          </a>
+        )}
+      </span>
+    </div>
   );
 }
 
@@ -507,7 +575,7 @@ export function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <TechLabelToggle />
+          <StyleSwitch />
           <HeaderAuthControls />
         </div>
 
@@ -554,7 +622,7 @@ export function Header() {
             </a>
           </nav>
           <div className="pt-4 border-t border-zinc-800 flex flex-col gap-3">
-            <TechLabelToggle compact />
+            <StyleSwitch compact />
             <HeaderAuthControls
               mobile
               onNavigate={() => setMobileMenuOpen(false)}
@@ -2340,7 +2408,7 @@ export function Footer() {
                 {techLabels ? "MEMBER_LOGIN" : "Builders login"}
               </a>
             )}
-            <TechLabelToggle />
+            <StyleSwitch />
           </div>
         </div>
       </div>

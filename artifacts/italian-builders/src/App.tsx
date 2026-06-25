@@ -13,6 +13,20 @@ import JoinPage from "@/pages/Join";
 import MissionPage from "@/pages/Mission";
 import PioneersPage from "@/pages/Pioneers";
 import Hp2Page from "@/pages/Hp2";
+import {
+  Hp2BuilderProfilePage,
+  Hp2BuildersPage,
+  Hp2CommunityProjectDetailPage,
+  Hp2CommunityProjectsPage,
+  Hp2JoinPage,
+  Hp2MissionPage,
+  Hp2OpenSourcePage,
+  Hp2PantheonPage,
+  Hp2PrivacyPage,
+  Hp2ProjectDetailPage,
+  Hp2ProjectsPage,
+  Hp2TermsPage,
+} from "@/pages/Hp2Subpages";
 import { PrivacyPolicyPage, TermsOfServicePage } from "@/pages/Legal";
 import { TechLabelProvider } from "@/pages/Home";
 import {
@@ -60,6 +74,24 @@ function Router() {
         <Route path="/os-projects" component={OpenSourcePage} />
         <Route path="/pantheon" component={PioneersPage} />
         <Route path="/mission" component={MissionPage} />
+        <Route path="/hp-2/builders/:username" component={Hp2BuilderProfilePage} />
+        <Route path="/hp-2/builders" component={Hp2BuildersPage} />
+        <Route path="/hp-2/projects/:slug" component={Hp2ProjectDetailPage} />
+        <Route path="/hp-2/projects" component={Hp2ProjectsPage} />
+        <Route
+          path="/hp-2/community-projects/:slug"
+          component={Hp2CommunityProjectDetailPage}
+        />
+        <Route
+          path="/hp-2/community-projects"
+          component={Hp2CommunityProjectsPage}
+        />
+        <Route path="/hp-2/os-projects" component={Hp2OpenSourcePage} />
+        <Route path="/hp-2/pantheon" component={Hp2PantheonPage} />
+        <Route path="/hp-2/mission" component={Hp2MissionPage} />
+        <Route path="/hp-2/join" component={Hp2JoinPage} />
+        <Route path="/hp-2/privacy" component={Hp2PrivacyPage} />
+        <Route path="/hp-2/terms" component={Hp2TermsPage} />
         <Route path="/hp-2" component={Hp2Page} />
         <Route path="/privacy" component={PrivacyPolicyPage} />
         <Route path="/terms" component={TermsOfServicePage} />

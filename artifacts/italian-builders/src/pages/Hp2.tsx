@@ -16,7 +16,7 @@ import {
   useListBuilders,
   useListProjects,
 } from "@workspace/api-client-react";
-import type { HomeMapBuilder } from "@/pages/Home";
+import { StyleSwitch, type HomeMapBuilder } from "@/pages/Home";
 import {
   STATIC_BUILDERS,
   STATIC_DIRECTORY_STATS,
@@ -90,34 +90,34 @@ const hp2MapPinRing = "rgba(27, 138, 69, 0.46)";
 let hp2TurnstileScriptPromise: Promise<void> | null = null;
 
 const hp2PrimaryLinks = [
-  { href: "/builders", label: "Builders" },
-  { href: "/projects", label: "Projects" },
-  { href: "/community-projects", label: "Community projects" },
-  { href: "/pantheon", label: "Pantheon" },
+  { href: "/hp-2/builders", label: "Builders" },
+  { href: "/hp-2/projects", label: "Projects" },
+  { href: "/hp-2/community-projects", label: "Community projects" },
+  { href: "/hp-2/pantheon", label: "Pantheon" },
 ];
 
 const hp2FooterGroups = [
   {
     title: "Platform",
     links: [
-      { href: "/builders", label: "Directory" },
-      { href: "/projects", label: "Showcase" },
-      { href: "/community-projects", label: "Community projects" },
+      { href: "/hp-2/builders", label: "Directory" },
+      { href: "/hp-2/projects", label: "Showcase" },
+      { href: "/hp-2/community-projects", label: "Community projects" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { href: "/mission", label: "Mission" },
-      { href: "/pantheon", label: "Pantheon" },
-      { href: "/join", label: "Join waitlist" },
+      { href: "/hp-2/mission", label: "Mission" },
+      { href: "/hp-2/pantheon", label: "Pantheon" },
+      { href: "/hp-2/join", label: "Join waitlist" },
     ],
   },
   {
     title: "Legal",
     links: [
-      { href: "/privacy", label: "Privacy policy" },
-      { href: "/terms", label: "Terms of service" },
+      { href: "/hp-2/privacy", label: "Privacy policy" },
+      { href: "/hp-2/terms", label: "Terms of service" },
       { href: "mailto:info@italianbuilders.co", label: "Contact us" },
     ],
   },
@@ -775,7 +775,7 @@ function Hp2TurnstileChallenge({
   return <div ref={containerRef} className="hp2-turnstile" />;
 }
 
-function Hp2DirectoryJoinForm() {
+export function Hp2DirectoryJoinForm() {
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -984,7 +984,7 @@ export default function Hp2Page() {
   return (
     <div className="hp2-page">
       <header className="hp2-mast">
-        <a href="/" className="hp2-logo-link" aria-label="Italian Builders">
+        <a href="/hp-2" className="hp2-logo-link" aria-label="Italian Builders">
           <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
         </a>
         <nav aria-label="Hidden homepage preview sections">
@@ -996,6 +996,7 @@ export default function Hp2Page() {
           <a href="#manifesto">Manifesto</a>
           <a href="#directory">Directory</a>
           <a href="#join">Join</a>
+          <StyleSwitch currentStyle="r2" />
         </nav>
       </header>
 
