@@ -6,6 +6,7 @@ const {
   absoluteUrl,
   escapeHtml,
   fetchPublicProfile,
+  jsonLdScriptContent,
   normalizeUsername,
   profileDescription,
   profileTitle,
@@ -113,7 +114,7 @@ function injectMetadata(html, metadata) {
     `<meta name="twitter:description" content="${escapeHtml(metadata.description)}" />`,
     `<meta name="twitter:image" content="${escapeHtml(metadata.image)}" />`,
     `<meta name="twitter:image:alt" content="${escapeHtml(metadata.imageAlt)}" />`,
-    `<script type="application/ld+json">${JSON.stringify(schema)}</script>`,
+    `<script type="application/ld+json">${jsonLdScriptContent(schema)}</script>`,
   ].join("\n    ");
 
   return removeManagedMetadata(html).replace(
@@ -156,4 +157,9 @@ module.exports = async function handler(req, res) {
     profile ? "s-maxage=300, stale-while-revalidate=86400" : "no-store",
   );
   res.status(200).send(html);
+};
+
+module.exports._internal = {
+  injectMetadata,
+  removeManagedMetadata,
 };

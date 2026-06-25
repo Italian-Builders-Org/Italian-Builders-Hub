@@ -26,6 +26,29 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function jsonLdScriptContent(value) {
+  const json = JSON.stringify(value);
+  return (json === undefined ? "null" : json).replace(
+    /[<>&\u2028\u2029]/g,
+    (char) => {
+      switch (char) {
+        case "<":
+          return "\\u003c";
+        case ">":
+          return "\\u003e";
+        case "&":
+          return "\\u0026";
+        case "\u2028":
+          return "\\u2028";
+        case "\u2029":
+          return "\\u2029";
+        default:
+          return char;
+      }
+    },
+  );
+}
+
 function normalizeUsername(value) {
   const username = compactText(value).toLowerCase();
   return /^[a-z0-9][a-z0-9_-]{2,31}$/.test(username) ? username : null;
@@ -173,6 +196,7 @@ module.exports = {
   fetchPublicProfileProjects,
   initials,
   isHttpUrl,
+  jsonLdScriptContent,
   normalizeUsername,
   profileDescription,
   profileRoleLine,
