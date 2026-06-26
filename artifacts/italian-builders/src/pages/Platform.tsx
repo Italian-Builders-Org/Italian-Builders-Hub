@@ -12,6 +12,7 @@ import {
   Globe,
   Linkedin,
   Lock,
+  LogOut,
   MessageCircle,
   Monitor,
   PencilLine,
@@ -387,13 +388,19 @@ function usePlatformNavigate() {
   return (path: string) => navigate(platformPath(path, r2));
 }
 
-function R2PlatformHeader({
-  isAdmin,
-  isSignedIn,
-}: {
-  isAdmin: boolean;
-  isSignedIn: boolean;
-}) {
+function R2PlatformHeader({ isAdmin }: { isAdmin: boolean }) {
+  const { user, loading } = useSupabaseSession();
+  const { profile } = useMyProfile(user?.id);
+
+  async function signOut() {
+    await supabase?.auth.signOut();
+    window.location.href = "/hp-2";
+  }
+
+  const profileHref = profile?.username
+    ? `/hp-2/builders/${profile.username}`
+    : "/hp-2/dashboard/profile";
+
   return (
     <header className="hp2-mast hp2-platform-mast">
       <a href="/hp-2" className="hp2-logo-link" aria-label="Italian Builders">
@@ -404,10 +411,19 @@ function R2PlatformHeader({
         <a href="/hp-2/projects">Projects</a>
         <a href="/hp-2/community-projects">Community</a>
         <a href="/hp-2/pantheon">Pantheon</a>
-        {isSignedIn ? (
+        {loading ? (
+          <span className="hp2-auth-placeholder" />
+        ) : user ? (
           <>
+            <a href={profileHref} className="hp2-profile-link">
+              <img src={profile?.avatar_url || defaultAvatarUrl} alt="" />
+              Profile
+            </a>
             <a href="/hp-2/dashboard">Dashboard</a>
             {isAdmin && <a href="/hp-2/admin">Admin</a>}
+            <button type="button" onClick={signOut}>
+              <LogOut size={13} /> Sign out
+            </button>
           </>
         ) : (
           <>
@@ -418,6 +434,57 @@ function R2PlatformHeader({
         <StyleSwitch currentStyle="r2" />
       </nav>
     </header>
+  );
+}
+
+function platformBreadcrumbLabel(segment: string) {
+  const labels: Record<string, string> = {
+    admin: "Admin",
+    builders: "Builders",
+    "community-projects": "Community projects",
+    contributions: "Contributions",
+    dashboard: "Dashboard",
+    invites: "Invites",
+    login: "Login",
+    members: "Members",
+    pantheon: "Pantheon",
+    profile: "Profile",
+    projects: "Projects",
+    waitlist: "Waitlist",
+  };
+
+  return (
+    labels[segment] ??
+    decodeURIComponent(segment)
+      .replace(/[-_]+/g, " ")
+      .replace(/\b\w/g, (character) => character.toUpperCase())
+  );
+}
+
+function R2PlatformBreadcrumbBar() {
+  const [location] = useLocation();
+  const pathname = location.split(/[?#]/)[0].replace(/\/+$/, "") || "/hp-2";
+
+  if (pathname === "/hp-2") return null;
+
+  const segments = pathname.replace(/^\/hp-2\/?/, "").split("/").filter(Boolean);
+
+  return (
+    <div className="hp2-breadcrumbs">
+      <a href="/hp-2">Home</a>
+      {segments.map((segment, index) => {
+        const href = `/hp-2/${segments.slice(0, index + 1).join("/")}`;
+        const isCurrent = index === segments.length - 1;
+        const label = platformBreadcrumbLabel(segment);
+
+        return (
+          <span key={href}>
+            <span aria-hidden="true">/</span>
+            {isCurrent ? <strong>{label}</strong> : <a href={href}>{label}</a>}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -470,11 +537,11 @@ function R2PlatformFooter({ isAdmin }: { isAdmin: boolean }) {
 function R2PlatformShell({ children }: { children: React.ReactNode }) {
   const { user } = useSupabaseSession();
   const { isAdmin } = useMyProfile(user?.id);
-  const isSignedIn = Boolean(user);
 
   return (
     <div className="hp2-page hp2-subpage hp2-platform">
-      <R2PlatformHeader isAdmin={isAdmin} isSignedIn={isSignedIn} />
+      <R2PlatformHeader isAdmin={isAdmin} />
+      <R2PlatformBreadcrumbBar />
       <main>{children}</main>
       <R2PlatformFooter isAdmin={isAdmin} />
     </div>

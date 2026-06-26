@@ -7,7 +7,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from "react";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, LogOut, MapPin } from "lucide-react";
 import {
   getGetDirectoryStatsQueryKey,
   getListBuildersQueryKey,
@@ -148,6 +148,76 @@ const hp2Roles = [
   "Supporter",
   "Other",
 ];
+
+type R2AuthProfile = Pick<
+  Profile,
+  "username" | "full_name" | "avatar_url" | "platform_role"
+>;
+
+export function R2HeaderAuthControls() {
+  const { user, loading } = useSupabaseSession();
+  const [profile, setProfile] = useState<R2AuthProfile | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProfile() {
+      if (!supabase || !user) {
+        setProfile(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("username, full_name, avatar_url, platform_role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!cancelled) setProfile((data as R2AuthProfile | null) ?? null);
+    }
+
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  async function signOut() {
+    await supabase?.auth.signOut();
+    window.location.href = "/hp-2";
+  }
+
+  if (loading) return <span className="hp2-auth-placeholder" />;
+
+  if (!user) {
+    return (
+      <span className="hp2-auth-actions">
+        <a href="/hp-2/login">Login</a>
+        <a href="/hp-2/join">Join</a>
+      </span>
+    );
+  }
+
+  const isAdmin =
+    profile?.platform_role === "admin" || profile?.platform_role === "owner";
+  const profileHref = profile?.username
+    ? `/hp-2/builders/${profile.username}`
+    : "/hp-2/dashboard/profile";
+
+  return (
+    <span className="hp2-auth-actions">
+      <a href={profileHref} className="hp2-profile-link">
+        <img src={profile?.avatar_url || defaultAvatarUrl} alt="" />
+        Profile
+      </a>
+      <a href="/hp-2/dashboard">Dashboard</a>
+      {isAdmin && <a href="/hp-2/admin">Admin</a>}
+      <button type="button" onClick={signOut}>
+        <LogOut size={13} /> Sign out
+      </button>
+    </span>
+  );
+}
 
 declare global {
   interface Window {
@@ -964,7 +1034,6 @@ export function Hp2DirectoryJoinForm() {
 
 export default function Hp2Page() {
   const { builders, builderCount, cityCount, projectCount } = useHp2Content();
-  const { user } = useSupabaseSession();
   const [activeBuilderId, setActiveBuilderId] = useState<
     string | number | null
   >(null);
@@ -998,10 +1067,7 @@ export default function Hp2Page() {
               {link.label}
             </a>
           ))}
-          <a href={user ? "/hp-2/dashboard" : "/hp-2/login"}>
-            {user ? "Dashboard" : "Login"}
-          </a>
-          <a href="/hp-2/join">Join</a>
+          <R2HeaderAuthControls />
           <StyleSwitch currentStyle="r2" />
         </nav>
       </header>

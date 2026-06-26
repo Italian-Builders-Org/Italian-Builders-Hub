@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "wouter";
+import { useLocation, useParams } from "wouter";
 import {
   ArrowRight,
   ExternalLink,
@@ -8,7 +8,7 @@ import {
   MapPin,
   Search,
 } from "lucide-react";
-import { Hp2DirectoryJoinForm } from "@/pages/Hp2";
+import { Hp2DirectoryJoinForm, R2HeaderAuthControls } from "@/pages/Hp2";
 import { StyleSwitch } from "@/pages/Home";
 import {
   PIONEERS,
@@ -21,7 +21,7 @@ import {
   hasItems,
 } from "@/data/directory";
 import { defaultAvatarUrl } from "@/lib/assets";
-import { supabase, useSupabaseSession } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import type {
   CommunityProject,
   Profile,
@@ -55,8 +55,6 @@ const missionParagraphs = [
 ];
 
 function R2Shell({ children }: { children: React.ReactNode }) {
-  const { user } = useSupabaseSession();
-
   return (
     <div className="hp2-page hp2-subpage">
       <header className="hp2-mast">
@@ -69,15 +67,42 @@ function R2Shell({ children }: { children: React.ReactNode }) {
               {link.label}
             </a>
           ))}
-          <a href={user ? "/hp-2/dashboard" : "/hp-2/login"}>
-            {user ? "Dashboard" : "Login"}
-          </a>
-          <a href="/hp-2/join">Join</a>
+          <R2HeaderAuthControls />
           <StyleSwitch currentStyle="r2" />
         </nav>
       </header>
+      <R2BreadcrumbBar />
       <main>{children}</main>
       <R2Footer />
+    </div>
+  );
+}
+
+function R2BreadcrumbBar() {
+  const [location] = useLocation();
+  const pathname = location.split(/[?#]/)[0].replace(/\/+$/, "") || "/hp-2";
+
+  if (pathname === "/hp-2") return null;
+
+  const segments = pathname.replace(/^\/hp-2\/?/, "").split("/").filter(Boolean);
+
+  return (
+    <div className="hp2-breadcrumbs">
+      <a href="/hp-2">Home</a>
+      {segments.map((segment, index) => {
+        const href = `/hp-2/${segments.slice(0, index + 1).join("/")}`;
+        const label = decodeURIComponent(segment)
+          .replace(/[-_]+/g, " ")
+          .replace(/\b\w/g, (character) => character.toUpperCase());
+        const isCurrent = index === segments.length - 1;
+
+        return (
+          <span key={href}>
+            <span aria-hidden="true">/</span>
+            {isCurrent ? <strong>{label}</strong> : <a href={href}>{label}</a>}
+          </span>
+        );
+      })}
     </div>
   );
 }
