@@ -1486,7 +1486,7 @@
 .hp2-platform button[class*="bg-red"],
 .hp2-platform button[class*="border-red"] {
   border-color: var(--hp2-red) !important;
-  background: transparent !important;
+  background: color-mix(in oklch, var(--hp2-paper) 90%, var(--hp2-red) 10%) !important;
   color: var(--hp2-red) !important;
 }
 
@@ -1499,6 +1499,14 @@
 .hp2-platform button:disabled {
   cursor: not-allowed;
   opacity: 0.48 !important;
+}
+
+.hp2-platform button[class*="bg-red"]:disabled,
+.hp2-platform button[class*="border-red"]:disabled {
+  border-color: color-mix(in oklch, var(--hp2-red) 78%, var(--hp2-ink) 22%) !important;
+  background: color-mix(in oklch, var(--hp2-paper) 84%, var(--hp2-red) 16%) !important;
+  color: color-mix(in oklch, var(--hp2-red) 82%, var(--hp2-ink) 18%) !important;
+  opacity: 1 !important;
 }
 
 .hp2-platform-mast .hp2-style-switch {
