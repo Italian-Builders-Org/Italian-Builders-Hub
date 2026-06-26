@@ -387,24 +387,28 @@ function usePlatformNavigate() {
   return (path: string) => navigate(platformPath(path, r2));
 }
 
-function R2PlatformHeader() {
+function R2PlatformHeader({ isAdmin }: { isAdmin: boolean }) {
   return (
     <header className="hp2-mast hp2-platform-mast">
       <a href="/hp-2" className="hp2-logo-link" aria-label="Italian Builders">
         <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
       </a>
       <nav aria-label="R2 member navigation">
+        <a href="/hp-2/builders">Builders</a>
+        <a href="/hp-2/projects">Projects</a>
+        <a href="/hp-2/community-projects">Community</a>
         <a href="/hp-2/dashboard">Dashboard</a>
         <a href="/hp-2/dashboard/profile">Profile</a>
-        <a href="/hp-2/dashboard/projects">Projects</a>
+        <a href="/hp-2/dashboard/projects">My projects</a>
         <a href="/hp-2/dashboard/contributions">Contributions</a>
+        {isAdmin && <a href="/hp-2/admin">Admin</a>}
         <StyleSwitch currentStyle="r2" />
       </nav>
     </header>
   );
 }
 
-function R2PlatformFooter() {
+function R2PlatformFooter({ isAdmin }: { isAdmin: boolean }) {
   return (
     <footer className="hp2-footer hp2-platform-footer">
       <div className="hp2-footer-brand">
@@ -419,16 +423,47 @@ function R2PlatformFooter() {
           <h2>Member</h2>
           <a href="/hp-2/dashboard">Dashboard</a>
           <a href="/hp-2/dashboard/profile">Profile</a>
-          <a href="/hp-2/dashboard/projects">Projects</a>
+          <a href="/hp-2/dashboard/projects">My projects</a>
+          <a href="/hp-2/dashboard/contributions">Contributions</a>
         </section>
+        {isAdmin && (
+          <section aria-label="Admin">
+            <h2>Admin</h2>
+            <a href="/hp-2/admin">Admin home</a>
+            <a href="/hp-2/admin/waitlist">Waitlist</a>
+            <a href="/hp-2/admin/invites">Invites</a>
+            <a href="/hp-2/admin/members">Members</a>
+            <a href="/hp-2/admin/community-projects">Community projects</a>
+          </section>
+        )}
         <section aria-label="Public">
           <h2>Public</h2>
           <a href="/hp-2/builders">Builders</a>
           <a href="/hp-2/projects">Project showcase</a>
           <a href="/hp-2/community-projects">Community projects</a>
+          <a href="/hp-2/pantheon">Pantheon</a>
+          <a href="/hp-2/mission">Mission</a>
+        </section>
+        <section aria-label="Legal">
+          <h2>Legal</h2>
+          <a href="/hp-2/privacy">Privacy policy</a>
+          <a href="/hp-2/terms">Terms of service</a>
         </section>
       </div>
     </footer>
+  );
+}
+
+function R2PlatformShell({ children }: { children: React.ReactNode }) {
+  const { user } = useSupabaseSession();
+  const { isAdmin } = useMyProfile(user?.id);
+
+  return (
+    <div className="hp2-page hp2-subpage hp2-platform">
+      <R2PlatformHeader isAdmin={isAdmin} />
+      <main>{children}</main>
+      <R2PlatformFooter isAdmin={isAdmin} />
+    </div>
   );
 }
 
@@ -436,13 +471,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
   const r2 = useR2PlatformMode();
 
   if (r2) {
-    return (
-      <div className="hp2-page hp2-subpage hp2-platform">
-        <R2PlatformHeader />
-        <main>{children}</main>
-        <R2PlatformFooter />
-      </div>
-    );
+    return <R2PlatformShell>{children}</R2PlatformShell>;
   }
 
   return (
@@ -1303,6 +1332,7 @@ function SignInPanel({
   invitedEmail?: string | null;
 }) {
   const { techLabels } = useTechLabels();
+  const joinHref = usePlatformHref("/join");
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -1498,7 +1528,7 @@ function SignInPanel({
             </Button>
           ) : (
             <a
-              href="/join"
+              href={joinHref}
               className="inline-flex h-10 items-center justify-center rounded-sm border border-zinc-800 px-4 text-sm text-zinc-200 hover:bg-zinc-900"
             >
               {techLabels ? "REQUEST_ACCESS" : "Request access"}
@@ -4252,6 +4282,7 @@ export function DashboardPage() {
   const projectsHref = usePlatformHref("/dashboard/projects");
   const contributionsHref = usePlatformHref("/dashboard/contributions");
   const adminHref = usePlatformHref("/admin");
+  const buildersHref = usePlatformHref("/builders");
 
   return (
     <RequireAuth>
@@ -4302,7 +4333,10 @@ export function DashboardPage() {
               </p>
             </a>
             {profile?.username && (
-              <a href={`/builders/${profile.username}`} className="dt-card p-5">
+              <a
+                href={`${buildersHref}/${profile.username}`}
+                className="dt-card p-5"
+              >
                 <h2 className="mb-2 font-bold text-zinc-100">
                   {techLabels ? "PUBLIC_RENDER" : "Public page"}
                 </h2>
@@ -4448,6 +4482,7 @@ function DeleteAccountPanel({ email }: { email?: string | null }) {
 
 export function DashboardProfilePage() {
   const { techLabels } = useTechLabels();
+  const joinHref = usePlatformHref("/join");
 
   return (
     <RequireAuth>
@@ -4482,7 +4517,7 @@ export function DashboardProfilePage() {
                     : "Your auth account exists, but this platform is invite-only. Open your invite link to complete approval and create your profile."}
                 </p>
                 <a
-                  href="/join"
+                  href={joinHref}
                   className="inline-flex h-10 items-center rounded-sm bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500"
                 >
                   {techLabels ? "REQUEST_ACCESS" : "Request access"}
@@ -5270,6 +5305,7 @@ export function DashboardProjectsPage() {
 function DashboardProjectsInner({ userId }: { userId: string }) {
   const { techLabels } = useTechLabels();
   const newProjectHref = usePlatformHref("/dashboard/projects/new");
+  const projectsHref = usePlatformHref("/dashboard/projects");
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -5355,7 +5391,7 @@ function DashboardProjectsInner({ userId }: { userId: string }) {
                 </div>
                 <div className="flex gap-2">
                   <a
-                    href={`/dashboard/projects/${project.id}`}
+                    href={`${projectsHref}/${project.id}`}
                     className="inline-flex h-9 items-center rounded-sm border border-zinc-800 px-3 text-sm text-zinc-200 hover:bg-zinc-900"
                   >
                     {techLabels ? "EDIT" : "Edit"}
@@ -6608,6 +6644,7 @@ function AdminMembersInner({
   currentPlatformRole: Profile["platform_role"];
 }) {
   const { techLabels } = useTechLabels();
+  const buildersHref = usePlatformHref("/builders");
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -6752,7 +6789,7 @@ function AdminMembersInner({
                   </div>
                   <div className="flex flex-wrap gap-2 md:justify-end">
                     <a
-                      href={`/builders/${profile.username}`}
+                      href={`${buildersHref}/${profile.username}`}
                       className="inline-flex h-9 items-center rounded-sm border border-zinc-800 px-3 text-sm text-zinc-200 hover:bg-zinc-900"
                     >
                       {techLabels ? "PUBLIC_RENDER" : "Public profile"}
@@ -6823,6 +6860,7 @@ export function AdminCommunityProjectsPage() {
 function AdminCommunityProjectsInner() {
   const { techLabels } = useTechLabels();
   const newCommunityProjectHref = usePlatformHref("/admin/community-projects/new");
+  const communityProjectsHref = usePlatformHref("/admin/community-projects");
   const [projects, setProjects] = useState<CommunityProject[]>([]);
 
   async function load() {
@@ -6886,7 +6924,7 @@ function AdminCommunityProjectsInner() {
               </div>
               <div className="flex gap-2">
                 <a
-                  href={`/admin/community-projects/${project.id}`}
+                  href={`${communityProjectsHref}/${project.id}`}
                   className="inline-flex h-9 items-center rounded-sm border border-zinc-800 px-3 text-sm text-zinc-200 hover:bg-zinc-900"
                 >
                   {techLabels ? "EDIT" : "Edit"}

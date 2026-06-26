@@ -133,7 +133,7 @@ const hp2FooterGroups = [
         href: "https://github.com/Italian-Builders-Org",
         label: "GitHub",
       },
-      { href: "/dashboard", label: "Builders login" },
+      { href: "/hp-2/dashboard", label: "Builders login" },
     ],
   },
 ];

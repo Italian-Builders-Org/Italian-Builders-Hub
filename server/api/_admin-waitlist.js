@@ -99,9 +99,12 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+const TELEGRAM_COMMUNITY_URL = "https://t.me/+soxY4hNPmxdhYjRk";
+
 function acceptedInviteEmailHtml({ name, actionLink }) {
   const safeName = escapeHtml(name || "there");
   const safeActionLink = escapeHtml(actionLink);
+  const safeTelegramCommunityUrl = escapeHtml(TELEGRAM_COMMUNITY_URL);
 
   return `<!doctype html>
 <html>
@@ -126,6 +129,10 @@ function acceptedInviteEmailHtml({ name, actionLink }) {
                 </ul>
                 <p style="margin:0 0 24px;">
                   <a href="${safeActionLink}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;padding:13px 18px;font-weight:750;">Create your profile</a>
+                </p>
+                <p style="margin:0 0 12px;color:#d4d4d8;font-size:16px;line-height:1.55;">Also join the Telegram community so you can meet the other builders, follow updates, and start conversations right away.</p>
+                <p style="margin:0 0 24px;">
+                  <a href="${safeTelegramCommunityUrl}" style="display:inline-block;background:#18181b;color:#f8fafc;text-decoration:none;border:1px solid #3f3f46;border-radius:6px;padding:12px 16px;font-weight:750;">Join the Telegram community</a>
                 </p>
                 <p style="margin:0 0 16px;color:#d4d4d8;font-size:16px;line-height:1.55;">We are opening access manually so the first members can set the tone with real projects, useful intros, and concrete conversations.</p>
                 <p style="margin:0;color:#d4d4d8;font-size:16px;line-height:1.55;">See you inside,<br />Italian Builders</p>
@@ -186,6 +193,9 @@ Your profile helps other builders understand what you are building, what you can
 
 Create your profile here:
 ${actionLink}
+
+Also join the Telegram community:
+${TELEGRAM_COMMUNITY_URL}
 
 See you inside,
 Italian Builders`,
@@ -318,7 +328,9 @@ async function createDirectInvite(req, payload = {}) {
   }
 
   const token = newInviteToken();
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  const expiresAt = new Date(
+    Date.now() + 1000 * 60 * 60 * 24 * 30,
+  ).toISOString();
   const inviteUrl = `${appBaseUrl(req)}/invite/${token}`;
   const { data: invite, error: inviteError } = await supabaseAdmin
     .from("invites")
@@ -391,7 +403,9 @@ async function resendDirectInvite(req, rawId) {
   }
 
   const token = newInviteToken();
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  const expiresAt = new Date(
+    Date.now() + 1000 * 60 * 60 * 24 * 30,
+  ).toISOString();
   const inviteUrl = `${appBaseUrl(req)}/invite/${token}`;
   const { data: updated, error: updateError } = await supabaseAdmin
     .from("invites")

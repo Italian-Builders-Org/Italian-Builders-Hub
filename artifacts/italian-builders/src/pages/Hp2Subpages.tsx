@@ -125,7 +125,7 @@ function R2Footer() {
           >
             GitHub
           </a>
-          <a href="/dashboard">Builders login</a>
+          <a href="/hp-2/dashboard">Builders login</a>
         </section>
       </div>
     </footer>
