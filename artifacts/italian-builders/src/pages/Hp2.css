@@ -1452,6 +1452,34 @@
   color: var(--hp2-green) !important;
 }
 
+.hp2-platform .ib-status-pill {
+  border-color: color-mix(in oklch, var(--hp2-green) 78%, var(--hp2-ink) 22%) !important;
+  background: var(--hp2-green) !important;
+  color: oklch(0.98 0.01 116) !important;
+  font-weight: 800 !important;
+}
+
+.hp2-platform .ib-admin-meta {
+  color: color-mix(in oklch, var(--hp2-muted) 72%, var(--hp2-ink) 28%) !important;
+}
+
+.hp2-platform .ib-admin-meta strong {
+  color: var(--hp2-ink) !important;
+  font-weight: 750;
+}
+
+.hp2-platform .ib-link-tag {
+  border-color: color-mix(in oklch, var(--hp2-ink) 82%, var(--hp2-green) 18%) !important;
+  background: color-mix(in oklch, var(--hp2-paper) 94%, white 6%) !important;
+  color: color-mix(in oklch, var(--hp2-green) 72%, var(--hp2-ink) 28%) !important;
+  font-weight: 650;
+}
+
+.hp2-platform .ib-link-tag:hover {
+  background: color-mix(in oklch, var(--hp2-paper) 78%, var(--hp2-green) 22%) !important;
+  color: var(--hp2-ink) !important;
+}
+
 .hp2-platform button,
 .hp2-platform a {
   border-radius: 0 !important;
