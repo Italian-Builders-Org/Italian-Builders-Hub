@@ -346,10 +346,10 @@
 .hp2-manifesto h2,
 .hp2-directory h2 {
   font-family: var(--hp2-title);
-  font-size: clamp(44px, 7vw, 108px);
+  font-size: clamp(32px, 4vw, 56px);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 0.9;
+  line-height: 0.98;
 }
 
 .hp2-manifesto-copy {
@@ -544,10 +544,10 @@
 .hp2-join-copy h2 {
   max-width: 7.6ch;
   font-family: var(--hp2-title);
-  font-size: clamp(48px, 8vw, 122px);
+  font-size: clamp(34px, 4.2vw, 58px);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 0.82;
+  line-height: 0.94;
 }
 
 .hp2-join-copy p {
@@ -782,13 +782,13 @@
 }
 
 .hp2-subhero h1 {
-  max-width: 10.5ch;
+  max-width: 14ch;
   margin: 0;
   font-family: var(--hp2-title);
-  font-size: clamp(56px, 9.4vw, 142px);
+  font-size: clamp(34px, 4.2vw, 58px);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 0.92;
+  line-height: 0.98;
   overflow-wrap: anywhere;
 }
 
@@ -1040,7 +1040,7 @@
   background: var(--hp2-green);
   color: oklch(0.98 0.01 116);
   font-family: var(--hp2-title);
-  font-size: clamp(56px, 9vw, 110px);
+  font-size: clamp(28px, 4vw, 56px);
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1066,7 +1066,7 @@
 .hp2-project-card h2,
 .hp2-os-card h2,
 .hp2-pioneer-card h2 {
-  font-size: clamp(22px, 2.15vw, 32px);
+  font-size: clamp(18px, 1.6vw, 24px);
 }
 
 .hp2-project-card small,
@@ -1181,13 +1181,13 @@
 }
 
 .hp2-profile-main h1 {
-  max-width: 11ch;
+  max-width: 14ch;
   margin: 0;
   font-family: var(--hp2-title);
-  font-size: clamp(54px, 9vw, 136px);
+  font-size: clamp(34px, 4.2vw, 58px);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 0.9;
+  line-height: 0.98;
 }
 
 .hp2-profile-main p:not(.hp2-subhero-label) {
@@ -1222,9 +1222,9 @@
 .hp2-legal-body h2 {
   margin: 0;
   font-family: var(--hp2-title);
-  font-size: clamp(34px, 5vw, 72px);
+  font-size: clamp(26px, 3.2vw, 42px);
   font-weight: 900;
-  line-height: 0.92;
+  line-height: 1;
 }
 
 .hp2-detail-body p,
@@ -1339,10 +1339,10 @@
   max-width: 7.6ch;
   margin: 0;
   font-family: var(--hp2-title);
-  font-size: clamp(48px, 8vw, 122px);
+  font-size: clamp(34px, 4.2vw, 58px);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 0.82;
+  line-height: 0.94;
 }
 
 .hp2-platform main {
@@ -1414,9 +1414,9 @@
 
 .hp2-platform section h1 {
   font-family: var(--hp2-title);
-  font-size: clamp(46px, 7vw, 104px) !important;
+  font-size: clamp(34px, 4.2vw, 58px) !important;
   font-weight: 900 !important;
-  line-height: 0.92 !important;
+  line-height: 0.98 !important;
 }
 
 .hp2-platform .dt-card h2,
