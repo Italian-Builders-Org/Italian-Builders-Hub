@@ -35,10 +35,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 28px;
+  gap: 24px;
   border-bottom: 2px solid var(--hp2-ink);
   background: color-mix(in oklch, var(--hp2-paper) 94%, transparent);
-  padding: 18px clamp(18px, 4vw, 60px);
+  padding: 15px clamp(18px, 4vw, 60px);
   backdrop-filter: blur(12px);
 }
 
@@ -59,7 +59,7 @@
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 18px;
+  gap: clamp(10px, 1.45vw, 18px);
   font-family: var(--hp2-mono);
   font-size: 11px;
   font-weight: 700;
@@ -86,6 +86,28 @@
 
 .hp2-mast nav a:hover::after {
   transform: scaleX(1);
+}
+
+.hp2-mast nav a[href="/hp-2/dashboard"],
+.hp2-mast nav a[href="/hp-2/login"],
+.hp2-mast nav a[href="/hp-2/join"] {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  border: 2px solid var(--hp2-ink);
+  padding: 0 10px;
+}
+
+.hp2-mast nav a[href="/hp-2/join"] {
+  background: var(--hp2-green);
+  border-color: var(--hp2-green);
+  color: var(--hp2-paper);
+}
+
+.hp2-mast nav a[href="/hp-2/dashboard"]::after,
+.hp2-mast nav a[href="/hp-2/login"]::after,
+.hp2-mast nav a[href="/hp-2/join"]::after {
+  display: none;
 }
 
 .hp2-style-switch {
@@ -1308,11 +1330,11 @@
 .hp2-platform .dt-card h3,
 .hp2-platform section h1,
 .hp2-platform section h2 {
-  font-family: var(--hp2-title);
   letter-spacing: 0;
 }
 
 .hp2-platform section h1 {
+  font-family: var(--hp2-title);
   font-size: clamp(46px, 7vw, 104px) !important;
   font-weight: 900 !important;
   line-height: 0.92 !important;
@@ -1320,8 +1342,15 @@
 
 .hp2-platform .dt-card h2,
 .hp2-platform .dt-card h3 {
-  font-size: clamp(24px, 2.4vw, 36px);
-  line-height: 1;
+  font-family: var(--hp2-body);
+  font-size: clamp(17px, 1.3vw, 21px) !important;
+  font-weight: 750 !important;
+  line-height: 1.16;
+}
+
+.hp2-platform .dt-card[class*="border-red"] {
+  border-color: var(--hp2-red) !important;
+  background: color-mix(in oklch, var(--hp2-paper) 86%, var(--hp2-red) 14%) !important;
 }
 
 .hp2-platform input,
@@ -1351,6 +1380,46 @@
 
 .hp2-platform a:hover {
   color: var(--hp2-green);
+}
+
+.hp2-platform a[class*="bg-blue"],
+.hp2-platform button[class*="bg-blue"] {
+  border-color: var(--hp2-green) !important;
+  background: var(--hp2-green) !important;
+  color: var(--hp2-paper) !important;
+}
+
+.hp2-platform a[class*="border-zinc"],
+.hp2-platform button[class*="border-zinc"],
+.hp2-platform label[class*="border-zinc"] {
+  border-color: var(--hp2-ink) !important;
+  background: transparent !important;
+  color: var(--hp2-ink) !important;
+}
+
+.hp2-platform a[class*="border-zinc"]:hover,
+.hp2-platform button[class*="border-zinc"]:hover,
+.hp2-platform label[class*="border-zinc"]:hover {
+  background: color-mix(in oklch, var(--hp2-paper) 76%, var(--hp2-ink) 24%) !important;
+  color: var(--hp2-paper) !important;
+}
+
+.hp2-platform button[class*="bg-red"],
+.hp2-platform button[class*="border-red"] {
+  border-color: var(--hp2-red) !important;
+  background: transparent !important;
+  color: var(--hp2-red) !important;
+}
+
+.hp2-platform button[class*="bg-red"]:not(:disabled):hover,
+.hp2-platform button[class*="border-red"]:not(:disabled):hover {
+  background: var(--hp2-red) !important;
+  color: var(--hp2-paper) !important;
+}
+
+.hp2-platform button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48 !important;
 }
 
 .hp2-platform-mast .hp2-style-switch {

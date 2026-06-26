@@ -90,6 +90,7 @@ function Router() {
         <Route path="/hp-2/join" component={Hp2JoinPage} />
         <Route path="/hp-2/privacy" component={Hp2PrivacyPage} />
         <Route path="/hp-2/terms" component={Hp2TermsPage} />
+        <Route path="/hp-2/login" component={DashboardPage} />
         <Route path="/hp-2/reset-password" component={ResetPasswordPage} />
         <Route path="/hp-2/invite/:token" component={InvitePage} />
         <Route path="/hp-2/dashboard" component={DashboardPage} />

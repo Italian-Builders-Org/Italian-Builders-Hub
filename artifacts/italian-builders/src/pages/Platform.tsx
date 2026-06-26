@@ -387,7 +387,13 @@ function usePlatformNavigate() {
   return (path: string) => navigate(platformPath(path, r2));
 }
 
-function R2PlatformHeader({ isAdmin }: { isAdmin: boolean }) {
+function R2PlatformHeader({
+  isAdmin,
+  isSignedIn,
+}: {
+  isAdmin: boolean;
+  isSignedIn: boolean;
+}) {
   return (
     <header className="hp2-mast hp2-platform-mast">
       <a href="/hp-2" className="hp2-logo-link" aria-label="Italian Builders">
@@ -397,11 +403,18 @@ function R2PlatformHeader({ isAdmin }: { isAdmin: boolean }) {
         <a href="/hp-2/builders">Builders</a>
         <a href="/hp-2/projects">Projects</a>
         <a href="/hp-2/community-projects">Community</a>
-        <a href="/hp-2/dashboard">Dashboard</a>
-        <a href="/hp-2/dashboard/profile">Profile</a>
-        <a href="/hp-2/dashboard/projects">My projects</a>
-        <a href="/hp-2/dashboard/contributions">Contributions</a>
-        {isAdmin && <a href="/hp-2/admin">Admin</a>}
+        <a href="/hp-2/pantheon">Pantheon</a>
+        {isSignedIn ? (
+          <>
+            <a href="/hp-2/dashboard">Dashboard</a>
+            {isAdmin && <a href="/hp-2/admin">Admin</a>}
+          </>
+        ) : (
+          <>
+            <a href="/hp-2/login">Login</a>
+            <a href="/hp-2/join">Join</a>
+          </>
+        )}
         <StyleSwitch currentStyle="r2" />
       </nav>
     </header>
@@ -457,10 +470,11 @@ function R2PlatformFooter({ isAdmin }: { isAdmin: boolean }) {
 function R2PlatformShell({ children }: { children: React.ReactNode }) {
   const { user } = useSupabaseSession();
   const { isAdmin } = useMyProfile(user?.id);
+  const isSignedIn = Boolean(user);
 
   return (
     <div className="hp2-page hp2-subpage hp2-platform">
-      <R2PlatformHeader isAdmin={isAdmin} />
+      <R2PlatformHeader isAdmin={isAdmin} isSignedIn={isSignedIn} />
       <main>{children}</main>
       <R2PlatformFooter isAdmin={isAdmin} />
     </div>

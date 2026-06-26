@@ -30,7 +30,7 @@ import {
   fallbackCoordsForLocation,
   locationLabel,
 } from "@/lib/geo";
-import { supabase } from "@/lib/supabase";
+import { supabase, useSupabaseSession } from "@/lib/supabase";
 import type { Profile } from "@/lib/supabase";
 import "./Hp2.css";
 
@@ -133,7 +133,7 @@ const hp2FooterGroups = [
         href: "https://github.com/Italian-Builders-Org",
         label: "GitHub",
       },
-      { href: "/hp-2/dashboard", label: "Builders login" },
+      { href: "/hp-2/login", label: "Builders login" },
     ],
   },
 ];
@@ -964,6 +964,7 @@ export function Hp2DirectoryJoinForm() {
 
 export default function Hp2Page() {
   const { builders, builderCount, cityCount, projectCount } = useHp2Content();
+  const { user } = useSupabaseSession();
   const [activeBuilderId, setActiveBuilderId] = useState<
     string | number | null
   >(null);
@@ -997,9 +998,10 @@ export default function Hp2Page() {
               {link.label}
             </a>
           ))}
-          <a href="#manifesto">Manifesto</a>
-          <a href="#directory">Directory</a>
-          <a href="#join">Join</a>
+          <a href={user ? "/hp-2/dashboard" : "/hp-2/login"}>
+            {user ? "Dashboard" : "Login"}
+          </a>
+          <a href="/hp-2/join">Join</a>
           <StyleSwitch currentStyle="r2" />
         </nav>
       </header>

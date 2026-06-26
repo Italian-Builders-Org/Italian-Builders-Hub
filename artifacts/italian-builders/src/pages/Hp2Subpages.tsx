@@ -21,7 +21,7 @@ import {
   hasItems,
 } from "@/data/directory";
 import { defaultAvatarUrl } from "@/lib/assets";
-import { supabase } from "@/lib/supabase";
+import { supabase, useSupabaseSession } from "@/lib/supabase";
 import type {
   CommunityProject,
   Profile,
@@ -55,6 +55,8 @@ const missionParagraphs = [
 ];
 
 function R2Shell({ children }: { children: React.ReactNode }) {
+  const { user } = useSupabaseSession();
+
   return (
     <div className="hp2-page hp2-subpage">
       <header className="hp2-mast">
@@ -67,6 +69,9 @@ function R2Shell({ children }: { children: React.ReactNode }) {
               {link.label}
             </a>
           ))}
+          <a href={user ? "/hp-2/dashboard" : "/hp-2/login"}>
+            {user ? "Dashboard" : "Login"}
+          </a>
           <a href="/hp-2/join">Join</a>
           <StyleSwitch currentStyle="r2" />
         </nav>
@@ -125,7 +130,7 @@ function R2Footer() {
           >
             GitHub
           </a>
-          <a href="/hp-2/dashboard">Builders login</a>
+          <a href="/hp-2/login">Builders login</a>
         </section>
       </div>
     </footer>

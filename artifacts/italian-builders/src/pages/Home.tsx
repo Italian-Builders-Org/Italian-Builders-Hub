@@ -226,6 +226,7 @@ function stylePathForTarget(targetStyle: "dark" | "r2") {
   }
 
   if (pathname === "/hp-2") return `/${search}${hash}`;
+  if (pathname === "/hp-2/login") return `/dashboard${search}${hash}`;
   if (pathname.startsWith("/hp-2/")) {
     return `${pathname.replace(/^\/hp-2/, "")}${search}${hash}`;
   }
