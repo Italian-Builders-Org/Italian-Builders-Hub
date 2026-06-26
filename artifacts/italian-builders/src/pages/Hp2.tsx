@@ -110,7 +110,8 @@ const hp2FooterGroups = [
     links: [
       { href: "/hp-2/mission", label: "Mission" },
       { href: "/hp-2/pantheon", label: "Pantheon" },
-      { href: "/hp-2/join", label: "Join waitlist" },
+      { label: "Guides", comingSoon: true },
+      { label: "Changelog", comingSoon: true },
     ],
   },
   {
@@ -133,7 +134,6 @@ const hp2FooterGroups = [
         href: "https://github.com/Italian-Builders-Org",
         label: "GitHub",
       },
-      { href: "/hp-2/login", label: "Builders login" },
     ],
   },
 ];
@@ -154,7 +154,7 @@ type R2AuthProfile = Pick<
   "username" | "full_name" | "avatar_url" | "platform_role"
 >;
 
-export function R2HeaderAuthControls() {
+function useR2AuthState() {
   const { user, loading } = useSupabaseSession();
   const [profile, setProfile] = useState<R2AuthProfile | null>(null);
 
@@ -187,6 +187,19 @@ export function R2HeaderAuthControls() {
     window.location.href = "/hp-2";
   }
 
+  const isAdmin =
+    profile?.platform_role === "admin" || profile?.platform_role === "owner";
+  const profileHref = profile?.username
+    ? `/hp-2/builders/${profile.username}`
+    : "/hp-2/dashboard/profile";
+
+  return { user, loading, profile, isAdmin, profileHref, signOut };
+}
+
+export function R2HeaderAuthControls() {
+  const { user, loading, profile, isAdmin, profileHref, signOut } =
+    useR2AuthState();
+
   if (loading) return <span className="hp2-auth-placeholder" />;
 
   if (!user) {
@@ -197,12 +210,6 @@ export function R2HeaderAuthControls() {
       </span>
     );
   }
-
-  const isAdmin =
-    profile?.platform_role === "admin" || profile?.platform_role === "owner";
-  const profileHref = profile?.username
-    ? `/hp-2/builders/${profile.username}`
-    : "/hp-2/dashboard/profile";
 
   return (
     <span className="hp2-auth-actions">
@@ -216,6 +223,78 @@ export function R2HeaderAuthControls() {
         <LogOut size={13} /> Sign out
       </button>
     </span>
+  );
+}
+
+export function R2FooterAuthLinks() {
+  const { user, loading, isAdmin, profileHref, signOut } = useR2AuthState();
+
+  if (loading) return <span className="hp2-auth-placeholder" />;
+
+  if (!user) {
+    return (
+      <span className="hp2-footer-auth">
+        <a href="/hp-2/login">Builders login</a>
+      </span>
+    );
+  }
+
+  return (
+    <span className="hp2-footer-auth">
+      <a href={profileHref}>Profile</a>
+      <a href="/hp-2/dashboard">Dashboard</a>
+      {isAdmin && <a href="/hp-2/admin">Admin</a>}
+      <button type="button" onClick={signOut}>
+        <LogOut size={13} /> Sign out
+      </button>
+    </span>
+  );
+}
+
+export function Hp2Footer() {
+  return (
+    <footer className="hp2-footer">
+      <div className="hp2-footer-brand">
+        <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
+        <p className="css-text-balance">
+          Connecting people who build. A community for builders, founders,
+          developers, designers and creators across Italy.
+        </p>
+      </div>
+
+      <div className="hp2-footer-links">
+        {hp2FooterGroups.map((group) => (
+          <section key={group.title} aria-label={group.title}>
+            <h2>{group.title}</h2>
+            {group.links.map((link) =>
+              link.comingSoon ? (
+                <span key={link.label} className="hp2-footer-pending">
+                  <span>{link.label}</span>
+                  <span>Coming soon</span>
+                </span>
+              ) : (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target={link.href?.startsWith("http") ? "_blank" : undefined}
+                  rel={link.href?.startsWith("http") ? "noreferrer" : undefined}
+                >
+                  {link.label}
+                </a>
+              ),
+            )}
+          </section>
+        ))}
+      </div>
+
+      <div className="hp2-footer-utility">
+        <p>© {new Date().getFullYear()} Italian Builders.</p>
+        <div>
+          <R2FooterAuthLinks />
+          <StyleSwitch />
+        </div>
+      </div>
+    </footer>
   );
 }
 
@@ -1218,33 +1297,7 @@ export default function Hp2Page() {
         </section>
       </main>
 
-      <footer className="hp2-footer">
-        <div className="hp2-footer-brand">
-          <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
-          <p className="css-text-balance">
-            Connecting people who build. A community for builders, founders,
-            developers, designers and creators across Italy.
-          </p>
-        </div>
-
-        <div className="hp2-footer-links">
-          {hp2FooterGroups.map((group) => (
-            <section key={group.title} aria-label={group.title}>
-              <h2>{group.title}</h2>
-              {group.links.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target={link.href.startsWith("http") ? "_blank" : undefined}
-                  rel={link.href.startsWith("http") ? "noreferrer" : undefined}
-                >
-                  {link.label}
-                </a>
-              ))}
-            </section>
-          ))}
-        </div>
-      </footer>
+      <Hp2Footer />
     </div>
   );
 }

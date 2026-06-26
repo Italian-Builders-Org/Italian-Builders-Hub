@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { Header, Footer, StyleSwitch, useTechLabels } from "@/pages/Home";
+import { R2FooterAuthLinks } from "@/pages/Hp2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { defaultAvatarUrl } from "@/lib/assets";
@@ -528,7 +529,35 @@ function R2PlatformFooter({ isAdmin }: { isAdmin: boolean }) {
           <h2>Legal</h2>
           <a href="/hp-2/privacy">Privacy policy</a>
           <a href="/hp-2/terms">Terms of service</a>
+          <a href="mailto:info@italianbuilders.co">Contact us</a>
         </section>
+        <section aria-label="Social">
+          <h2>Social</h2>
+          <a href="https://x.com/italianbldrs" target="_blank" rel="noreferrer">
+            X
+          </a>
+          <a
+            href="https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all"
+            target="_blank"
+            rel="noreferrer"
+          >
+            LinkedIn
+          </a>
+          <a
+            href="https://github.com/Italian-Builders-Org"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub
+          </a>
+        </section>
+      </div>
+      <div className="hp2-footer-utility">
+        <p>© {new Date().getFullYear()} Italian Builders.</p>
+        <div>
+          <R2FooterAuthLinks />
+          <StyleSwitch />
+        </div>
       </div>
     </footer>
   );

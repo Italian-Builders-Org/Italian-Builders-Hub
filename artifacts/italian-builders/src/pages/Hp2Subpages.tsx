@@ -8,7 +8,11 @@ import {
   MapPin,
   Search,
 } from "lucide-react";
-import { Hp2DirectoryJoinForm, R2HeaderAuthControls } from "@/pages/Hp2";
+import {
+  Hp2DirectoryJoinForm,
+  Hp2Footer,
+  R2HeaderAuthControls,
+} from "@/pages/Hp2";
 import { StyleSwitch } from "@/pages/Home";
 import {
   PIONEERS,
@@ -73,7 +77,7 @@ function R2Shell({ children }: { children: React.ReactNode }) {
       </header>
       <R2BreadcrumbBar />
       <main>{children}</main>
-      <R2Footer />
+      <Hp2Footer />
     </div>
   );
 }
@@ -104,61 +108,6 @@ function R2BreadcrumbBar() {
         );
       })}
     </div>
-  );
-}
-
-function R2Footer() {
-  return (
-    <footer className="hp2-footer">
-      <div className="hp2-footer-brand">
-        <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
-        <p className="css-text-balance">
-          Connecting people who build. A community for builders, founders,
-          developers, designers and creators across Italy.
-        </p>
-      </div>
-      <div className="hp2-footer-links">
-        <section aria-label="Platform">
-          <h2>Platform</h2>
-          <a href="/hp-2/builders">Directory</a>
-          <a href="/hp-2/projects">Showcase</a>
-          <a href="/hp-2/community-projects">Community projects</a>
-        </section>
-        <section aria-label="Resources">
-          <h2>Resources</h2>
-          <a href="/hp-2/mission">Mission</a>
-          <a href="/hp-2/pantheon">Pantheon</a>
-          <a href="/hp-2/join">Join waitlist</a>
-        </section>
-        <section aria-label="Legal">
-          <h2>Legal</h2>
-          <a href="/hp-2/privacy">Privacy policy</a>
-          <a href="/hp-2/terms">Terms of service</a>
-          <a href="mailto:info@italianbuilders.co">Contact us</a>
-        </section>
-        <section aria-label="Social">
-          <h2>Social</h2>
-          <a href="https://x.com/italianbldrs" target="_blank" rel="noreferrer">
-            X
-          </a>
-          <a
-            href="https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all"
-            target="_blank"
-            rel="noreferrer"
-          >
-            LinkedIn
-          </a>
-          <a
-            href="https://github.com/Italian-Builders-Org"
-            target="_blank"
-            rel="noreferrer"
-          >
-            GitHub
-          </a>
-          <a href="/hp-2/login">Builders login</a>
-        </section>
-      </div>
-    </footer>
   );
 }
 

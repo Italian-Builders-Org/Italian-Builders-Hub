@@ -718,7 +718,7 @@
 
 .hp2-footer-links {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
   gap: 28px;
 }
 
@@ -748,6 +748,82 @@
 
 .hp2-footer-links a:hover {
   color: var(--hp2-green);
+}
+
+.hp2-footer-pending {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--hp2-muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hp2-footer-pending span:last-child {
+  border: 1px solid var(--hp2-ink);
+  padding: 2px 6px;
+  color: var(--hp2-green);
+  font-family: var(--hp2-mono);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.hp2-footer-utility {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid var(--hp2-rule);
+  padding-top: 24px;
+}
+
+.hp2-footer-utility p {
+  margin: 0;
+  color: var(--hp2-muted);
+  font-family: var(--hp2-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.hp2-footer-utility > div,
+.hp2-footer-auth {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hp2-footer-auth a,
+.hp2-footer-auth button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 2px solid var(--hp2-ink);
+  background: transparent;
+  color: var(--hp2-ink);
+  padding: 0 11px;
+  font-family: var(--hp2-mono);
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.hp2-footer-auth a:hover,
+.hp2-footer-auth button:hover {
+  background: var(--hp2-green);
+  border-color: var(--hp2-green);
+  color: var(--hp2-paper);
+}
+
+.hp2-footer-auth button {
+  cursor: pointer;
 }
 
 .hp2-subpage {
@@ -1572,6 +1648,16 @@
   .hp2-subhero h1,
   .hp2-profile-main h1 {
     max-width: 100%;
+  }
+
+  .hp2-footer-utility {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hp2-footer-utility > div {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .hp2-map-panel {
