@@ -55,13 +55,12 @@ function normalizeUsername(value) {
 }
 
 function siteOrigin(req) {
-  const configured = process.env.VITE_APP_BASE_URL || process.env.APP_BASE_URL;
+  const configured = process.env.APP_BASE_URL;
   if (configured) return configured.replace(/\/$/, "");
 
   const host =
     req?.headers?.["x-forwarded-host"] ||
     req?.headers?.host ||
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
     process.env.VERCEL_URL ||
     SITE_HOST;
   const protocol = req?.headers?.["x-forwarded-proto"] || "https";

@@ -14,8 +14,10 @@ const siteOrigin =
     "",
   ) || "https://italianbuilders.co";
 const defaultDescription =
-  "Discover founders, makers, technical contributors, and operators building from Italy.";
+  "Italian Builders helps founders, developers, designers and makers discover each other, share projects and create opportunities.";
 const defaultImage = absoluteUrl("/api/og-home-image");
+const defaultImageAlt =
+  "Italian Builders homepage hero: connecting the people who build.";
 const socialProfiles = [
   "https://x.com/italianbldrs",
   "https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all",
@@ -284,9 +286,10 @@ function routeConfig(path: string): SeoConfig {
   }
 
   return {
-    title: "Italian Builders | founders, makers and technical contributors",
+    title: "Italian Builders | connecting people who build",
     description: defaultDescription,
     path: normalized,
+    imageAlt: defaultImageAlt,
   };
 }
 

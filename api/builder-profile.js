@@ -48,7 +48,7 @@ function removeManagedMetadata(html) {
 }
 
 function injectMetadata(html, metadata) {
-  const schema = [
+  const schemas = [
     {
       "@context": "https://schema.org",
       "@type": "Organization",
@@ -94,6 +94,12 @@ function injectMetadata(html, metadata) {
         : undefined,
     },
   ];
+  const schemaTags = schemas
+    .map(
+      (schema) =>
+        `<script type="application/ld+json">${jsonLdScriptContent(schema)}</script>`,
+    )
+    .join("\n    ");
   const tags = [
     `<title>${escapeHtml(metadata.title)}</title>`,
     `<meta name="description" content="${escapeHtml(metadata.description)}" />`,
@@ -114,7 +120,7 @@ function injectMetadata(html, metadata) {
     `<meta name="twitter:description" content="${escapeHtml(metadata.description)}" />`,
     `<meta name="twitter:image" content="${escapeHtml(metadata.image)}" />`,
     `<meta name="twitter:image:alt" content="${escapeHtml(metadata.imageAlt)}" />`,
-    `<script type="application/ld+json">${jsonLdScriptContent(schema)}</script>`,
+    schemaTags,
   ].join("\n    ");
 
   return removeManagedMetadata(html).replace(
