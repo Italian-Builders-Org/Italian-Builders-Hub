@@ -12,15 +12,15 @@
   "rewrites": [
     {
       "source": "/api/telegram/webhook",
-      "destination": "/api/telegram?action=webhook"
+      "destination": "/api/admin/waitlist/action?action=telegram-webhook"
     },
     {
       "source": "/api/telegram/daily-report",
-      "destination": "/api/telegram?action=daily-report"
+      "destination": "/api/admin/waitlist/action?action=telegram-daily-report"
     },
     {
       "source": "/api/telegram/setup-webhook",
-      "destination": "/api/telegram?action=setup-webhook"
+      "destination": "/api/admin/waitlist/action?action=telegram-setup-webhook"
     },
     {
       "source": "/api/admin/waitlist/activate",
