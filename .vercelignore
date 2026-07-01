@@ -1,0 +1,11 @@
+**/*.test.js
+**/*.test.cjs
+**/*.test.mjs
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.js
+**/*.spec.cjs
+**/*.spec.mjs
+**/*.spec.ts
+**/*.spec.tsx
+coverage/
