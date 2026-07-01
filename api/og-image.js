@@ -3,7 +3,6 @@ const {
 } = require("../server/api/_r2-storage");
 const {
   importOpenGraphImage,
-  readLimited,
 } = require("../server/api/_og-image-import");
 
 function headerValue(value) {
@@ -45,8 +44,4 @@ module.exports = async function handler(req, res) {
       error: error instanceof Error ? error.message : "Could not import Open Graph image.",
     });
   }
-};
-
-module.exports._internal = {
-  readLimited,
 };
