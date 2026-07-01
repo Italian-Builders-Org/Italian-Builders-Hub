@@ -17,6 +17,10 @@
       "destination": "/api/admin/waitlist/action?action=activate&id=:id"
     },
     {
+      "source": "/api/admin/content/preview",
+      "destination": "/api/admin/waitlist/action?action=content-preview"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },

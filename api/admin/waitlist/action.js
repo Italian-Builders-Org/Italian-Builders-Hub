@@ -3,6 +3,7 @@ const {
   activateWaitlistSignup,
   sendError,
 } = require("../../../server/api/_admin-waitlist");
+const { previewContentUrl } = require("../../../server/api/_admin-content");
 
 function queryValue(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -27,6 +28,11 @@ module.exports = async function handler(req, res) {
 
     if (action === "activate-batch") {
       res.status(200).json(await activateWaitlistBatch(req, req.body?.ids));
+      return;
+    }
+
+    if (action === "content-preview") {
+      res.status(200).json(await previewContentUrl(req, req.body));
       return;
     }
 
