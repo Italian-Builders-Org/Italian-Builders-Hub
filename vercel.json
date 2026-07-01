@@ -11,6 +11,18 @@
   ],
   "rewrites": [
     {
+      "source": "/api/telegram/webhook",
+      "destination": "/api/telegram?action=webhook"
+    },
+    {
+      "source": "/api/telegram/daily-report",
+      "destination": "/api/telegram?action=daily-report"
+    },
+    {
+      "source": "/api/telegram/setup-webhook",
+      "destination": "/api/telegram?action=setup-webhook"
+    },
+    {
       "source": "/api/admin/waitlist/activate",
       "destination": "/api/admin/waitlist/action?action=activate"
     },
