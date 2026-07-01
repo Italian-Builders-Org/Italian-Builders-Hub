@@ -173,7 +173,9 @@ const TechLabelsContext = React.createContext<TechLabelsContextValue>({
 export function TechLabelProvider({ children }: { children: React.ReactNode }) {
   const [techLabels, setTechLabels] = useState(() => {
     if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("italian-builders-label-mode") === "tech";
+    return (
+      window.localStorage.getItem("italian-builders-label-mode") === "tech"
+    );
   });
 
   useEffect(() => {
@@ -195,7 +197,8 @@ export function useTechLabels() {
 }
 
 function stylePathForTarget(targetStyle: "dark" | "r2") {
-  if (typeof window === "undefined") return targetStyle === "r2" ? "/hp-2" : "/";
+  if (typeof window === "undefined")
+    return targetStyle === "r2" ? "/hp-2" : "/";
 
   const { pathname, search, hash } = window.location;
   if (targetStyle === "r2") {
@@ -208,6 +211,7 @@ function stylePathForTarget(targetStyle: "dark" | "r2") {
       pathname.startsWith("/projects/") ||
       pathname === "/community-projects" ||
       pathname.startsWith("/community-projects/") ||
+      pathname === "/content" ||
       pathname === "/pantheon" ||
       pathname === "/mission" ||
       pathname === "/join" ||
@@ -304,6 +308,8 @@ const breadcrumbLabels: Record<string, BreadcrumbLabel> = {
     friendly: "New community project",
     tech: "NEW_COMMUNITY_PROJECT",
   },
+  "admin/content": { friendly: "Content", tech: "CONTENT" },
+  "admin/content/new": { friendly: "New content", tech: "NEW_CONTENT" },
   "admin/invites": { friendly: "Invites", tech: "INVITES" },
   "admin/members": { friendly: "Members", tech: "MEMBERS" },
   "admin/waitlist": { friendly: "Waitlist", tech: "WAITLIST" },
@@ -312,6 +318,7 @@ const breadcrumbLabels: Record<string, BreadcrumbLabel> = {
     friendly: "Community projects",
     tech: "COMMUNITY_PROJECTS",
   },
+  content: { friendly: "Content", tech: "CONTENT" },
   dashboard: { friendly: "Dashboard", tech: "CONSOLE" },
   "dashboard/contributions": {
     friendly: "Contributions",
@@ -361,6 +368,10 @@ function dynamicBreadcrumbLabel(
     };
   }
 
+  if (parentPath === "admin/content") {
+    return { friendly: "Edit content", tech: "CONTENT_EDITOR" };
+  }
+
   if (parentPath === "invite") {
     return { friendly: "Invitation", tech: "INVITE_TOKEN" };
   }
@@ -375,7 +386,8 @@ function labelForBreadcrumb(
   techLabels: boolean,
 ) {
   const path = segments.slice(0, index + 1).join("/");
-  const label = breadcrumbLabels[path] ?? dynamicBreadcrumbLabel(segments, index);
+  const label =
+    breadcrumbLabels[path] ?? dynamicBreadcrumbLabel(segments, index);
   return techLabels ? label.tech : label.friendly;
 }
 
@@ -576,6 +588,9 @@ export function Header() {
           <a href="/community-projects" className={navLabelClass}>
             {techLabels ? "/community-projects" : "Community projects"}
           </a>
+          <a href="/content" className={navLabelClass}>
+            {techLabels ? "/content" : "Content"}
+          </a>
           <a href="/pantheon" className={navLabelClass}>
             {techLabels ? "/pantheon" : "Pantheon"}
           </a>
@@ -619,6 +634,13 @@ export function Header() {
               className={mobileNavClass}
             >
               {techLabels ? "/community-projects" : "Community projects"}
+            </a>
+            <a
+              href="/content"
+              onClick={() => setMobileMenuOpen(false)}
+              className={mobileNavClass}
+            >
+              {techLabels ? "/content" : "Content"}
             </a>
             <a
               href="/pantheon"
@@ -982,8 +1004,8 @@ export function BuilderGlobe({
     let frame = 0;
     let disposed = false;
 
-    Promise.all([import("three"), import("three-globe")]).then(
-      ([THREE, threeGlobeModule]) => {
+    Promise.all([import("three"), import("three-globe")])
+      .then(([THREE, threeGlobeModule]) => {
         if (disposed) return;
 
         const ThreeGlobe = threeGlobeModule.default;
@@ -1138,10 +1160,10 @@ export function BuilderGlobe({
         resize();
         updateScroll();
         animate();
-      },
-    ).catch(() => {
-      globeRef.current = null;
-    });
+      })
+      .catch(() => {
+        globeRef.current = null;
+      });
 
     return () => {
       disposed = true;
@@ -1158,10 +1180,7 @@ export function BuilderGlobe({
   }, []);
 
   return (
-    <div
-      ref={hostRef}
-      className="relative z-0 h-full w-full overflow-hidden"
-    />
+    <div ref={hostRef} className="relative z-0 h-full w-full overflow-hidden" />
   );
 }
 
@@ -1503,7 +1522,9 @@ export function BuilderProjects({
       [
         "All",
         ...Array.from(
-          new Set(projects.flatMap((project) => projectCategoryLabels(project))),
+          new Set(
+            projects.flatMap((project) => projectCategoryLabels(project)),
+          ),
         ),
       ] as string[],
     [projects],
@@ -1625,9 +1646,7 @@ export function BuilderProjects({
                   <div className="mt-auto pt-3 border-t border-zinc-800 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <img
-                        src={
-                          project.profiles?.avatar_url || defaultAvatarUrl
-                        }
+                        src={project.profiles?.avatar_url || defaultAvatarUrl}
                         alt={project.profiles?.full_name || "Builder"}
                         className="w-5 h-5 rounded-sm border border-zinc-700 grayscale"
                       />

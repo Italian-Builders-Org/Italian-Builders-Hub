@@ -13,11 +13,21 @@ const allowedMediaTypes = new Set([
 
 export const storageMode = {
   hasAuthenticatedUploads: Boolean(supabase),
-  publicBaseUrl: (import.meta.env.VITE_R2_PUBLIC_BASE_URL as string | undefined) || "",
+  publicBaseUrl:
+    (import.meta.env.VITE_R2_PUBLIC_BASE_URL as string | undefined) || "",
 };
 
-export function mediaFieldHelp(kind: "avatar" | "cover" | "project") {
-  const label = kind === "avatar" ? "avatar" : kind === "cover" ? "cover image" : "project image";
+export function mediaFieldHelp(
+  kind: "avatar" | "cover" | "project" | "content",
+) {
+  const label =
+    kind === "avatar"
+      ? "avatar"
+      : kind === "cover"
+        ? "cover image"
+        : kind === "content"
+          ? "content image"
+          : "project image";
 
   if (storageMode.hasAuthenticatedUploads) {
     return `Upload a ${label}. Files are stored in Cloudflare R2.`;
@@ -27,7 +37,11 @@ export function mediaFieldHelp(kind: "avatar" | "cover" | "project") {
 }
 
 function safeExtension(file: File) {
-  const fromName = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const fromName = file.name
+    .split(".")
+    .pop()
+    ?.toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
   if (fromName) return fromName.slice(0, 8);
   if (file.type === "image/jpeg") return "jpg";
   if (file.type === "image/png") return "png";
@@ -45,7 +59,7 @@ export async function uploadMediaFile({
 }: {
   file: File;
   userId: string;
-  folder: "profile" | "projects" | "community-projects";
+  folder: "profile" | "projects" | "community-projects" | "content";
 }) {
   if (!supabase) {
     throw new Error("Media uploads are not configured.");

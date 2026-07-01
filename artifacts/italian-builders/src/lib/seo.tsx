@@ -211,6 +211,25 @@ function routeConfig(path: string): SeoConfig {
     };
   }
 
+  if (normalized === "/content" || normalized === "/hp-2/content") {
+    return {
+      title: "Community media | Italian Builders",
+      description:
+        "Browse videos, posts, and curated media from the Italian Builders community.",
+      path: normalized,
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          "@id": pageId(normalized),
+          name: "Community media",
+          url: absoluteUrl(normalized),
+          isPartOf: { "@id": `${siteOrigin}/#website` },
+        },
+      ],
+    };
+  }
+
   if (normalized === "/os-projects") {
     return {
       title: "Open-source projects | Italian Builders",

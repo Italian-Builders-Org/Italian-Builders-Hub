@@ -8,6 +8,7 @@ import {
   Copy,
   Eye,
   ExternalLink,
+  Film,
   Github,
   Globe,
   Linkedin,
@@ -35,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   type CommunityProject,
   type CommunityProjectMember,
+  type CommunityContent,
   type Invite,
   type ItalianCity,
   type Profile,
@@ -60,12 +62,7 @@ import {
   locationLabel,
   normalizeItalianCitySearch,
 } from "@/lib/geo";
-import {
-  Seo,
-  communityProjectSeo,
-  profileSeo,
-  projectSeo,
-} from "@/lib/seo";
+import { Seo, communityProjectSeo, profileSeo, projectSeo } from "@/lib/seo";
 
 const inputClass =
   "h-10 rounded-sm border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600";
@@ -368,6 +365,7 @@ function platformPath(path: string, r2: boolean) {
     path.startsWith("/builders") ||
     path.startsWith("/projects") ||
     path.startsWith("/community-projects") ||
+    path === "/content" ||
     path.startsWith("/pantheon") ||
     path.startsWith("/mission") ||
     path.startsWith("/join") ||
@@ -411,6 +409,7 @@ function R2PlatformHeader({ isAdmin }: { isAdmin: boolean }) {
         <a href="/hp-2/builders">Builders</a>
         <a href="/hp-2/projects">Projects</a>
         <a href="/hp-2/community-projects">Community</a>
+        <a href="/hp-2/content">Content</a>
         <a href="/hp-2/pantheon">Pantheon</a>
         {loading ? (
           <span className="hp2-auth-placeholder" />
@@ -443,6 +442,7 @@ function platformBreadcrumbLabel(segment: string) {
     admin: "Admin",
     builders: "Builders",
     "community-projects": "Community projects",
+    content: "Content",
     contributions: "Contributions",
     dashboard: "Dashboard",
     invites: "Invites",
@@ -468,7 +468,10 @@ function R2PlatformBreadcrumbBar() {
 
   if (pathname === "/hp-2") return null;
 
-  const segments = pathname.replace(/^\/hp-2\/?/, "").split("/").filter(Boolean);
+  const segments = pathname
+    .replace(/^\/hp-2\/?/, "")
+    .split("/")
+    .filter(Boolean);
 
   return (
     <div className="hp2-breadcrumbs">
@@ -514,6 +517,7 @@ function R2PlatformFooter({ isAdmin }: { isAdmin: boolean }) {
             <a href="/hp-2/admin/waitlist">Waitlist</a>
             <a href="/hp-2/admin/invites">Invites</a>
             <a href="/hp-2/admin/members">Members</a>
+            <a href="/hp-2/admin/content">Content</a>
             <a href="/hp-2/admin/community-projects">Community projects</a>
           </section>
         )}
@@ -522,6 +526,7 @@ function R2PlatformFooter({ isAdmin }: { isAdmin: boolean }) {
           <a href="/hp-2/builders">Builders</a>
           <a href="/hp-2/projects">Project showcase</a>
           <a href="/hp-2/community-projects">Community projects</a>
+          <a href="/hp-2/content">Content</a>
           <a href="/hp-2/pantheon">Pantheon</a>
           <a href="/hp-2/mission">Mission</a>
         </section>
@@ -686,8 +691,8 @@ function MediaUploadField({
   value: string;
   onChange: (url: string) => void;
   userId: string;
-  folder: "profile" | "projects" | "community-projects";
-  kind: "avatar" | "cover" | "project";
+  folder: "profile" | "projects" | "community-projects" | "content";
+  kind: "avatar" | "cover" | "project" | "content";
 }) {
   const { techLabels } = useTechLabels();
   const [uploading, setUploading] = useState(false);
@@ -948,7 +953,9 @@ function cityLookupEnabled(country: string) {
 }
 
 function cityOptionLabel(city: ItalianCity) {
-  return [city.name, city.province_code, city.region].filter(Boolean).join(", ");
+  return [city.name, city.province_code, city.region]
+    .filter(Boolean)
+    .join(", ");
 }
 
 function useItalianCityOptions(query: string, enabled: boolean) {
@@ -3079,9 +3086,7 @@ export function CommunityProjectDetailPage() {
                     className="flex gap-3 rounded-sm border border-zinc-800 bg-zinc-900 p-3 hover:border-blue-500/50"
                   >
                     <img
-                      src={
-                        member.profiles?.avatar_url || defaultAvatarUrl
-                      }
+                      src={member.profiles?.avatar_url || defaultAvatarUrl}
                       alt=""
                       className="h-9 w-9 rounded-sm border border-zinc-700 object-cover grayscale"
                     />
@@ -3101,6 +3106,204 @@ export function CommunityProjectDetailPage() {
         </aside>
       </section>
     </PageShell>
+  );
+}
+
+function contentImage(content: CommunityContent) {
+  return content.image_url || content.og_image_url || "";
+}
+
+function contentTagLabel(tag: string) {
+  return tag.trim();
+}
+
+function contentTagsFromInput(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    ),
+  ).slice(0, 12);
+}
+
+function contentProvider(content: CommunityContent) {
+  return content.provider || content.content_type || "Content";
+}
+
+export function CommunityContentPage() {
+  const { techLabels } = useTechLabels();
+  const [items, setItems] = useState<CommunityContent[]>([]);
+  const [query, setQuery] = useState("");
+  const [tag, setTag] = useState("All");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("community_content")
+        .select("*")
+        .eq("is_public", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+      setItems((data as CommunityContent[]) ?? []);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const tags = useMemo(
+    () => [
+      "All",
+      ...Array.from(
+        new Set(items.flatMap((item) => item.tags.map(contentTagLabel))),
+      ).sort((a, b) => a.localeCompare(b)),
+    ],
+    [items],
+  );
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = items.filter((item) => {
+    const matchesTag = tag === "All" || item.tags.includes(tag);
+    const haystack =
+      `${item.title} ${item.description ?? ""} ${item.provider ?? ""} ${item.author_label ?? ""} ${item.tags.join(" ")}`.toLowerCase();
+    return (
+      matchesTag && (!normalizedQuery || haystack.includes(normalizedQuery))
+    );
+  });
+
+  return (
+    <PageShell>
+      <HeroBlock
+        eyebrow={{ tech: "COMMUNITY_MEDIA", friendly: "Community media" }}
+        title={{
+          tech: "Browse curated content.",
+          friendly: "Videos, posts and media from the community.",
+        }}
+        copy={{
+          tech: "A tagged, ordered collection of media records curated by platform admins.",
+          friendly:
+            "A curated library of Italian Builders originals and useful community media.",
+        }}
+      />
+      <section className="container mx-auto space-y-6 px-4 py-12 md:px-6">
+        <div className="grid gap-3 lg:grid-cols-[1fr_260px]">
+          <Input
+            className={inputClass}
+            placeholder={
+              techLabels ? "Search media records..." : "Search content..."
+            }
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <select
+            className={selectClass}
+            value={tag}
+            onChange={(event) => setTag(event.target.value)}
+          >
+            {tags.map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+        </div>
+
+        {loading ? (
+          <SkeletonList />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            title={{
+              tech: "NO_CONTENT_RECORDS",
+              friendly: "No content found",
+            }}
+            copy={{
+              tech: "No public content record matches the current filters.",
+              friendly: "No community media matches the current filters.",
+            }}
+          />
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((item) => (
+              <CommunityContentCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
+      </section>
+    </PageShell>
+  );
+}
+
+function CommunityContentCard({ item }: { item: CommunityContent }) {
+  const { techLabels } = useTechLabels();
+  const safeHref = sanitizeHttpUrl(item.source_url);
+  const image = contentImage(item);
+
+  return (
+    <Card className="overflow-hidden">
+      {image ? (
+        <a
+          href={safeHref || undefined}
+          target="_blank"
+          rel="noreferrer"
+          className="block bg-zinc-900"
+        >
+          <img
+            src={image}
+            alt={item.title}
+            className="aspect-video w-full object-cover"
+          />
+        </a>
+      ) : (
+        <div className="flex aspect-video items-center justify-center bg-zinc-900 text-zinc-600">
+          <Film size={28} />
+        </div>
+      )}
+      <div className="space-y-4 p-5">
+        <div>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-sm border border-blue-500/40 bg-blue-500/10 px-2 py-0.5 text-[11px] font-mono uppercase text-blue-300">
+              {contentProvider(item)}
+            </span>
+            {item.is_original && (
+              <span className="rounded-sm border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-mono uppercase text-emerald-300">
+                {techLabels ? "ORIGINAL" : "Original"}
+              </span>
+            )}
+          </div>
+          <h2 className="text-lg font-bold text-zinc-100">{item.title}</h2>
+          {item.author_label && (
+            <p className="mt-1 text-xs uppercase tracking-wider text-zinc-500">
+              {item.author_label}
+            </p>
+          )}
+          {item.description && (
+            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-zinc-400">
+              {item.description}
+            </p>
+          )}
+        </div>
+        {item.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {item.tags.map((itemTag) => (
+              <span
+                key={itemTag}
+                className="rounded-sm border border-zinc-800 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-400"
+              >
+                {itemTag}
+              </span>
+            ))}
+          </div>
+        )}
+        <ExternalLinkItem
+          href={safeHref}
+          label={techLabels ? "OPEN_SOURCE_URL" : "Open content"}
+          icon={ExternalLink}
+        />
+      </div>
+    </Card>
   );
 }
 
@@ -3343,7 +3546,10 @@ function ProfileEditorView({
             kind="avatar"
           />
           <div className="grid content-start gap-4 md:grid-cols-2">
-            <Field label={{ tech: "DISPLAY_NAME", friendly: "Full name" }} required>
+            <Field
+              label={{ tech: "DISPLAY_NAME", friendly: "Full name" }}
+              required
+            >
               <Input
                 className={inputClass}
                 value={form.full_name}
@@ -3351,7 +3557,10 @@ function ProfileEditorView({
                 required
               />
             </Field>
-            <Field label={{ tech: "USERNAME_SLUG", friendly: "Username" }} required>
+            <Field
+              label={{ tech: "USERNAME_SLUG", friendly: "Username" }}
+              required
+            >
               <Input
                 className={inputClass}
                 value={form.username}
@@ -3365,7 +3574,10 @@ function ProfileEditorView({
               />
             </Field>
             <div className="md:col-span-2">
-              <Field label={{ tech: "PROFILE_HEADLINE", friendly: "Headline" }} required>
+              <Field
+                label={{ tech: "PROFILE_HEADLINE", friendly: "Headline" }}
+                required
+              >
                 <Input
                   className={inputClass}
                   value={form.headline}
@@ -3526,7 +3738,10 @@ function ProfileEditorView({
                   onSelect={selectItalianCity}
                 />
               </Field>
-              <Field label={{ tech: "COUNTRY_CODE", friendly: "Country" }} required>
+              <Field
+                label={{ tech: "COUNTRY_CODE", friendly: "Country" }}
+                required
+              >
                 <Input
                   className={inputClass}
                   value={form.country}
@@ -3905,7 +4120,9 @@ function ProfileForm({
     const { data: sessionData, error: sessionError } =
       await supabase.auth.getSession();
     if (sessionError || sessionData.session?.user.id !== userId) {
-      setError("Your session expired. Sign in again before saving your profile.");
+      setError(
+        "Your session expired. Sign in again before saving your profile.",
+      );
       setSaving(false);
       return;
     }
@@ -3981,7 +4198,8 @@ function ProfileForm({
             location: null,
             latitude,
             longitude,
-            intro_video_url: normalizeHttpUrlInput(form.intro_video_url) || null,
+            intro_video_url:
+              normalizeHttpUrlInput(form.intro_video_url) || null,
             visibility: form.visibility,
           })
           .eq("id", userId);
@@ -4222,11 +4440,7 @@ export function InvitePage() {
             />
           )}
           {!authLoading && !user && (
-            <SignInPanel
-              compact
-              allowSignup
-              invitedEmail={inviteEmail}
-            />
+            <SignInPanel compact allowSignup invitedEmail={inviteEmail} />
           )}
         </div>
         {inviteBlockedByExistingProfile ? (
@@ -4244,8 +4458,7 @@ export function InvitePage() {
                 </p>
                 {signedInAs && (
                   <p className="mt-2 font-mono text-xs text-zinc-600">
-                    {techLabels ? "SESSION_EMAIL" : "Signed in as"}{" "}
-                    {signedInAs}
+                    {techLabels ? "SESSION_EMAIL" : "Signed in as"} {signedInAs}
                   </p>
                 )}
                 <ActionableErrorMessage message={profileError} />
@@ -4350,7 +4563,10 @@ export function InvitePage() {
   );
 }
 
-type InviteLookup = Pick<Invite, "telegram_handle" | "status" | "expires_at"> & {
+type InviteLookup = Pick<
+  Invite,
+  "telegram_handle" | "status" | "expires_at"
+> & {
   id: string | null;
   email: string | null;
   waitlist_name: string | null;
@@ -4782,8 +4998,9 @@ function ProjectEditor({
         setError(categoryError.message);
         return;
       }
-      const nextProjectCategories = ((data as ProjectCategory[] | null) ?? [])
-        .filter(isVisibleProjectCategory);
+      const nextProjectCategories = (
+        (data as ProjectCategory[] | null) ?? []
+      ).filter(isVisibleProjectCategory);
       const availableCategoryIds = new Set(
         nextProjectCategories.map((category) => category.id),
       );
@@ -4978,11 +5195,13 @@ function ProjectEditor({
           const { error: insertCategoryError } = await supabase
             .from("project_category_tags")
             .insert(
-              form.category_ids.slice(0, maxProjectCategories).map((id, index) => ({
-                project_id: projectId,
-                category_id: id,
-                position: index,
-              })),
+              form.category_ids
+                .slice(0, maxProjectCategories)
+                .map((id, index) => ({
+                  project_id: projectId,
+                  category_id: id,
+                  position: index,
+                })),
             );
           if (insertCategoryError) {
             setError(insertCategoryError.message);
@@ -5059,9 +5278,7 @@ function ProjectEditor({
                 categories={projectCategories}
                 selectedIds={form.category_ids}
                 maxItems={maxProjectCategories}
-                onChange={(categoryIds) =>
-                  update("category_ids", categoryIds)
-                }
+                onChange={(categoryIds) => update("category_ids", categoryIds)}
               />
             )}
           </div>
@@ -5912,6 +6129,7 @@ export function AdminPage() {
   const waitlistHref = usePlatformHref("/admin/waitlist");
   const invitesHref = usePlatformHref("/admin/invites");
   const membersHref = usePlatformHref("/admin/members");
+  const contentHref = usePlatformHref("/admin/content");
   const communityProjectsHref = usePlatformHref("/admin/community-projects");
 
   return (
@@ -5930,7 +6148,7 @@ export function AdminPage() {
                 "Manage invites, members and community project assignments.",
             }}
           />
-          <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-2 md:px-6 xl:grid-cols-4">
+          <section className="container mx-auto grid gap-4 px-4 py-12 md:grid-cols-2 md:px-6 xl:grid-cols-5">
             <a href={waitlistHref} className="dt-card p-5">
               <UserPlus className="mb-4 text-blue-400" size={20} />
               <h2 className="mb-2 font-bold text-zinc-100">
@@ -5962,6 +6180,17 @@ export function AdminPage() {
                 {techLabels
                   ? "Review profile records and public renders."
                   : "Review profiles and open public pages."}
+              </p>
+            </a>
+            <a href={contentHref} className="dt-card p-5">
+              <Film className="mb-4 text-blue-400" size={20} />
+              <h2 className="mb-2 font-bold text-zinc-100">
+                {techLabels ? "CONTENT_RECORDS" : "Content"}
+              </h2>
+              <p className="text-sm text-zinc-500">
+                {techLabels
+                  ? "Create ordered media records with tags and preview images."
+                  : "Add videos, posts and media to the public collection."}
               </p>
             </a>
             <a href={communityProjectsHref} className="dt-card p-5">
@@ -6499,11 +6728,7 @@ function AdminMetric({ label, value }: { label: string; value: number }) {
 }
 
 export function AdminInvitesPage() {
-  return (
-    <RequireAuth admin>
-      {() => <AdminInvitesInner />}
-    </RequireAuth>
-  );
+  return <RequireAuth admin>{() => <AdminInvitesInner />}</RequireAuth>;
 }
 
 function AdminInvitesInner() {
@@ -6685,8 +6910,8 @@ function AdminInvitesInner() {
                     {invite.email || invite.telegram_handle}
                   </h2>
                   <p className="text-sm text-zinc-500">
-                    {expired ? "expired" : invite.status}{" "}
-                    · {techLabels ? "expires_at" : "expires"}{" "}
+                    {expired ? "expired" : invite.status} ·{" "}
+                    {techLabels ? "expires_at" : "expires"}{" "}
                     {invite.expires_at
                       ? new Date(invite.expires_at).toLocaleDateString()
                       : "never"}
@@ -6935,6 +7160,623 @@ function AdminMembersInner({
   );
 }
 
+type CommunityContentFormState = {
+  title: string;
+  slug: string;
+  source_url: string;
+  provider: string;
+  content_type: string;
+  description: string;
+  tags: string;
+  author_label: string;
+  image_url: string;
+  og_image_url: string;
+  is_original: boolean;
+  is_public: boolean;
+  sort_order: number;
+};
+
+function communityContentToForm(
+  item: CommunityContent | null,
+): CommunityContentFormState {
+  return {
+    title: item?.title ?? "",
+    slug: item?.slug ?? "",
+    source_url: item?.source_url ?? "",
+    provider: item?.provider ?? "",
+    content_type: item?.content_type ?? "video",
+    description: item?.description ?? "",
+    tags: item?.tags.join(", ") ?? "",
+    author_label: item?.author_label ?? "",
+    image_url: item?.image_url ?? "",
+    og_image_url: item?.og_image_url ?? "",
+    is_original: item?.is_original ?? false,
+    is_public: item?.is_public ?? true,
+    sort_order: item?.sort_order ?? 100,
+  };
+}
+
+export function AdminContentPage() {
+  return <RequireAuth admin>{() => <AdminContentInner />}</RequireAuth>;
+}
+
+function AdminContentInner() {
+  const { techLabels } = useTechLabels();
+  const newContentHref = usePlatformHref("/admin/content/new");
+  const contentAdminHref = usePlatformHref("/admin/content");
+  const publicContentHref = usePlatformHref("/content");
+  const [items, setItems] = useState<CommunityContent[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: loadError } = await supabase
+        .from("community_content")
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+      if (loadError) throw loadError;
+      setItems((data as CommunityContent[]) ?? []);
+    } catch (err) {
+      setError(getError(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function remove(item: CommunityContent) {
+    if (!supabase || !confirm(`Delete "${item.title}"?`)) return;
+    const { error: deleteError } = await supabase
+      .from("community_content")
+      .delete()
+      .eq("id", item.id);
+    if (deleteError) setError(deleteError.message);
+    else load();
+  }
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = items.filter((item) =>
+    `${item.title} ${item.provider ?? ""} ${item.author_label ?? ""} ${item.tags.join(" ")}`
+      .toLowerCase()
+      .includes(normalizedQuery),
+  );
+
+  return (
+    <PageShell>
+      <HeroBlock
+        eyebrow={{ tech: "ADMIN_CONTENT", friendly: "Admin content" }}
+        title={{
+          tech: "Manage media records.",
+          friendly: "Manage community media.",
+        }}
+        copy={{
+          tech: "Create ordered, tagged content records from source URLs and optional uploaded images.",
+          friendly:
+            "Add videos, posts and community media, pull their preview image, then decide how they appear publicly.",
+        }}
+        action={
+          <a
+            href={newContentHref}
+            className="inline-flex h-10 items-center gap-2 rounded-sm bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500"
+          >
+            <Plus size={16} /> {techLabels ? "NEW_CONTENT" : "New content"}
+          </a>
+        }
+      />
+      <section className="container mx-auto space-y-6 px-4 py-12 md:px-6">
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+          <Input
+            className={inputClass}
+            placeholder={
+              techLabels ? "Search content records..." : "Search content..."
+            }
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <a
+            href={publicContentHref}
+            className="inline-flex h-10 items-center justify-center rounded-sm border border-zinc-800 px-3 text-sm text-zinc-200 hover:bg-zinc-900"
+          >
+            {techLabels ? "PUBLIC_COLLECTION" : "Public collection"}
+          </a>
+        </div>
+        <ActionableErrorMessage message={error} />
+        {loading ? (
+          <SkeletonList />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            title={{
+              tech: "NO_CONTENT_RECORDS",
+              friendly: "No content records found",
+            }}
+            copy={{
+              tech: "Create the first media record from a source URL.",
+              friendly: "Create the first media record from a link.",
+            }}
+          />
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((item) => (
+              <Card
+                key={item.id}
+                className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div className="flex min-w-0 gap-3">
+                  {contentImage(item) ? (
+                    <img
+                      src={contentImage(item)}
+                      alt=""
+                      className="h-16 w-28 rounded-sm border border-zinc-800 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-28 items-center justify-center rounded-sm border border-zinc-800 bg-zinc-900 text-zinc-600">
+                      <Film size={20} />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="font-semibold text-zinc-100">
+                        {item.title}
+                      </h2>
+                      <span className="rounded-sm border border-zinc-700 px-2 py-0.5 text-[11px] font-mono uppercase text-zinc-400">
+                        {item.is_public
+                          ? techLabels
+                            ? "PUBLIC"
+                            : "Public"
+                          : techLabels
+                            ? "HIDDEN"
+                            : "Hidden"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {contentProvider(item)} · order {item.sort_order} ·{" "}
+                      {item.tags.length} tags
+                    </p>
+                    {item.description && (
+                      <p className="mt-2 max-w-3xl truncate text-sm text-zinc-500">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 md:justify-end">
+                  <a
+                    href={`${contentAdminHref}/${item.id}`}
+                    className="inline-flex h-9 items-center rounded-sm border border-zinc-800 px-3 text-sm text-zinc-200 hover:bg-zinc-900"
+                  >
+                    {techLabels ? "EDIT" : "Edit"}
+                  </a>
+                  <ExternalLinkItem
+                    href={item.source_url}
+                    label="Open"
+                    compact
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+                    onClick={() => remove(item)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+    </PageShell>
+  );
+}
+
+export function AdminContentEditorPage() {
+  const params = useParams<{ id?: string }>();
+  return (
+    <RequireAuth admin>
+      {({ userId }) => (
+        <ContentEditorLoader userId={userId} contentId={params.id} />
+      )}
+    </RequireAuth>
+  );
+}
+
+function ContentEditorLoader({
+  userId,
+  contentId,
+}: {
+  userId: string;
+  contentId?: string;
+}) {
+  const { techLabels } = useTechLabels();
+  const [item, setItem] = useState<CommunityContent | null>(null);
+  const [loading, setLoading] = useState(
+    Boolean(contentId && contentId !== "new"),
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      if (!supabase || !contentId || contentId === "new") {
+        setLoading(false);
+        return;
+      }
+      const { data, error: loadError } = await supabase
+        .from("community_content")
+        .select("*")
+        .eq("id", contentId)
+        .maybeSingle();
+      setError(getError(loadError));
+      setItem((data as CommunityContent | null) ?? null);
+      setLoading(false);
+    }
+    load();
+  }, [contentId]);
+
+  return (
+    <PageShell>
+      <HeroBlock
+        eyebrow={{ tech: "CONTENT_EDITOR", friendly: "Content editor" }}
+        title={
+          item
+            ? techLabels
+              ? "Edit media record."
+              : "Edit content."
+            : techLabels
+              ? "New media record."
+              : "New content."
+        }
+        copy={{
+          tech: "Paste a source URL, fetch its OG preview, then control image override, tags and ordering.",
+          friendly:
+            "Paste a link, load its preview image, and decide how the media appears in the public collection.",
+        }}
+      />
+      <section className="container mx-auto px-4 py-12 md:px-6">
+        <ActionableErrorMessage message={error} />
+        {loading ? (
+          <SkeletonList />
+        ) : (
+          <ContentEditor userId={userId} item={item} />
+        )}
+      </section>
+    </PageShell>
+  );
+}
+
+function ContentEditor({
+  userId,
+  item,
+}: {
+  userId: string;
+  item: CommunityContent | null;
+}) {
+  const { techLabels } = useTechLabels();
+  const navigate = usePlatformNavigate();
+  const [form, setForm] = useState(() => communityContentToForm(item));
+  const [saving, setSaving] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [lastPreviewUrl, setLastPreviewUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function update<K extends keyof CommunityContentFormState>(
+    key: K,
+    value: CommunityContentFormState[K],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function loadPreview() {
+    if (!form.source_url.trim() || previewing) return;
+    const normalizedUrl = normalizeHttpUrlInput(form.source_url);
+    if (!normalizedUrl) {
+      setError("Enter a valid source URL.");
+      return;
+    }
+    if (lastPreviewUrl === normalizedUrl) return;
+
+    setPreviewing(true);
+    setError(null);
+    try {
+      const preview = await adminApi<{
+        url: string;
+        provider: string | null;
+        title: string | null;
+        description: string | null;
+        imageUrl: string | null;
+      }>("/api/admin/content/preview", {
+        method: "POST",
+        body: JSON.stringify({ url: normalizedUrl }),
+      });
+      setForm((current) => ({
+        ...current,
+        source_url: preview.url || normalizedUrl,
+        provider: current.provider || preview.provider || "",
+        title: current.title || preview.title || "",
+        slug: current.slug || slugify(preview.title || ""),
+        description: current.description || preview.description || "",
+        og_image_url: preview.imageUrl || current.og_image_url,
+        image_url: current.image_url || preview.imageUrl || "",
+      }));
+      setLastPreviewUrl(preview.url || normalizedUrl);
+    } catch (err) {
+      setError(getError(err));
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!supabase) return;
+    const sourceUrl = normalizeHttpUrlInput(form.source_url);
+    if (!sourceUrl) {
+      setError("Enter a valid source URL.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    const payload = {
+      title: form.title.trim(),
+      slug: form.slug || slugify(form.title),
+      source_url: sourceUrl,
+      provider: form.provider.trim() || null,
+      content_type: form.content_type || "link",
+      description: form.description.trim() || null,
+      tags: contentTagsFromInput(form.tags),
+      author_label: form.author_label.trim() || null,
+      image_url: form.image_url.trim() || null,
+      og_image_url: form.og_image_url.trim() || null,
+      is_original: form.is_original,
+      is_public: form.is_public,
+      sort_order: Number.isFinite(Number(form.sort_order))
+        ? Number(form.sort_order)
+        : 100,
+      created_by: item?.created_by ?? userId,
+    };
+    const result = item
+      ? await supabase
+          .from("community_content")
+          .update(payload)
+          .eq("id", item.id)
+      : await supabase
+          .from("community_content")
+          .insert(payload)
+          .select("id")
+          .single();
+
+    if (result.error) {
+      setError(result.error.message);
+    } else {
+      navigate(
+        item
+          ? "/admin/content"
+          : `/admin/content/${(result.data as { id?: string } | null)?.id}`,
+      );
+    }
+    setSaving(false);
+  }
+
+  const previewImage = form.image_url || form.og_image_url;
+
+  return (
+    <Card className="p-6">
+      <form onSubmit={submit} className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Field
+              label={{ tech: "SOURCE_URL", friendly: "Content link" }}
+              required
+            >
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <Input
+                  className={inputClass}
+                  value={form.source_url}
+                  onChange={(event) => update("source_url", event.target.value)}
+                  onBlur={() => {
+                    if (form.source_url.trim()) loadPreview();
+                  }}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+                  disabled={previewing}
+                  onClick={loadPreview}
+                >
+                  <RefreshCw size={14} />
+                  {previewing
+                    ? techLabels
+                      ? "LOADING..."
+                      : "Loading..."
+                    : techLabels
+                      ? "LOAD_OG"
+                      : "Load preview"}
+                </Button>
+              </div>
+            </Field>
+          </div>
+          <Field label={{ tech: "TITLE", friendly: "Title" }} required>
+            <Input
+              className={inputClass}
+              value={form.title}
+              onChange={(event) => update("title", event.target.value)}
+              onBlur={() => !form.slug && update("slug", slugify(form.title))}
+              required
+            />
+          </Field>
+          <Field label={{ tech: "SLUG", friendly: "Slug" }} required>
+            <Input
+              className={inputClass}
+              value={form.slug}
+              onChange={(event) => update("slug", slugify(event.target.value))}
+              required
+            />
+          </Field>
+          <Field label={{ tech: "PROVIDER", friendly: "Provider" }}>
+            <Input
+              className={inputClass}
+              value={form.provider}
+              onChange={(event) => update("provider", event.target.value)}
+              placeholder="YouTube"
+            />
+          </Field>
+          <Field label={{ tech: "CONTENT_TYPE", friendly: "Type" }}>
+            <select
+              className={selectClass}
+              value={form.content_type}
+              onChange={(event) => update("content_type", event.target.value)}
+            >
+              {["video", "article", "post", "podcast", "link"].map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label={{ tech: "AUTHOR_LABEL", friendly: "Author" }}>
+            <Input
+              className={inputClass}
+              value={form.author_label}
+              onChange={(event) => update("author_label", event.target.value)}
+              placeholder="Italian Builders"
+            />
+          </Field>
+          <Field label={{ tech: "SORT_ORDER", friendly: "Order" }}>
+            <Input
+              className={inputClass}
+              type="number"
+              value={form.sort_order}
+              onChange={(event) =>
+                update("sort_order", Number(event.target.value))
+              }
+            />
+          </Field>
+          <div className="md:col-span-2">
+            <Field
+              label={{ tech: "TAG_VECTOR", friendly: "Tags" }}
+              hint="Separate tags with commas. Tags power the public filters."
+            >
+              <Input
+                className={inputClass}
+                value={form.tags}
+                onChange={(event) => update("tags", event.target.value)}
+                placeholder="Italian Builders Original, Hermes Agent, AI Agents"
+              />
+            </Field>
+          </div>
+          <div className="md:col-span-2">
+            <Field label={{ tech: "DESCRIPTION", friendly: "Description" }}>
+              <Textarea
+                className={textareaClass}
+                value={form.description}
+                onChange={(event) => update("description", event.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="flex flex-wrap gap-4 md:col-span-2">
+            <label className="flex items-center gap-2 text-sm text-zinc-300">
+              <input
+                type="checkbox"
+                checked={form.is_public}
+                onChange={(event) => update("is_public", event.target.checked)}
+              />
+              {techLabels ? "PUBLIC_RECORD" : "Public"}
+            </label>
+            <label className="flex items-center gap-2 text-sm text-zinc-300">
+              <input
+                type="checkbox"
+                checked={form.is_original}
+                onChange={(event) =>
+                  update("is_original", event.target.checked)
+                }
+              />
+              {techLabels ? "IB_ORIGINAL" : "Italian Builders original"}
+            </label>
+          </div>
+        </div>
+
+        <aside className="space-y-4">
+          <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-4">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-100">
+              {techLabels ? "PREVIEW_IMAGE" : "Preview image"}
+            </h2>
+            {previewImage ? (
+              <img
+                src={previewImage}
+                alt=""
+                className="aspect-video w-full rounded-sm border border-zinc-800 object-cover"
+              />
+            ) : (
+              <div className="flex aspect-video items-center justify-center rounded-sm border border-dashed border-zinc-800 bg-zinc-900 text-zinc-600">
+                <Film size={28} />
+              </div>
+            )}
+          </div>
+          <Field
+            label={{ tech: "OG_IMAGE_URL", friendly: "OG image URL" }}
+            hint="The image found from the source page."
+          >
+            <Input
+              className={inputClass}
+              value={form.og_image_url}
+              onChange={(event) => update("og_image_url", event.target.value)}
+            />
+          </Field>
+          <Field
+            label={{
+              tech: "IMAGE_OVERRIDE_URL",
+              friendly: "Image override URL",
+            }}
+            hint="Use this when you want to override the OG image without uploading."
+          >
+            <Input
+              className={inputClass}
+              value={form.image_url}
+              onChange={(event) => update("image_url", event.target.value)}
+            />
+          </Field>
+          <MediaUploadField
+            label={{ tech: "UPLOAD_OVERRIDE", friendly: "Upload image" }}
+            value={form.image_url}
+            onChange={(url) => update("image_url", url)}
+            userId={userId}
+            folder="content"
+            kind="content"
+          />
+        </aside>
+
+        <div className="lg:col-span-2">
+          <ActionableErrorMessage message={error} />
+          <Button
+            className="mt-3 h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
+            disabled={saving}
+          >
+            {saving
+              ? techLabels
+                ? "SAVING..."
+                : "Saving..."
+              : techLabels
+                ? "SAVE_CONTENT"
+                : "Save content"}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
 type CommunityProjectFormState = {
   name: string;
   slug: string;
@@ -6973,7 +7815,9 @@ export function AdminCommunityProjectsPage() {
 
 function AdminCommunityProjectsInner() {
   const { techLabels } = useTechLabels();
-  const newCommunityProjectHref = usePlatformHref("/admin/community-projects/new");
+  const newCommunityProjectHref = usePlatformHref(
+    "/admin/community-projects/new",
+  );
   const communityProjectsHref = usePlatformHref("/admin/community-projects");
   const [projects, setProjects] = useState<CommunityProject[]>([]);
 
@@ -7189,7 +8033,8 @@ function CommunityProjectEditor({
       description: form.description || null,
       category: form.category || null,
       status: form.status,
-      repo_url: normalizeSocialUrl(form.repo_url, "https://github.com/") || null,
+      repo_url:
+        normalizeSocialUrl(form.repo_url, "https://github.com/") || null,
       website_url: normalizeHttpUrlInput(form.website_url) || null,
       image_url: form.image_url || null,
       is_public: form.is_public,

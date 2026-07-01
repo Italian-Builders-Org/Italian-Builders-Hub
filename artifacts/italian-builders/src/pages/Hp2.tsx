@@ -93,6 +93,7 @@ const hp2PrimaryLinks = [
   { href: "/hp-2/builders", label: "Builders" },
   { href: "/hp-2/projects", label: "Projects" },
   { href: "/hp-2/community-projects", label: "Community projects" },
+  { href: "/hp-2/content", label: "Content" },
   { href: "/hp-2/pantheon", label: "Pantheon" },
 ];
 
@@ -103,6 +104,7 @@ const hp2FooterGroups = [
       { href: "/hp-2/builders", label: "Directory" },
       { href: "/hp-2/projects", label: "Showcase" },
       { href: "/hp-2/community-projects", label: "Community projects" },
+      { href: "/hp-2/content", label: "Content" },
     ],
   },
   {
@@ -521,7 +523,10 @@ function SequentialWordReveal({
   active: boolean;
   onComplete: () => void;
 }) {
-  const words = useMemo(() => children.split(/\s+/).filter(Boolean), [children]);
+  const words = useMemo(
+    () => children.split(/\s+/).filter(Boolean),
+    [children],
+  );
   const completedRef = useRef(false);
 
   useEffect(() => {
@@ -632,8 +637,7 @@ function Hp2BuilderGlobe({
     const base = allBuilders.map((builder) => ({
       lat: builder.lat,
       lng: builder.lng,
-      color:
-        builder.id === active?.id ? hp2MapPinOutline : hp2MapPinColor,
+      color: builder.id === active?.id ? hp2MapPinOutline : hp2MapPinColor,
       radius: builder.id === active?.id ? 0.17 : 0.075,
     }));
 
@@ -860,10 +864,7 @@ function Hp2BuilderGlobe({
   }, []);
 
   return (
-    <div
-      ref={hostRef}
-      className="relative z-0 h-full w-full overflow-hidden"
-    />
+    <div ref={hostRef} className="relative z-0 h-full w-full overflow-hidden" />
   );
 }
 
@@ -1162,13 +1163,11 @@ export default function Hp2Page() {
                 <AnimatedHeroWord index={0}>Connecting</AnimatedHeroWord>
               </span>
               <span className="hp2-hero-line">
-                <AnimatedHeroWord index={1}>the</AnimatedHeroWord>
-                {" "}
+                <AnimatedHeroWord index={1}>the</AnimatedHeroWord>{" "}
                 <AnimatedHeroWord index={2}>people</AnimatedHeroWord>
               </span>
               <span className="hp2-hero-line hp2-hero-highlight">
-                <AnimatedHeroWord index={3}>who</AnimatedHeroWord>
-                {" "}
+                <AnimatedHeroWord index={3}>who</AnimatedHeroWord>{" "}
                 <AnimatedHeroWord index={4} className="hp2-hero-build">
                   Build.
                 </AnimatedHeroWord>
@@ -1259,11 +1258,7 @@ export default function Hp2Page() {
                     {content}
                   </a>
                 ) : (
-                  <div
-                    key={builder.id}
-                    className={rowClassName}
-                    {...rowEvents}
-                  >
+                  <div key={builder.id} className={rowClassName} {...rowEvents}>
                     {content}
                   </div>
                 );

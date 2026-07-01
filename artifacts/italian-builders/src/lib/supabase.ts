@@ -157,6 +157,26 @@ export type CommunityProject = {
   community_project_members?: CommunityProjectMember[];
 };
 
+export type CommunityContent = {
+  id: string;
+  title: string;
+  slug: string;
+  source_url: string;
+  provider: string | null;
+  content_type: string;
+  description: string | null;
+  tags: string[];
+  author_label: string | null;
+  image_url: string | null;
+  og_image_url: string | null;
+  is_original: boolean;
+  is_public: boolean;
+  sort_order: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CommunityProjectMember = {
   id: string;
   community_project_id: string;

@@ -14,16 +14,8 @@ import {
   R2HeaderAuthControls,
 } from "@/pages/Hp2";
 import { StyleSwitch } from "@/pages/Home";
-import {
-  PIONEERS,
-  PIONEER_CATEGORIES,
-  type Pioneer,
-} from "@/data/pioneers";
-import {
-  STATIC_BUILDERS,
-  STATIC_PROJECTS,
-  hasItems,
-} from "@/data/directory";
+import { PIONEERS, PIONEER_CATEGORIES, type Pioneer } from "@/data/pioneers";
+import { STATIC_BUILDERS, STATIC_PROJECTS, hasItems } from "@/data/directory";
 import { defaultAvatarUrl } from "@/lib/assets";
 import { supabase } from "@/lib/supabase";
 import type {
@@ -42,6 +34,7 @@ const r2PrimaryLinks = [
   { href: "/hp-2/builders", label: "Builders" },
   { href: "/hp-2/projects", label: "Projects" },
   { href: "/hp-2/community-projects", label: "Community projects" },
+  { href: "/hp-2/content", label: "Content" },
   { href: "/hp-2/pantheon", label: "Pantheon" },
   { href: "/hp-2/mission", label: "Mission" },
 ];
@@ -88,7 +81,10 @@ function R2BreadcrumbBar() {
 
   if (pathname === "/hp-2") return null;
 
-  const segments = pathname.replace(/^\/hp-2\/?/, "").split("/").filter(Boolean);
+  const segments = pathname
+    .replace(/^\/hp-2\/?/, "")
+    .split("/")
+    .filter(Boolean);
 
   return (
     <div className="hp2-breadcrumbs">
@@ -247,7 +243,9 @@ function cleanLookingForItems(items?: ProjectLookingFor[] | null) {
     .slice(0, 6);
 }
 
-function profileLocation(profile: Pick<Profile, "city" | "country" | "location">) {
+function profileLocation(
+  profile: Pick<Profile, "city" | "country" | "location">,
+) {
   return (
     [profile.city, profile.country].filter(Boolean).join(", ") ||
     profile.location ||
@@ -333,10 +331,13 @@ export function Hp2BuildersPage() {
   const { profiles, loading } = useR2Profiles();
   const [query, setQuery] = useState("");
   const [role, setRole] = useState("All");
-  const fallbackBuilders = profiles.length === 0 && !loading ? STATIC_BUILDERS : [];
+  const fallbackBuilders =
+    profiles.length === 0 && !loading ? STATIC_BUILDERS : [];
   const roles = [
     "All",
-    ...Array.from(new Set(profiles.map((profile) => profile.role).filter(Boolean))),
+    ...Array.from(
+      new Set(profiles.map((profile) => profile.role).filter(Boolean)),
+    ),
   ] as string[];
   const filteredProfiles = profiles.filter((profile) => {
     const haystack =
@@ -570,7 +571,8 @@ export function Hp2ProjectsPage() {
   const { projects, loading } = useR2Projects();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
-  const fallbackProjects = projects.length === 0 && !loading ? STATIC_PROJECTS : [];
+  const fallbackProjects =
+    projects.length === 0 && !loading ? STATIC_PROJECTS : [];
   const categories = [
     "All",
     ...Array.from(new Set(projects.flatMap(projectCategoryLabels))),
@@ -594,7 +596,9 @@ export function Hp2ProjectsPage() {
         meta={
           <div className="hp2-substats">
             <span>{projects.length || STATIC_PROJECTS.length} projects</span>
-            <span>{categories.length > 1 ? categories.length - 1 : 0} categories</span>
+            <span>
+              {categories.length > 1 ? categories.length - 1 : 0} categories
+            </span>
           </div>
         }
       />
@@ -725,7 +729,11 @@ export function Hp2ProjectDetailPage() {
       <R2Hero
         label={projectCategoryLabels(project).join(" / ") || "Project"}
         title={project.name}
-        copy={project.tagline || project.description || "Project record from Italian Builders."}
+        copy={
+          project.tagline ||
+          project.description ||
+          "Project record from Italian Builders."
+        }
         meta={
           <div className="hp2-substats">
             <span>{project.status}</span>
@@ -735,7 +743,9 @@ export function Hp2ProjectDetailPage() {
       />
       <section className="hp2-detail-grid">
         <article className="hp2-detail-body">
-          {project.image_url && <img src={project.image_url} alt={project.name} />}
+          {project.image_url && (
+            <img src={project.image_url} alt={project.name} />
+          )}
           <h2>About</h2>
           <p>{project.description || "No description yet."}</p>
           {lookingFor.length > 0 && (
@@ -851,9 +861,14 @@ export function Hp2CommunityProjectsPage() {
         ) : filteredProjects.length > 0 ? (
           <div className="hp2-row-list">
             {filteredProjects.map((project) => (
-              <a key={project.id} href={`/hp-2/community-projects/${project.slug}`}>
+              <a
+                key={project.id}
+                href={`/hp-2/community-projects/${project.slug}`}
+              >
                 <strong>{project.name}</strong>
-                <span>{project.tagline || project.description || project.category}</span>
+                <span>
+                  {project.tagline || project.description || project.category}
+                </span>
                 <small>{project.status}</small>
               </a>
             ))}
@@ -921,17 +936,23 @@ export function Hp2CommunityProjectDetailPage() {
       <R2Hero
         label={project.category || "Community project"}
         title={project.name}
-        copy={project.tagline || project.description || "Shared community work."}
+        copy={
+          project.tagline || project.description || "Shared community work."
+        }
         meta={
           <div className="hp2-substats">
             <span>{project.status}</span>
-            <span>{project.community_project_members?.length ?? 0} contributors</span>
+            <span>
+              {project.community_project_members?.length ?? 0} contributors
+            </span>
           </div>
         }
       />
       <section className="hp2-detail-grid">
         <article className="hp2-detail-body">
-          {project.image_url && <img src={project.image_url} alt={project.name} />}
+          {project.image_url && (
+            <img src={project.image_url} alt={project.name} />
+          )}
           <h2>About</h2>
           <p>{project.description || "No description yet."}</p>
         </article>
@@ -1007,8 +1028,16 @@ export function Hp2PantheonPage() {
         copy="A reference wall for the people whose work made new industries, sciences, tools, and cultures possible."
       />
       <section className="hp2-list-section">
-        <R2Search value={query} onChange={setQuery} placeholder="Search names, fields, eras...">
-          <R2Select value={category} onChange={setCategory} options={categories} />
+        <R2Search
+          value={query}
+          onChange={setQuery}
+          placeholder="Search names, fields, eras..."
+        >
+          <R2Select
+            value={category}
+            onChange={setCategory}
+            options={categories}
+          />
         </R2Search>
         <div className="hp2-pioneer-grid">
           {filtered.map((pioneer) => (
@@ -1087,10 +1116,22 @@ export function Hp2PrivacyPage() {
       title="Privacy Policy"
       intro="This policy explains what Italian Builders collects, why we collect it, and how we use the services that power the community."
       sections={[
-        ["Who we are", "Italian Builders is a community for people who build products, companies, software, creative work, and technology in or connected to Italy."],
-        ["Information we collect", "Waitlist records, account information, public profile content, project listings, media, links, technical logs, security events, and local interface preferences."],
-        ["How we use information", "We use this information to run the community, review access requests, authenticate members, display public profiles and projects, store media, contact members, and keep the website reliable."],
-        ["Service providers", "We use Vercel, Supabase, Cloudflare R2, Sentry when configured, Google Fonts, LinkedIn, and X where those services are part of the product experience."],
+        [
+          "Who we are",
+          "Italian Builders is a community for people who build products, companies, software, creative work, and technology in or connected to Italy.",
+        ],
+        [
+          "Information we collect",
+          "Waitlist records, account information, public profile content, project listings, media, links, technical logs, security events, and local interface preferences.",
+        ],
+        [
+          "How we use information",
+          "We use this information to run the community, review access requests, authenticate members, display public profiles and projects, store media, contact members, and keep the website reliable.",
+        ],
+        [
+          "Service providers",
+          "We use Vercel, Supabase, Cloudflare R2, Sentry when configured, Google Fonts, LinkedIn, and X where those services are part of the product experience.",
+        ],
         ["Contact", "For privacy requests, contact info@italianbuilders.co."],
       ]}
     />
@@ -1104,10 +1145,22 @@ export function Hp2TermsPage() {
       title="Terms of Service"
       intro="These terms set the basic rules for using Italian Builders while the community is still early."
       sections={[
-        ["Access", "We may accept, reject, suspend, or remove access to protect the community and operate the service."],
-        ["Community content", "You are responsible for the profile, project, links, images, videos, and other content you submit."],
-        ["Acceptable use", "Do not abuse the service, misrepresent yourself, upload malicious content, or use the community for deceptive promotion."],
-        ["Early-stage service", "Italian Builders is provided as an early-stage community service and may change as the product evolves."],
+        [
+          "Access",
+          "We may accept, reject, suspend, or remove access to protect the community and operate the service.",
+        ],
+        [
+          "Community content",
+          "You are responsible for the profile, project, links, images, videos, and other content you submit.",
+        ],
+        [
+          "Acceptable use",
+          "Do not abuse the service, misrepresent yourself, upload malicious content, or use the community for deceptive promotion.",
+        ],
+        [
+          "Early-stage service",
+          "Italian Builders is provided as an early-stage community service and may change as the product evolves.",
+        ],
         ["Contact", "For terms questions, contact info@italianbuilders.co."],
       ]}
     />

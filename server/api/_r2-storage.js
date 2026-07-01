@@ -13,11 +13,17 @@ const allowedMediaTypes = new Set([
   "video/webm",
 ]);
 
-const allowedFolders = new Set(["profile", "projects", "community-projects"]);
+const allowedFolders = new Set([
+  "profile",
+  "projects",
+  "community-projects",
+  "content",
+]);
 
 function rfc3986(value) {
-  return encodeURIComponent(value).replace(/[!'()*]/g, (char) =>
-    `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
   );
 }
 
@@ -59,7 +65,8 @@ function requireR2Config() {
     accessKeyId: process.env.R2_ACCESS_KEY_ID,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
     endpoint: process.env.R2_ENDPOINT,
-    publicBaseUrl: process.env.R2_PUBLIC_BASE_URL || process.env.VITE_R2_PUBLIC_BASE_URL,
+    publicBaseUrl:
+      process.env.R2_PUBLIC_BASE_URL || process.env.VITE_R2_PUBLIC_BASE_URL,
   };
 
   const missing = Object.entries(config)
@@ -115,10 +122,18 @@ function assertMediaInput({ folder, contentType, size }) {
   }
 }
 
-function createObjectKey({ userId, folder, fileName, contentType, prefix = "" }) {
+function createObjectKey({
+  userId,
+  folder,
+  fileName,
+  contentType,
+  prefix = "",
+}) {
   const extension = safeExtension(fileName, contentType);
   const id = crypto.randomUUID();
-  const filename = prefix ? `${prefix}-${id}.${extension}` : `${id}.${extension}`;
+  const filename = prefix
+    ? `${prefix}-${id}.${extension}`
+    : `${id}.${extension}`;
   return `${userId}/${folder}/${filename}`;
 }
 
@@ -131,13 +146,24 @@ function signedHeadersString(headers) {
 
 function canonicalHeadersString(headers) {
   return Object.entries(headers)
-    .map(([key, value]) => [key.toLowerCase(), String(value).trim().replace(/\s+/g, " ")])
+    .map(([key, value]) => [
+      key.toLowerCase(),
+      String(value).trim().replace(/\s+/g, " "),
+    ])
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}:${value}\n`)
     .join("");
 }
 
-function signRequest({ method, path, query = "", headers, payloadHash, config, date = amzDate() }) {
+function signRequest({
+  method,
+  path,
+  query = "",
+  headers,
+  payloadHash,
+  config,
+  date = amzDate(),
+}) {
   const { long, short } = date;
   const signedHeaders = signedHeadersString(headers);
   const canonicalRequest = [
@@ -149,8 +175,17 @@ function signRequest({ method, path, query = "", headers, payloadHash, config, d
     payloadHash,
   ].join("\n");
   const scope = `${short}/auto/s3/aws4_request`;
-  const stringToSign = ["AWS4-HMAC-SHA256", long, scope, sha256(canonicalRequest)].join("\n");
-  const signature = hmac(signingKey(config.secretAccessKey, short), stringToSign, "hex");
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    long,
+    scope,
+    sha256(canonicalRequest),
+  ].join("\n");
+  const signature = hmac(
+    signingKey(config.secretAccessKey, short),
+    stringToSign,
+    "hex",
+  );
 
   return {
     authorization: `AWS4-HMAC-SHA256 Credential=${config.accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
@@ -189,8 +224,17 @@ function createPresignedPutUrl({ objectKey, contentType }) {
     signedHeaders,
     "UNSIGNED-PAYLOAD",
   ].join("\n");
-  const stringToSign = ["AWS4-HMAC-SHA256", long, scope, sha256(canonicalRequest)].join("\n");
-  const signature = hmac(signingKey(config.secretAccessKey, short), stringToSign, "hex");
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    long,
+    scope,
+    sha256(canonicalRequest),
+  ].join("\n");
+  const signature = hmac(
+    signingKey(config.secretAccessKey, short),
+    stringToSign,
+    "hex",
+  );
   params.set("X-Amz-Signature", signature);
 
   return {
@@ -238,7 +282,9 @@ async function uploadR2Object({ objectKey, body, contentType }) {
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || `R2 upload failed with status ${response.status}.`);
+    throw new Error(
+      message || `R2 upload failed with status ${response.status}.`,
+    );
   }
 
   return publicUrlForObject(config, objectKey);
@@ -257,12 +303,15 @@ async function verifySupabaseUser(authorization) {
     throw new Error("Authentication is not configured.");
   }
 
-  const response = await fetch(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/user`, {
-    headers: {
-      apikey: supabaseKey,
-      authorization,
+  const response = await fetch(
+    `${supabaseUrl.replace(/\/$/, "")}/auth/v1/user`,
+    {
+      headers: {
+        apikey: supabaseKey,
+        authorization,
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     const error = new Error("Authentication required.");

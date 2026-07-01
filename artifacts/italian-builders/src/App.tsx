@@ -31,6 +31,8 @@ import { TechLabelProvider } from "@/pages/Home";
 import {
   AdminCommunityProjectEditorPage,
   AdminCommunityProjectsPage,
+  AdminContentEditorPage,
+  AdminContentPage,
   AdminInvitesPage,
   AdminMembersPage,
   AdminPage,
@@ -39,6 +41,7 @@ import {
   BuildersDirectoryPage,
   CommunityProjectDetailPage,
   CommunityProjectsDirectoryPage,
+  CommunityContentPage,
   DashboardPage,
   DashboardContributionsPage,
   DashboardProfilePage,
@@ -70,10 +73,14 @@ function Router() {
           path="/community-projects/:slug"
           component={CommunityProjectDetailPage}
         />
+        <Route path="/content" component={CommunityContentPage} />
         <Route path="/os-projects" component={OpenSourcePage} />
         <Route path="/pantheon" component={PioneersPage} />
         <Route path="/mission" component={MissionPage} />
-        <Route path="/hp-2/builders/:username" component={Hp2BuilderProfilePage} />
+        <Route
+          path="/hp-2/builders/:username"
+          component={Hp2BuilderProfilePage}
+        />
         <Route path="/hp-2/builders" component={Hp2BuildersPage} />
         <Route path="/hp-2/projects/:slug" component={Hp2ProjectDetailPage} />
         <Route path="/hp-2/projects" component={Hp2ProjectsPage} />
@@ -85,6 +92,7 @@ function Router() {
           path="/hp-2/community-projects"
           component={Hp2CommunityProjectsPage}
         />
+        <Route path="/hp-2/content" component={CommunityContentPage} />
         <Route path="/hp-2/pantheon" component={Hp2PantheonPage} />
         <Route path="/hp-2/mission" component={Hp2MissionPage} />
         <Route path="/hp-2/join" component={Hp2JoinPage} />
@@ -118,6 +126,15 @@ function Router() {
         <Route path="/hp-2/admin/waitlist" component={AdminWaitlistPage} />
         <Route path="/hp-2/admin/invites" component={AdminInvitesPage} />
         <Route path="/hp-2/admin/members" component={AdminMembersPage} />
+        <Route path="/hp-2/admin/content" component={AdminContentPage} />
+        <Route
+          path="/hp-2/admin/content/new"
+          component={AdminContentEditorPage}
+        />
+        <Route
+          path="/hp-2/admin/content/:id"
+          component={AdminContentEditorPage}
+        />
         <Route
           path="/hp-2/admin/community-projects"
           component={AdminCommunityProjectsPage}
@@ -148,6 +165,9 @@ function Router() {
         <Route path="/admin/waitlist" component={AdminWaitlistPage} />
         <Route path="/admin/invites" component={AdminInvitesPage} />
         <Route path="/admin/members" component={AdminMembersPage} />
+        <Route path="/admin/content" component={AdminContentPage} />
+        <Route path="/admin/content/new" component={AdminContentEditorPage} />
+        <Route path="/admin/content/:id" component={AdminContentEditorPage} />
         <Route
           path="/admin/community-projects"
           component={AdminCommunityProjectsPage}
