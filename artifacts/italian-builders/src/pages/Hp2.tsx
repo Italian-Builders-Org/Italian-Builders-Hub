@@ -111,6 +111,7 @@ const hp2FooterGroups = [
     title: "Resources",
     links: [
       { href: "/hp-2/mission", label: "Mission" },
+      { href: "/hp-2/os-projects", label: "Open source" },
       { href: "/hp-2/pantheon", label: "Pantheon" },
       { label: "Guides", comingSoon: true },
       { label: "Changelog", comingSoon: true },

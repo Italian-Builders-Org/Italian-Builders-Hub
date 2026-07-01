@@ -15,9 +15,15 @@ import {
 } from "@/pages/Hp2";
 import { StyleSwitch } from "@/pages/Home";
 import { PIONEERS, PIONEER_CATEGORIES, type Pioneer } from "@/data/pioneers";
-import { STATIC_BUILDERS, STATIC_PROJECTS, hasItems } from "@/data/directory";
+import {
+  STATIC_BUILDERS,
+  STATIC_OS_PROJECTS,
+  STATIC_PROJECTS,
+  hasItems,
+} from "@/data/directory";
 import { defaultAvatarUrl } from "@/lib/assets";
 import { supabase } from "@/lib/supabase";
+import { Seo, communityProjectSeo, profileSeo, projectSeo } from "@/lib/seo";
 import type {
   CommunityProject,
   Profile,
@@ -35,6 +41,7 @@ const r2PrimaryLinks = [
   { href: "/hp-2/projects", label: "Projects" },
   { href: "/hp-2/community-projects", label: "Community projects" },
   { href: "/hp-2/content", label: "Content" },
+  { href: "/hp-2/os-projects", label: "Open source" },
   { href: "/hp-2/pantheon", label: "Pantheon" },
   { href: "/hp-2/mission", label: "Mission" },
 ];
@@ -492,6 +499,10 @@ export function Hp2BuilderProfilePage() {
 
   return (
     <R2Shell>
+      <Seo
+        {...profileSeo(profile)}
+        path={`/hp-2/builders/${profile.username}`}
+      />
       <section className="hp2-profile-hero">
         <div className="hp2-profile-media">
           {profile.cover_url && <img src={profile.cover_url} alt="" />}
@@ -726,6 +737,7 @@ export function Hp2ProjectDetailPage() {
 
   return (
     <R2Shell>
+      <Seo {...projectSeo(project)} path={`/hp-2/projects/${project.slug}`} />
       <R2Hero
         label={projectCategoryLabels(project).join(" / ") || "Project"}
         title={project.name}
@@ -884,6 +896,41 @@ export function Hp2CommunityProjectsPage() {
   );
 }
 
+export function Hp2OpenSourcePage() {
+  return (
+    <R2Shell>
+      <R2Hero
+        label="Open source"
+        title="Shared infrastructure for Italian builders."
+        copy="Community-maintained projects that make discovery, collaboration, and open building easier."
+        meta={
+          <div className="hp2-substats">
+            <span>{STATIC_OS_PROJECTS.length} projects</span>
+            <span>Community maintained</span>
+          </div>
+        }
+      />
+      <section className="hp2-list-section">
+        <div className="hp2-project-grid">
+          {STATIC_OS_PROJECTS.map((project) => (
+            <a key={project.id} className="hp2-project-card" href="#">
+              <div className="hp2-project-card-fallback" aria-hidden="true">
+                {project.title.slice(0, 2)}
+              </div>
+              <div>
+                <span>{project.category}</span>
+                <h2>{project.title}</h2>
+                <p>{project.description}</p>
+                <small>{project.status}</small>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    </R2Shell>
+  );
+}
+
 export function Hp2CommunityProjectDetailPage() {
   const params = useParams<{ slug: string }>();
   const [project, setProject] = useState<CommunityProject | null>(null);
@@ -933,6 +980,10 @@ export function Hp2CommunityProjectDetailPage() {
 
   return (
     <R2Shell>
+      <Seo
+        {...communityProjectSeo(project)}
+        path={`/hp-2/community-projects/${project.slug}`}
+      />
       <R2Hero
         label={project.category || "Community project"}
         title={project.name}

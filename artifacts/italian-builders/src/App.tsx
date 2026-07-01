@@ -20,6 +20,7 @@ import {
   Hp2CommunityProjectsPage,
   Hp2JoinPage,
   Hp2MissionPage,
+  Hp2OpenSourcePage,
   Hp2PantheonPage,
   Hp2PrivacyPage,
   Hp2ProjectDetailPage,
@@ -93,6 +94,7 @@ function Router() {
           component={Hp2CommunityProjectsPage}
         />
         <Route path="/hp-2/content" component={CommunityContentPage} />
+        <Route path="/hp-2/os-projects" component={Hp2OpenSourcePage} />
         <Route path="/hp-2/pantheon" component={Hp2PantheonPage} />
         <Route path="/hp-2/mission" component={Hp2MissionPage} />
         <Route path="/hp-2/join" component={Hp2JoinPage} />
