@@ -11,11 +11,13 @@ import {
   Film,
   Github,
   Globe,
+  Link2,
   Linkedin,
   Lock,
   LogOut,
   MessageCircle,
   Monitor,
+  Newspaper,
   PencilLine,
   Plus,
   RefreshCw,
@@ -44,6 +46,7 @@ import {
   type ProjectCategory,
   type ProjectLookingFor,
   type ProjectMember,
+  type TelegramDailyReport,
   type WaitlistSignup,
   isSupabaseConfigured,
   slugify,
@@ -506,6 +509,7 @@ function R2PlatformFooter({ isAdmin }: { isAdmin: boolean }) {
         <section aria-label="Member">
           <h2>Member</h2>
           <a href="/hp-2/dashboard">Dashboard</a>
+          <a href="/hp-2/dashboard/digests">Daily digest</a>
           <a href="/hp-2/dashboard/profile">Profile</a>
           <a href="/hp-2/dashboard/projects">My projects</a>
           <a href="/hp-2/dashboard/contributions">Contributions</a>
@@ -4607,6 +4611,7 @@ export function DashboardPage() {
   const profileHref = usePlatformHref("/dashboard/profile");
   const projectsHref = usePlatformHref("/dashboard/projects");
   const contributionsHref = usePlatformHref("/dashboard/contributions");
+  const digestsHref = usePlatformHref("/dashboard/digests");
   const adminHref = usePlatformHref("/admin");
   const buildersHref = usePlatformHref("/builders");
 
@@ -4658,6 +4663,16 @@ export function DashboardPage() {
                   : "Add your role on projects where you are listed as a contributor."}
               </p>
             </a>
+            <a href={digestsHref} className="dt-card p-5">
+              <h2 className="mb-2 font-bold text-zinc-100">
+                {techLabels ? "DAILY_DIGEST" : "Daily digest"}
+              </h2>
+              <p className="text-sm text-zinc-500">
+                {techLabels
+                  ? "Read generated previous-day Telegram intelligence briefs."
+                  : "Read the previous-day summary from the community Telegram channels."}
+              </p>
+            </a>
             {profile?.username && (
               <a
                 href={`${buildersHref}/${profile.username}`}
@@ -4685,6 +4700,267 @@ export function DashboardPage() {
                     : "Invites, members and community projects."}
                 </p>
               </a>
+            )}
+          </section>
+        </PageShell>
+      )}
+    </RequireAuth>
+  );
+}
+
+function reportStringList(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter(
+        (item): item is string =>
+          typeof item === "string" && item.trim().length > 0,
+      )
+    : [];
+}
+
+function DigestResourceLink({
+  resource,
+}: {
+  resource: {
+    title?: string;
+    url?: string;
+    type?: string;
+    whyItMatters?: string;
+  };
+}) {
+  const href = sanitizeHttpUrl(resource.url);
+  if (!href) return null;
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="block rounded-sm border border-zinc-800 bg-zinc-950 p-3 hover:border-blue-500/50"
+    >
+      <div className="mb-1 flex items-center gap-2 text-xs font-mono uppercase text-blue-400">
+        <Link2 size={13} />
+        {resource.type || "resource"}
+      </div>
+      <p className="font-semibold text-zinc-100">{resource.title || href}</p>
+      {resource.whyItMatters && (
+        <p className="mt-1 text-sm leading-relaxed text-zinc-500">
+          {resource.whyItMatters}
+        </p>
+      )}
+    </a>
+  );
+}
+
+function DigestReportCard({ report }: { report: TelegramDailyReport }) {
+  const summary = report.summary_json || {};
+  const mainTopics = reportStringList(summary.mainTopics);
+  const crossChannelSignals = reportStringList(summary.crossChannelSignals);
+  const openQuestions = reportStringList(summary.openQuestions);
+  const channelDigests = Array.isArray(summary.channelDigests)
+    ? summary.channelDigests
+    : [];
+
+  return (
+    <Card className="p-6">
+      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="mb-2 text-xs font-mono uppercase tracking-wider text-blue-400">
+            {report.report_date}
+          </p>
+          <h2 className="text-2xl font-bold text-zinc-100">
+            {summary.title || "Community daily digest"}
+          </h2>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[11px] font-mono uppercase text-zinc-500">
+          <span className="rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-1">
+            {report.active_chat_count} channels
+          </span>
+          <span className="rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-1">
+            {report.message_count} messages
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        {summary.executiveTldr ? (
+          <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-300">
+            {summary.executiveTldr}
+          </p>
+        ) : (
+          <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-300">
+            {report.report_text}
+          </p>
+        )}
+
+        {summary.vibe && (
+          <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-4">
+            <p className="mb-1 text-xs font-mono uppercase text-zinc-600">
+              Vibe
+            </p>
+            <p className="text-sm leading-relaxed text-zinc-300">
+              {summary.vibe}
+            </p>
+          </div>
+        )}
+
+        {mainTopics.length > 0 && <Tags items={mainTopics} />}
+
+        {channelDigests.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-mono uppercase text-zinc-500">
+              Channels
+            </h3>
+            {channelDigests.map((channel, index) => (
+              <div
+                key={`${channel.channel || "channel"}-${index}`}
+                className="rounded-sm border border-zinc-800 bg-zinc-900 p-4"
+              >
+                <p className="mb-1 text-xs font-mono uppercase text-blue-400">
+                  {channel.channel || "Channel"}
+                </p>
+                <h4 className="mb-2 font-semibold text-zinc-100">
+                  {channel.topic || "Daily activity"}
+                </h4>
+                {channel.summary && (
+                  <p className="text-sm leading-relaxed text-zinc-400">
+                    {channel.summary}
+                  </p>
+                )}
+                {reportStringList(channel.highlights).length > 0 && (
+                  <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-500">
+                    {reportStringList(channel.highlights).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+                {Array.isArray(channel.resources) &&
+                  channel.resources.length > 0 && (
+                    <div className="mt-4 grid gap-2 md:grid-cols-2">
+                      {channel.resources.map((resource, resourceIndex) => (
+                        <DigestResourceLink
+                          key={`${resource.url || resource.title || "resource"}-${resourceIndex}`}
+                          resource={resource}
+                        />
+                      ))}
+                    </div>
+                  )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {crossChannelSignals.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-sm font-mono uppercase text-zinc-500">
+              Signals
+            </h3>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-400">
+              {crossChannelSignals.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {summary.interestingFact && (
+          <div className="rounded-sm border border-blue-500/30 bg-blue-950/20 p-4">
+            <p className="mb-1 text-xs font-mono uppercase text-blue-300">
+              Fatto interessante
+            </p>
+            <p className="text-sm leading-relaxed text-blue-100">
+              {summary.interestingFact}
+            </p>
+          </div>
+        )}
+
+        {openQuestions.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-sm font-mono uppercase text-zinc-500">
+              Open questions
+            </h3>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-400">
+              {openQuestions.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+export function DashboardDigestsPage() {
+  const { techLabels } = useTechLabels();
+  const [reports, setReports] = useState<TelegramDailyReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: queryError } = await supabase
+        .from("telegram_daily_reports")
+        .select("*")
+        .eq("report_scope", "community")
+        .order("report_date", { ascending: false })
+        .limit(14);
+
+      if (cancelled) return;
+      setReports((data as TelegramDailyReport[] | null) ?? []);
+      setError(getError(queryError));
+      setLoading(false);
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <RequireAuth>
+      {() => (
+        <PageShell>
+          <HeroBlock
+            eyebrow={{ tech: "TELEGRAM_DIGESTS", friendly: "Daily digest" }}
+            title={{
+              tech: "Previous-day community intelligence.",
+              friendly: "What happened yesterday in the community.",
+            }}
+            copy={{
+              tech: "Generated private summaries from enabled Telegram channels with links, resources, vibe and topic signals.",
+              friendly:
+                "Private daily summaries from the Telegram channels, including links, resources, main topics and the conversation vibe.",
+            }}
+          />
+          <section className="container mx-auto space-y-6 px-4 py-12 md:px-6">
+            <ActionableErrorMessage message={error} />
+            {loading ? (
+              <SkeletonList />
+            ) : reports.length === 0 ? (
+              <EmptyState
+                title={{
+                  tech: "NO_DIGESTS",
+                  friendly: "No digests yet",
+                }}
+                copy={{
+                  tech: "The digest job has not generated any member-visible reports yet.",
+                  friendly:
+                    "The first report will appear after the daily Telegram job runs.",
+                }}
+              />
+            ) : (
+              reports.map((report) => (
+                <DigestReportCard key={report.id} report={report} />
+              ))
             )}
           </section>
         </PageShell>

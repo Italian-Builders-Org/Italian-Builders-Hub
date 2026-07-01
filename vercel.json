@@ -3,6 +3,12 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/italian-builders run build",
   "outputDirectory": "artifacts/italian-builders/dist/public",
+  "crons": [
+    {
+      "path": "/api/telegram/daily-report",
+      "schedule": "10 23 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/admin/waitlist/activate",

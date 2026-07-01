@@ -45,6 +45,7 @@ import {
   CommunityContentPage,
   DashboardPage,
   DashboardContributionsPage,
+  DashboardDigestsPage,
   DashboardProfilePage,
   DashboardProjectsPage,
   InvitePage,
@@ -109,6 +110,10 @@ function Router() {
           component={DashboardContributionsPage}
         />
         <Route
+          path="/hp-2/dashboard/digests"
+          component={DashboardDigestsPage}
+        />
+        <Route
           path="/hp-2/dashboard/profile"
           component={DashboardProfilePage}
         />
@@ -159,6 +164,7 @@ function Router() {
           path="/dashboard/contributions"
           component={DashboardContributionsPage}
         />
+        <Route path="/dashboard/digests" component={DashboardDigestsPage} />
         <Route path="/dashboard/profile" component={DashboardProfilePage} />
         <Route path="/dashboard/projects" component={DashboardProjectsPage} />
         <Route path="/dashboard/projects/new" component={ProjectEditorPage} />

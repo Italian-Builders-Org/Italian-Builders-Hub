@@ -177,6 +177,45 @@ export type CommunityContent = {
   updated_at: string;
 };
 
+export type TelegramDailyReport = {
+  id: string;
+  report_scope: "community";
+  chat_id: number | null;
+  report_date: string;
+  message_count: number;
+  active_chat_count: number;
+  report_text: string;
+  summary_json: {
+    title?: string;
+    date?: string;
+    vibe?: string;
+    executiveTldr?: string;
+    mainTopics?: string[];
+    channelDigests?: Array<{
+      channel?: string;
+      topic?: string;
+      summary?: string;
+      highlights?: string[];
+      resources?: Array<{
+        title?: string;
+        url?: string;
+        type?: string;
+        whyItMatters?: string;
+      }>;
+    }>;
+    crossChannelSignals?: string[];
+    interestingFact?: string;
+    openQuestions?: string[];
+    telegramText?: string;
+  };
+  model: string;
+  prompt_version: string;
+  sent_message_id: number | null;
+  generated_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CommunityProjectMember = {
   id: string;
   community_project_id: string;
