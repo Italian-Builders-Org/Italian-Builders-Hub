@@ -2433,12 +2433,12 @@ function ProjectCard({ project }: { project: Project }) {
       href={`/projects/${project.slug}`}
       className="dt-card group flex flex-col overflow-hidden"
     >
-      <div className="aspect-[1200/630] border-b border-zinc-800 bg-zinc-900">
+      <div className="aspect-[1200/630] overflow-hidden border-b border-zinc-800 bg-zinc-900">
         {project.image_url && (
           <img
             src={project.image_url}
             alt={project.name}
-            className="h-full w-full object-cover grayscale transition-all group-hover:grayscale-0"
+            className="h-full w-full object-cover object-left-top grayscale transition-all group-hover:grayscale-0"
           />
         )}
       </div>
@@ -2711,7 +2711,7 @@ export function ProjectDetailPage() {
             <img
               src={project.image_url}
               alt={project.name}
-              className="mb-6 aspect-[1200/630] w-full rounded-sm border border-zinc-800 object-cover"
+              className="mb-6 aspect-[1200/630] w-full rounded-sm border border-zinc-800 object-cover object-left-top"
             />
           )}
           <h2 className="mb-3 text-xl font-bold text-zinc-100">
@@ -3034,7 +3034,7 @@ export function CommunityProjectDetailPage() {
             <img
               src={project.image_url}
               alt={project.name}
-              className="mb-6 aspect-[1200/630] w-full rounded-sm border border-zinc-800 object-cover"
+              className="mb-6 aspect-[1200/630] w-full rounded-sm border border-zinc-800 object-cover object-left-top"
             />
           )}
           <h2 className="mb-3 text-xl font-bold text-zinc-100">

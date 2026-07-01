@@ -1605,7 +1605,7 @@ export function BuilderProjects({
                     <img
                       src={project.image_url}
                       alt={project.name}
-                      className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300"
+                      className="w-full h-full object-cover object-left-top grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300"
                     />
                   ) : (
                     <div className="dt-grid-bg h-full opacity-50" />

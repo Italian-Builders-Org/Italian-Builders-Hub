@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import {
-  ArrowRight,
-  ExternalLink,
-  Github,
-  Globe,
-  MapPin,
-  Search,
-} from "lucide-react";
+import { ArrowRight, ExternalLink, Github, Globe, Search } from "lucide-react";
 import {
   Hp2DirectoryJoinForm,
   Hp2Footer,
@@ -388,19 +381,26 @@ export function Hp2BuildersPage() {
                 className="hp2-person-card"
                 href={`/hp-2/builders/${profile.username}`}
               >
-                <img
-                  src={profile.avatar_url || defaultAvatarUrl}
-                  alt={profile.full_name}
-                />
-                <div>
-                  <h2>{profile.full_name}</h2>
-                  <p>{profile.headline || profile.role || "Builder"}</p>
-                  <span>
-                    <MapPin size={12} />
-                    {profileLocation(profile)}
-                  </span>
+                <div className="hp2-person-card-head">
+                  <img
+                    src={profile.avatar_url || defaultAvatarUrl}
+                    alt={profile.full_name}
+                  />
+                  <div>
+                    <h2>{profile.full_name}</h2>
+                    <p>@{profile.username}</p>
+                  </div>
                 </div>
+                <p className="hp2-person-card-role">
+                  {profile.headline || profile.role || "Builder"}
+                </p>
+                <p className="hp2-person-card-bio">
+                  {profile.bio || "This member has not added a bio yet."}
+                </p>
                 <R2Tags items={profile.skills} />
+                <span className="hp2-person-card-action">
+                  View profile <ArrowRight size={13} />
+                </span>
               </a>
             ))}
           </div>
@@ -408,15 +408,15 @@ export function Hp2BuildersPage() {
           <div className="hp2-card-grid">
             {fallbackBuilders.map((builder) => (
               <article key={builder.id} className="hp2-person-card">
-                <img src={builder.avatarUrl} alt={builder.name} />
-                <div>
-                  <h2>{builder.name}</h2>
-                  <p>{builder.highlight}</p>
-                  <span>
-                    <MapPin size={12} />
-                    {builder.location}
-                  </span>
+                <div className="hp2-person-card-head">
+                  <img src={builder.avatarUrl} alt={builder.name} />
+                  <div>
+                    <h2>{builder.name}</h2>
+                    <p>{builder.location}</p>
+                  </div>
                 </div>
+                <p className="hp2-person-card-role">{builder.role}</p>
+                <p className="hp2-person-card-bio">{builder.highlight}</p>
                 <R2Tags items={builder.tags} />
               </article>
             ))}
@@ -508,25 +508,46 @@ export function Hp2BuilderProfilePage() {
           {profile.cover_url && <img src={profile.cover_url} alt="" />}
         </div>
         <div className="hp2-profile-main">
-          <img
-            src={profile.avatar_url || defaultAvatarUrl}
-            alt={profile.full_name}
-          />
-          <div>
-            <p className="hp2-subhero-label">@{profile.username}</p>
-            <h1 className="css-text-balance">{profile.full_name}</h1>
-            <p>{profile.headline || profile.role || "Builder"}</p>
+          <div className="hp2-profile-identity">
+            <img
+              src={profile.avatar_url || defaultAvatarUrl}
+              alt={profile.full_name}
+            />
+            <div>
+              <p className="hp2-subhero-label">@{profile.username}</p>
+              <h1 className="css-text-balance">{profile.full_name}</h1>
+              <p>{profile.headline || profile.role || "Builder"}</p>
+              {links.length > 0 && (
+                <div className="hp2-profile-links">
+                  {links.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <a
+                        key={link.label}
+                        href={normalizeExternalUrl(link.href) || "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Icon size={14} />
+                        {link.label}
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
-      <section className="hp2-detail-grid">
-        <article className="hp2-detail-body">
-          <h2>About</h2>
-          <p>{profile.bio || "This member has not added a bio yet."}</p>
-          <R2Tags items={profile.skills} />
-          {projects.length > 0 && (
-            <>
-              <h2>Projects</h2>
+      <section className="hp2-profile-content">
+        <div className="hp2-profile-column">
+          <article className="hp2-profile-panel">
+            <h2>About</h2>
+            <p>{profile.bio || "This member has not added a bio yet."}</p>
+          </article>
+          <article className="hp2-profile-panel">
+            <h2>Personal projects</h2>
+            {projects.length > 0 ? (
               <div className="hp2-row-list">
                 {projects.map((project) => (
                   <a key={project.id} href={`/hp-2/projects/${project.slug}`}>
@@ -536,41 +557,50 @@ export function Hp2BuilderProfilePage() {
                   </a>
                 ))}
               </div>
-            </>
+            ) : (
+              <p>No public personal projects yet.</p>
+            )}
+          </article>
+        </div>
+        <aside className="hp2-profile-sidebar">
+          <section className="hp2-profile-panel">
+            <h2>Details</h2>
+            <dl>
+              <div>
+                <dt>Role</dt>
+                <dd>{profile.role || "Builder"}</dd>
+              </div>
+              <div>
+                <dt>Location</dt>
+                <dd>{profileLocation(profile)}</dd>
+              </div>
+              <div>
+                <dt>Joined</dt>
+                <dd>{formatDate(profile.created_at) || "Member"}</dd>
+              </div>
+              {profile.email_public && profile.email && (
+                <div>
+                  <dt>Email</dt>
+                  <dd>{profile.email}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
+          <section className="hp2-profile-panel">
+            <h2>Skills</h2>
+            <R2Tags items={profile.skills} />
+          </section>
+          {(profile.looking_for?.length ?? 0) > 0 && (
+            <section className="hp2-profile-panel">
+              <h2>Looking for</h2>
+              <R2Tags items={profile.looking_for} />
+            </section>
           )}
-        </article>
-        <aside className="hp2-detail-aside">
-          <dl>
-            <div>
-              <dt>Location</dt>
-              <dd>{profileLocation(profile)}</dd>
-            </div>
-            <div>
-              <dt>Role</dt>
-              <dd>{profile.role || "Builder"}</dd>
-            </div>
-            <div>
-              <dt>Joined</dt>
-              <dd>{formatDate(profile.created_at) || "Member"}</dd>
-            </div>
-          </dl>
-          {links.length > 0 && (
-            <div className="hp2-link-stack">
-              {links.map((link) => {
-                const Icon = link.icon;
-                return (
-                  <a
-                    key={link.label}
-                    href={normalizeExternalUrl(link.href) || "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Icon size={15} />
-                    {link.label}
-                  </a>
-                );
-              })}
-            </div>
+          {(profile.languages?.length ?? 0) > 0 && (
+            <section className="hp2-profile-panel">
+              <h2>Languages</h2>
+              <R2Tags items={profile.languages} />
+            </section>
           )}
         </aside>
       </section>
@@ -582,11 +612,21 @@ export function Hp2ProjectsPage() {
   const { projects, loading } = useR2Projects();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
+  const [status, setStatus] = useState("All");
   const fallbackProjects =
     projects.length === 0 && !loading ? STATIC_PROJECTS : [];
   const categories = [
     "All",
     ...Array.from(new Set(projects.flatMap(projectCategoryLabels))),
+  ];
+  const statuses = [
+    "All",
+    "idea",
+    "building",
+    "beta",
+    "live",
+    "revenue",
+    "paused",
   ];
   const filteredProjects = projects.filter((project) => {
     const labels = projectCategoryLabels(project);
@@ -594,7 +634,8 @@ export function Hp2ProjectsPage() {
       `${project.name} ${project.tagline ?? ""} ${project.description ?? ""} ${labels.join(" ")}`.toLowerCase();
     return (
       haystack.includes(query.toLowerCase()) &&
-      (category === "All" || labels.includes(category))
+      (category === "All" || labels.includes(category)) &&
+      (status === "All" || project.status === status)
     );
   });
 
@@ -626,6 +667,7 @@ export function Hp2ProjectsPage() {
               options={categories}
             />
           )}
+          <R2Select value={status} onChange={setStatus} options={statuses} />
         </R2Search>
         {loading ? (
           <R2Loading label="Loading projects..." />
@@ -639,11 +681,16 @@ export function Hp2ProjectsPage() {
           <div className="hp2-project-grid">
             {fallbackProjects.map((project) => (
               <article key={project.id} className="hp2-project-card">
-                <img src={project.imageUrl} alt={project.name} />
+                <div className="hp2-project-card-media">
+                  <img src={project.imageUrl} alt={project.name} />
+                </div>
                 <div>
-                  <span>{project.category}</span>
-                  <h2>{project.name}</h2>
+                  <div className="hp2-project-card-head">
+                    <h2>{project.name}</h2>
+                    <span>{project.status}</span>
+                  </div>
                   <p>{project.description}</p>
+                  <R2Tags items={[project.category]} />
                   <small>{project.builder}</small>
                 </div>
               </article>
@@ -662,20 +709,33 @@ export function Hp2ProjectsPage() {
 
 function R2ProjectCard({ project }: { project: Project }) {
   const labels = projectCategoryLabels(project);
+  const contributorCount = project.project_members?.length ?? 0;
   return (
     <a className="hp2-project-card" href={`/hp-2/projects/${project.slug}`}>
-      {project.image_url ? (
-        <img src={project.image_url} alt={project.name} />
-      ) : (
-        <div className="hp2-project-card-fallback" aria-hidden="true">
-          {project.name.slice(0, 2)}
-        </div>
-      )}
+      <div className="hp2-project-card-media">
+        {project.image_url ? (
+          <img src={project.image_url} alt={project.name} />
+        ) : (
+          <div className="hp2-project-card-fallback" aria-hidden="true">
+            {project.name.slice(0, 2)}
+          </div>
+        )}
+      </div>
       <div>
-        <span>{labels.join(" / ") || project.status}</span>
-        <h2>{project.name}</h2>
+        <div className="hp2-project-card-head">
+          <h2>{project.name}</h2>
+          <span>{project.status}</span>
+        </div>
         <p>{project.tagline || project.description || "Project record"}</p>
-        <small>{project.profiles?.full_name || "Italian Builders"}</small>
+        <R2Tags items={labels} />
+        {contributorCount > 0 && (
+          <small>
+            {contributorCount} contributor{contributorCount === 1 ? "" : "s"}
+          </small>
+        )}
+        <span className="hp2-card-action">
+          View project <ArrowRight size={13} />
+        </span>
       </div>
     </a>
   );
@@ -753,15 +813,59 @@ export function Hp2ProjectDetailPage() {
           </div>
         }
       />
-      <section className="hp2-detail-grid">
-        <article className="hp2-detail-body">
-          {project.image_url && (
-            <img src={project.image_url} alt={project.name} />
-          )}
-          <h2>About</h2>
-          <p>{project.description || "No description yet."}</p>
+      <section className="hp2-profile-content hp2-record-content">
+        <div className="hp2-profile-column">
+          <article className="hp2-profile-panel">
+            {project.image_url && (
+              <img
+                className="hp2-record-image"
+                src={project.image_url}
+                alt={project.name}
+              />
+            )}
+            <h2>About</h2>
+            <p>{project.description || "No description yet."}</p>
+          </article>
+        </div>
+        <aside className="hp2-profile-sidebar">
+          <section className="hp2-profile-panel">
+            <h2>Contributors</h2>
+            <div className="hp2-mini-people">
+              {project.profiles?.username && (
+                <a href={`/hp-2/builders/${project.profiles.username}`}>
+                  <img
+                    src={project.profiles.avatar_url || defaultAvatarUrl}
+                    alt=""
+                  />
+                  <span>
+                    <strong>{project.profiles.full_name}</strong>
+                    <small>Owner</small>
+                  </span>
+                </a>
+              )}
+              {(project.project_members ?? []).map((member) => (
+                <a
+                  key={member.id}
+                  href={
+                    member.profiles?.username
+                      ? `/hp-2/builders/${member.profiles.username}`
+                      : "/hp-2/builders"
+                  }
+                >
+                  <img
+                    src={member.profiles?.avatar_url || defaultAvatarUrl}
+                    alt=""
+                  />
+                  <span>
+                    <strong>{member.profiles?.full_name || "Member"}</strong>
+                    <small>{member.role || "Contributor"}</small>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </section>
           {lookingFor.length > 0 && (
-            <>
+            <section className="hp2-profile-panel">
               <h2>Looking for</h2>
               <div className="hp2-need-list">
                 {lookingFor.map((item) => (
@@ -771,61 +875,28 @@ export function Hp2ProjectDetailPage() {
                   </div>
                 ))}
               </div>
-            </>
+            </section>
           )}
-        </article>
-        <aside className="hp2-detail-aside">
-          <h2>Builders</h2>
-          <div className="hp2-mini-people">
-            {project.profiles?.username && (
-              <a href={`/hp-2/builders/${project.profiles.username}`}>
-                <img
-                  src={project.profiles.avatar_url || defaultAvatarUrl}
-                  alt=""
-                />
-                <span>
-                  <strong>{project.profiles.full_name}</strong>
-                  <small>Owner</small>
-                </span>
-              </a>
-            )}
-            {(project.project_members ?? []).map((member) => (
-              <a
-                key={member.id}
-                href={
-                  member.profiles?.username
-                    ? `/hp-2/builders/${member.profiles.username}`
-                    : "/hp-2/builders"
-                }
-              >
-                <img
-                  src={member.profiles?.avatar_url || defaultAvatarUrl}
-                  alt=""
-                />
-                <span>
-                  <strong>{member.profiles?.full_name || "Member"}</strong>
-                  <small>{member.role || "Contributor"}</small>
-                </span>
-              </a>
-            ))}
-          </div>
           {links.length > 0 && (
-            <div className="hp2-link-stack">
-              {links.map((link) => {
-                const Icon = link.icon;
-                return (
-                  <a
-                    key={link.label}
-                    href={normalizeExternalUrl(link.href) || "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Icon size={15} />
-                    {link.label}
-                  </a>
-                );
-              })}
-            </div>
+            <section className="hp2-profile-panel">
+              <h2>Links</h2>
+              <div className="hp2-link-stack">
+                {links.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <a
+                      key={link.label}
+                      href={normalizeExternalUrl(link.href) || "#"}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Icon size={15} />
+                      {link.label}
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
           )}
         </aside>
       </section>
@@ -871,18 +942,9 @@ export function Hp2CommunityProjectsPage() {
         {loading ? (
           <R2Loading label="Loading community projects..." />
         ) : filteredProjects.length > 0 ? (
-          <div className="hp2-row-list">
+          <div className="hp2-project-grid">
             {filteredProjects.map((project) => (
-              <a
-                key={project.id}
-                href={`/hp-2/community-projects/${project.slug}`}
-              >
-                <strong>{project.name}</strong>
-                <span>
-                  {project.tagline || project.description || project.category}
-                </span>
-                <small>{project.status}</small>
-              </a>
+              <R2CommunityProjectCard key={project.id} project={project} />
             ))}
           </div>
         ) : (
@@ -893,6 +955,30 @@ export function Hp2CommunityProjectsPage() {
         )}
       </section>
     </R2Shell>
+  );
+}
+
+function R2CommunityProjectCard({ project }: { project: CommunityProject }) {
+  const count = project.community_project_members?.length ?? 0;
+  return (
+    <a
+      className="hp2-project-card hp2-compact-card"
+      href={`/hp-2/community-projects/${project.slug}`}
+    >
+      <div>
+        <div className="hp2-project-card-head">
+          <h2>{project.name}</h2>
+          <span>{project.status}</span>
+        </div>
+        <p>{project.tagline || project.description || "Community project."}</p>
+        <div className="hp2-card-footer">
+          <small>{project.category || "Community"}</small>
+          <small>
+            {count} contributor{count === 1 ? "" : "s"}
+          </small>
+        </div>
+      </div>
+    </a>
   );
 }
 
@@ -913,15 +999,23 @@ export function Hp2OpenSourcePage() {
       <section className="hp2-list-section">
         <div className="hp2-project-grid">
           {STATIC_OS_PROJECTS.map((project) => (
-            <a key={project.id} className="hp2-project-card" href="#">
-              <div className="hp2-project-card-fallback" aria-hidden="true">
-                {project.title.slice(0, 2)}
-              </div>
+            <a
+              key={project.id}
+              className="hp2-project-card hp2-compact-card"
+              href="#"
+            >
               <div>
-                <span>{project.category}</span>
-                <h2>{project.title}</h2>
+                <div className="hp2-project-card-head">
+                  <h2>{project.title}</h2>
+                  <span>{project.status}</span>
+                </div>
                 <p>{project.description}</p>
-                <small>{project.status}</small>
+                <div className="hp2-card-footer">
+                  <small>{project.category}</small>
+                  <span className="hp2-card-action">
+                    View project <ArrowRight size={13} />
+                  </span>
+                </div>
               </div>
             </a>
           ))}
@@ -999,59 +1093,74 @@ export function Hp2CommunityProjectDetailPage() {
           </div>
         }
       />
-      <section className="hp2-detail-grid">
-        <article className="hp2-detail-body">
-          {project.image_url && (
-            <img src={project.image_url} alt={project.name} />
-          )}
-          <h2>About</h2>
-          <p>{project.description || "No description yet."}</p>
-        </article>
-        <aside className="hp2-detail-aside">
-          <h2>Contributors</h2>
-          <div className="hp2-mini-people">
-            {(project.community_project_members ?? []).map((member) => (
-              <a
-                key={member.id}
-                href={
-                  member.profiles?.username
-                    ? `/hp-2/builders/${member.profiles.username}`
-                    : "/hp-2/builders"
-                }
-              >
-                <img
-                  src={member.profiles?.avatar_url || defaultAvatarUrl}
-                  alt=""
-                />
-                <span>
-                  <strong>{member.profiles?.full_name || "Member"}</strong>
-                  <small>{member.role || "Contributor"}</small>
-                </span>
-              </a>
-            ))}
-          </div>
-          <div className="hp2-link-stack">
-            {normalizeExternalUrl(project.website_url) && (
-              <a
-                href={normalizeExternalUrl(project.website_url) || "#"}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Globe size={15} />
-                Website
-              </a>
+      <section className="hp2-profile-content hp2-record-content">
+        <div className="hp2-profile-column">
+          <article className="hp2-profile-panel">
+            {project.image_url && (
+              <img
+                className="hp2-record-image"
+                src={project.image_url}
+                alt={project.name}
+              />
             )}
-            {normalizeExternalUrl(project.repo_url) && (
-              <a
-                href={normalizeExternalUrl(project.repo_url) || "#"}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Github size={15} />
-                Repository
-              </a>
+            <h2>About</h2>
+            <p>{project.description || "No description yet."}</p>
+          </article>
+        </div>
+        <aside className="hp2-profile-sidebar">
+          <section className="hp2-profile-panel">
+            <h2>Links</h2>
+            <div className="hp2-link-stack">
+              {normalizeExternalUrl(project.website_url) && (
+                <a
+                  href={normalizeExternalUrl(project.website_url) || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Globe size={15} />
+                  Website
+                </a>
+              )}
+              {normalizeExternalUrl(project.repo_url) && (
+                <a
+                  href={normalizeExternalUrl(project.repo_url) || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Github size={15} />
+                  Repository
+                </a>
+              )}
+            </div>
+          </section>
+          <section className="hp2-profile-panel">
+            <h2>Contributors</h2>
+            {(project.community_project_members ?? []).length === 0 ? (
+              <p>No contributors assigned yet.</p>
+            ) : (
+              <div className="hp2-mini-people">
+                {(project.community_project_members ?? []).map((member) => (
+                  <a
+                    key={member.id}
+                    href={
+                      member.profiles?.username
+                        ? `/hp-2/builders/${member.profiles.username}`
+                        : "/hp-2/builders"
+                    }
+                  >
+                    <img
+                      src={member.profiles?.avatar_url || defaultAvatarUrl}
+                      alt=""
+                    />
+                    <span>
+                      <strong>{member.profiles?.full_name || "Member"}</strong>
+                      <small>{member.role || "Contributor"}</small>
+                    </span>
+                  </a>
+                ))}
+              </div>
             )}
-          </div>
+          </section>
         </aside>
       </section>
     </R2Shell>
@@ -1079,17 +1188,25 @@ export function Hp2PantheonPage() {
         copy="A reference wall for the people whose work made new industries, sciences, tools, and cultures possible."
       />
       <section className="hp2-list-section">
-        <R2Search
-          value={query}
-          onChange={setQuery}
-          placeholder="Search names, fields, eras..."
-        >
-          <R2Select
-            value={category}
-            onChange={setCategory}
-            options={categories}
+        <div className="hp2-pioneer-filterbar">
+          <div className="hp2-filter-chips">
+            {categories.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={category === item ? "is-active" : ""}
+                onClick={() => setCategory(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          <R2Search
+            value={query}
+            onChange={setQuery}
+            placeholder="Search names, fields, eras..."
           />
-        </R2Search>
+        </div>
         <div className="hp2-pioneer-grid">
           {filtered.map((pioneer) => (
             <R2PioneerCard key={pioneer.slug} pioneer={pioneer} />
@@ -1103,17 +1220,19 @@ export function Hp2PantheonPage() {
 function R2PioneerCard({ pioneer }: { pioneer: Pioneer }) {
   return (
     <article className="hp2-pioneer-card">
-      <img
-        src={pioneer.portrait ?? pioneer.work?.image}
-        alt={pioneer.name}
-        loading="lazy"
-        decoding="async"
-        width="360"
-        height="360"
-        sizes="(max-width: 680px) 100vw, (max-width: 980px) 50vw, 25vw"
-      />
-      <div>
+      <div className="hp2-pioneer-media">
+        <img
+          src={pioneer.portrait ?? pioneer.work?.image}
+          alt={pioneer.name}
+          loading="lazy"
+          decoding="async"
+          width="360"
+          height="450"
+          sizes="(max-width: 680px) 100vw, (max-width: 980px) 50vw, 25vw"
+        />
         <span>{pioneer.category}</span>
+      </div>
+      <div>
         <h2>{pioneer.name}</h2>
         <p>{pioneer.tagline}</p>
         <small>
@@ -1133,10 +1252,19 @@ export function Hp2MissionPage() {
         copy="The community is built around relationships: ideas, projects, knowledge, opportunities, and the right people meeting at the right time."
       />
       <section className="hp2-manifesto hp2-mission-body">
-        <div className="hp2-manifesto-copy">
-          {missionParagraphs.slice(1).map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
+        <div className="hp2-mission-layout">
+          <article className="hp2-mission-copy">
+            {missionParagraphs.slice(1).map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </article>
+          <aside className="hp2-mission-aside">
+            <p className="hp2-subhero-label">Core idea</p>
+            <strong>What unites us is that we choose to build.</strong>
+            <a href="/hp-2/join">
+              Join the community <ArrowRight size={14} />
+            </a>
+          </aside>
         </div>
       </section>
     </R2Shell>
