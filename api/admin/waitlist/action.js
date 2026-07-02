@@ -13,6 +13,7 @@ const {
   storeTelegramUpdate,
 } = require("../../../server/api/_telegram-digest");
 const {
+  linkTelegramOnboardingProfile,
   processQueuedTelegramOnboardingEmails,
   requireTelegramOnboardingWebhookSecret,
   setupTelegramOnboardingWebhook,
@@ -127,6 +128,17 @@ module.exports = async function handler(req, res) {
       const result = await processQueuedTelegramOnboardingEmails({
         limit: Number.isFinite(limit) ? limit : 50,
       });
+      res.status(200).json({ ok: true, ...result });
+      return;
+    }
+
+    if (action === "telegram-onboarding-link-profile") {
+      if (req.method !== "POST") {
+        res.status(405).json({ error: "Method not allowed." });
+        return;
+      }
+      const body = parseBody(req.body);
+      const result = await linkTelegramOnboardingProfile(req, body);
       res.status(200).json({ ok: true, ...result });
       return;
     }

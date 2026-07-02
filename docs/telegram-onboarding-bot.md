@@ -98,6 +98,13 @@ in Telegram. Direct Telegram login links are reserved for contacts already linke
 to a website profile. Typing an email in Telegram does not link that Telegram
 contact to the website profile by itself.
 
+Existing-profile verification is completed by the website, not by Telegram
+alone. Bot-generated login-code redirects include a signed Telegram link token;
+after the user verifies the email OTP on `/login-code`, the website calls the
+backend with the authenticated Supabase session. The backend links the Telegram
+contact to the website profile only when the verified session email, profile ID,
+Telegram contact, and signed token all match.
+
 ## Email Quota
 
 When `RESEND_API_KEY` is configured, the bot checks Resend's sent-email list for

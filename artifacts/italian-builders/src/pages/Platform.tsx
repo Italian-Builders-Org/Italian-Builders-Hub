@@ -403,10 +403,15 @@ function safeInternalPath(value: string | null, fallback = "/dashboard") {
   return value;
 }
 
-function loginCodeRedirectPath(email: string, next: string) {
+function loginCodeRedirectPath(
+  email: string,
+  next: string,
+  telegramLinkToken?: string | null,
+) {
   const params = new URLSearchParams();
   if (email) params.set("email", email);
   params.set("next", next);
+  if (telegramLinkToken) params.set("tg_link", telegramLinkToken);
   return `/login-code?${params.toString()}`;
 }
 
@@ -1860,9 +1865,9 @@ export function ResetPasswordPage() {
 export function LoginCodePage() {
   const { techLabels } = useTechLabels();
   const navigate = usePlatformNavigate();
+  const initialParams = new URLSearchParams(window.location.search);
   const [email, setEmail] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return (params.get("email") || "").trim().toLowerCase();
+    return (initialParams.get("email") || "").trim().toLowerCase();
   });
   const [code, setCode] = useState("");
   const [checking, setChecking] = useState(true);
@@ -1871,9 +1876,39 @@ export function LoginCodePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const nextPath = safeInternalPath(
-    new URLSearchParams(window.location.search).get("next"),
-  );
+  const nextPath = safeInternalPath(initialParams.get("next"));
+  const telegramLinkToken = initialParams.get("tg_link") || "";
+
+  async function linkTelegramProfile(accessToken?: string | null) {
+    if (!telegramLinkToken) return true;
+    const token =
+      accessToken ||
+      (await supabase?.auth.getSession())?.data.session?.access_token ||
+      null;
+    if (!token) {
+      setError("Sessione scaduta. Accedi di nuovo per collegare Telegram.");
+      return false;
+    }
+
+    const response = await fetch("/api/telegram-onboarding/link-profile", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ linkToken: telegramLinkToken }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setError(
+        typeof result.error === "string"
+          ? result.error
+          : "Non sono riuscito a collegare Telegram al profilo.",
+      );
+      return false;
+    }
+    return true;
+  }
 
   useEffect(() => {
     if (!supabase) {
@@ -1893,10 +1928,18 @@ export function LoginCodePage() {
         hashParams.get("error_description") || hashParams.get("error");
 
       if (authCode) {
-        const { error: exchangeError } =
+        const { data: exchangeData, error: exchangeError } =
           await supabase!.auth.exchangeCodeForSession(authCode);
         if (!mounted) return;
         if (!exchangeError) {
+          const linked = await linkTelegramProfile(
+            exchangeData.session?.access_token,
+          );
+          if (!mounted) return;
+          if (!linked) {
+            setChecking(false);
+            return;
+          }
           navigate(nextPath);
           return;
         }
@@ -1906,6 +1949,12 @@ export function LoginCodePage() {
       const { data } = await supabase!.auth.getSession();
       if (!mounted) return;
       if (data.session) {
+        const linked = await linkTelegramProfile(data.session.access_token);
+        if (!mounted) return;
+        if (!linked) {
+          setChecking(false);
+          return;
+        }
         navigate(nextPath);
         return;
       }
@@ -1962,8 +2011,12 @@ export function LoginCodePage() {
           : verifyError.message,
       );
     } else {
-      setMessage("Signed in. Opening your dashboard...");
-      navigate(nextPath);
+      const { data } = await supabase.auth.getSession();
+      const linked = await linkTelegramProfile(data.session?.access_token);
+      if (linked) {
+        setMessage("Accesso completato. Apro la dashboard...");
+        navigate(nextPath);
+      }
     }
     setSaving(false);
   }
@@ -1987,7 +2040,7 @@ export function LoginCodePage() {
     }
 
     const redirectTo = authRedirectUrl(
-      loginCodeRedirectPath(authEmail, nextPath),
+      loginCodeRedirectPath(authEmail, nextPath, telegramLinkToken),
     );
     const { error: resendError } = await supabase.auth.signInWithOtp({
       email: authEmail,
@@ -2263,10 +2316,9 @@ export function BuildersDirectoryPage() {
           tech: user?.id
             ? "Indexed public and community-only profiles with skills, artifacts and contact endpoints."
             : "Indexed public profiles with skills, artifacts and contact endpoints.",
-          friendly:
-            user?.id
-              ? "Public and community-only profiles from invited members, with skills, projects and social links."
-              : "Public profiles from invited members, with skills, projects and social links.",
+          friendly: user?.id
+            ? "Public and community-only profiles from invited members, with skills, projects and social links."
+            : "Public profiles from invited members, with skills, projects and social links.",
         }}
       />
       <section className="container mx-auto px-4 py-12 md:px-6">

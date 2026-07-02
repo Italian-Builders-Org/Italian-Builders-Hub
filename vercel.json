@@ -39,6 +39,10 @@
       "destination": "/api/admin/waitlist/action?action=telegram-onboarding-email-queue"
     },
     {
+      "source": "/api/telegram-onboarding/link-profile",
+      "destination": "/api/admin/waitlist/action?action=telegram-onboarding-link-profile"
+    },
+    {
       "source": "/api/admin/waitlist/activate",
       "destination": "/api/admin/waitlist/action?action=activate"
     },

@@ -59,6 +59,103 @@ function bearerToken(req) {
   return match?.[1] || null;
 }
 
+function telegramLinkSecret() {
+  return (
+    process.env.TELEGRAM_ONBOARDING_LINK_SECRET ||
+    process.env.TELEGRAM_ONBOARDING_WEBHOOK_SECRET ||
+    process.env.TELEGRAM_ONBOARDING_SETUP_SECRET ||
+    process.env.CRON_SECRET
+  );
+}
+
+function base64UrlEncode(value) {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+function base64UrlDecode(value) {
+  return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+}
+
+function signTelegramLinkPayload(encodedPayload) {
+  const secret = telegramLinkSecret();
+  if (!secret) {
+    throw Object.assign(
+      new Error("TELEGRAM_ONBOARDING_LINK_SECRET is required."),
+      { statusCode: 500 },
+    );
+  }
+  return crypto
+    .createHmac("sha256", secret)
+    .update(encodedPayload)
+    .digest("base64url");
+}
+
+function createTelegramLinkToken({
+  contactId,
+  sessionId,
+  profileId,
+  email,
+  ttlMs = 1000 * 60 * 60 * 24 * 7,
+}) {
+  const payload = {
+    v: 1,
+    contactId,
+    sessionId,
+    profileId,
+    email: normalizeEmail(email),
+    exp: Date.now() + ttlMs,
+  };
+  if (
+    !payload.contactId ||
+    !payload.sessionId ||
+    !payload.profileId ||
+    !payload.email
+  ) {
+    throw new Error("Cannot create Telegram link token without full context.");
+  }
+  const encodedPayload = base64UrlEncode(payload);
+  const signature = signTelegramLinkPayload(encodedPayload);
+  return `${encodedPayload}.${signature}`;
+}
+
+function verifyTelegramLinkToken(token) {
+  const [encodedPayload, signature] = String(token || "").split(".");
+  if (!encodedPayload || !signature) {
+    throw Object.assign(new Error("Invalid Telegram verification token."), {
+      statusCode: 400,
+    });
+  }
+  const expectedSignature = signTelegramLinkPayload(encodedPayload);
+  const signatureBuffer = Buffer.from(signature);
+  const expectedSignatureBuffer = Buffer.from(expectedSignature);
+  if (
+    signatureBuffer.length !== expectedSignatureBuffer.length ||
+    !crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
+  ) {
+    throw Object.assign(new Error("Invalid Telegram verification token."), {
+      statusCode: 400,
+    });
+  }
+  const payload = base64UrlDecode(encodedPayload);
+  if (payload?.v !== 1 || !payload.contactId || !payload.sessionId) {
+    throw Object.assign(new Error("Invalid Telegram verification token."), {
+      statusCode: 400,
+    });
+  }
+  if (!payload.exp || Date.now() > Number(payload.exp)) {
+    throw Object.assign(new Error("Telegram verification token expired."), {
+      statusCode: 400,
+    });
+  }
+  payload.email = normalizeEmail(payload.email);
+  if (!payload.email || !payload.profileId) {
+    throw Object.assign(new Error("Invalid Telegram verification token."), {
+      statusCode: 400,
+    });
+  }
+  return payload;
+}
+
 function parseBody(body) {
   if (typeof body === "string") return body ? JSON.parse(body) : {};
   if (body && Buffer.isBuffer(body)) return JSON.parse(body.toString("utf8"));
@@ -1118,10 +1215,13 @@ async function sendQuotaExhaustedMessage(chatId, email) {
   );
 }
 
-function loginCodeRedirectUrl(req, email, next = "/dashboard") {
+function loginCodeRedirectUrl(req, email, next = "/dashboard", extra = {}) {
   const params = new URLSearchParams({
     email,
     next,
+  });
+  Object.entries(extra).forEach(([key, value]) => {
+    if (value) params.set(key, String(value));
   });
   return `${appBaseUrl(req)}/login-code?${params.toString()}`;
 }
@@ -1155,6 +1255,141 @@ async function linkExistingProfile({ supabaseAdmin, contact, email }) {
   }
 
   return profile;
+}
+
+async function linkTelegramOnboardingProfile(req, body = {}) {
+  const queryToken = Array.isArray(req.query?.token)
+    ? req.query.token[0]
+    : req.query?.token;
+  const linkToken = body.linkToken || body.telegramLinkToken || queryToken;
+  if (!linkToken) {
+    throw Object.assign(new Error("Missing Telegram verification token."), {
+      statusCode: 400,
+    });
+  }
+
+  const authToken = bearerToken(req);
+  if (!authToken) {
+    throw Object.assign(new Error("Missing authenticated session."), {
+      statusCode: 401,
+    });
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data: userData, error: userError } =
+    await supabaseAdmin.auth.getUser(authToken);
+  if (userError || !userData.user) {
+    throw Object.assign(new Error("Invalid or expired session."), {
+      statusCode: 401,
+    });
+  }
+
+  const payload = verifyTelegramLinkToken(linkToken);
+  const userEmail = normalizeEmail(userData.user.email);
+  if (!userEmail || userEmail !== payload.email) {
+    throw Object.assign(
+      new Error(
+        "Questo link Telegram deve essere aperto con la stessa email verificata.",
+      ),
+      { statusCode: 403 },
+    );
+  }
+
+  if (userData.user.id !== payload.profileId) {
+    throw Object.assign(
+      new Error(
+        "La sessione autenticata non corrisponde al profilo Telegram da collegare.",
+      ),
+      { statusCode: 403 },
+    );
+  }
+
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .select("id, email")
+    .eq("id", payload.profileId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile) {
+    throw Object.assign(new Error("Profilo non trovato."), { statusCode: 404 });
+  }
+  if (normalizeEmail(profile.email) !== payload.email) {
+    throw Object.assign(
+      new Error("L'email del profilo non corrisponde alla verifica Telegram."),
+      { statusCode: 403 },
+    );
+  }
+
+  const { data: contact, error: contactError } = await supabaseAdmin
+    .from("telegram_onboarding_contacts")
+    .select("id, username, website_profile_id")
+    .eq("id", payload.contactId)
+    .maybeSingle();
+  if (contactError) throw contactError;
+  if (!contact) {
+    throw Object.assign(new Error("Contatto Telegram non trovato."), {
+      statusCode: 404,
+    });
+  }
+  if (
+    contact.website_profile_id &&
+    contact.website_profile_id !== payload.profileId
+  ) {
+    throw Object.assign(
+      new Error("Questo contatto Telegram e gia collegato a un altro profilo."),
+      { statusCode: 409 },
+    );
+  }
+
+  const { data: session, error: sessionError } = await supabaseAdmin
+    .from("telegram_onboarding_sessions")
+    .select("*")
+    .eq("id", payload.sessionId)
+    .eq("contact_id", payload.contactId)
+    .maybeSingle();
+  if (sessionError) throw sessionError;
+  if (!session) {
+    throw Object.assign(new Error("Sessione Telegram non trovata."), {
+      statusCode: 404,
+    });
+  }
+
+  const now = new Date().toISOString();
+  const { error: updateContactError } = await supabaseAdmin
+    .from("telegram_onboarding_contacts")
+    .update({
+      website_profile_id: payload.profileId,
+      website_profile_linked_at: now,
+    })
+    .eq("id", payload.contactId);
+  if (updateContactError) throw updateContactError;
+
+  if (contact.username) {
+    const { error: updateProfileError } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        telegram_bot_username: contact.username,
+        telegram_bot_username_set_at: now,
+      })
+      .eq("id", payload.profileId);
+    if (updateProfileError) throw updateProfileError;
+  }
+
+  await updateSession(supabaseAdmin, session.id, {
+    state: SESSION_STATES.LINKED_EXISTING_PROFILE,
+    payload: {
+      ...(session.payload || {}),
+      linked_profile_id: payload.profileId,
+      telegram_link_verified_at: now,
+    },
+    completed_at: now,
+  });
+
+  return {
+    linked: true,
+    contactId: payload.contactId,
+    profileId: payload.profileId,
+  };
 }
 
 async function upsertWaitlistSignup({ supabaseAdmin, contact, payload }) {
@@ -1326,8 +1561,8 @@ async function handleOnboardingMessage({
         return { stored: true, waitingForExistingEmail: true };
       }
 
-      const redirectTo = loginCodeRedirectUrl(req, matchedEmail);
       if (contact.website_profile_id === payload.matched_profile_id) {
+        const redirectTo = loginCodeRedirectUrl(req, matchedEmail);
         const actionLink = await createMagicLoginLink({
           supabaseAdmin,
           email: matchedEmail,
@@ -1344,6 +1579,15 @@ async function handleOnboardingMessage({
         return { stored: true, magicLoginSent: true };
       }
 
+      const telegramLinkToken = createTelegramLinkToken({
+        contactId: contact.id,
+        sessionId: session.id,
+        profileId: payload.matched_profile_id,
+        email: matchedEmail,
+      });
+      const redirectTo = loginCodeRedirectUrl(req, matchedEmail, "/dashboard", {
+        tg_link: telegramLinkToken,
+      });
       const delivery = await sendMagicLoginEmailWithQuota({
         supabaseAdmin,
         contact,
@@ -1495,8 +1739,8 @@ async function handleOnboardingMessage({
       });
     }
 
-    const redirectTo = loginCodeRedirectUrl(req, email);
     if (contact.website_profile_id === profile.id) {
+      const redirectTo = loginCodeRedirectUrl(req, email);
       await linkExistingProfile({
         supabaseAdmin,
         contact,
@@ -1519,6 +1763,15 @@ async function handleOnboardingMessage({
       return { stored: true, magicLoginSent: true };
     }
 
+    const telegramLinkToken = createTelegramLinkToken({
+      contactId: contact.id,
+      sessionId: session.id,
+      profileId: profile.id,
+      email,
+    });
+    const redirectTo = loginCodeRedirectUrl(req, email, "/dashboard", {
+      tg_link: telegramLinkToken,
+    });
     const delivery = await sendMagicLoginEmailWithQuota({
       supabaseAdmin,
       contact,
@@ -1585,8 +1838,8 @@ async function handleOnboardingMessage({
         },
       });
 
-      const redirectTo = loginCodeRedirectUrl(req, email);
       if (contact.website_profile_id === existingProfile.id) {
+        const redirectTo = loginCodeRedirectUrl(req, email);
         await linkExistingProfile({
           supabaseAdmin,
           contact,
@@ -1609,6 +1862,15 @@ async function handleOnboardingMessage({
         return { stored: true, existingProfileRecovered: true };
       }
 
+      const telegramLinkToken = createTelegramLinkToken({
+        contactId: contact.id,
+        sessionId: session.id,
+        profileId: existingProfile.id,
+        email,
+      });
+      const redirectTo = loginCodeRedirectUrl(req, email, "/dashboard", {
+        tg_link: telegramLinkToken,
+      });
       const delivery = await sendMagicLoginEmailWithQuota({
         supabaseAdmin,
         contact,
@@ -1820,18 +2082,21 @@ module.exports = {
   sendError,
   setupTelegramOnboardingWebhook,
   storeTelegramOnboardingUpdate,
+  linkTelegramOnboardingProfile,
   processQueuedTelegramOnboardingEmails,
   _internal: {
     SESSION_STATES,
     compactText,
     createInviteActionLink,
     createMagicLoginLink,
+    createTelegramLinkToken,
     callbackActionText,
     findProfileByEmail,
     findProfilesByTelegramUsername,
     handleOnboardingMessage,
     loginCodeRedirectUrl,
     linkExistingProfile,
+    linkTelegramOnboardingProfile,
     normalizeEmail,
     normalizeTelegramUsername,
     obfuscateEmail,
@@ -1843,5 +2108,6 @@ module.exports = {
     sendMagicLoginEmailWithQuota,
     sentEmailCountToday,
     upsertContactFromTelegramUser,
+    verifyTelegramLinkToken,
   },
 };
