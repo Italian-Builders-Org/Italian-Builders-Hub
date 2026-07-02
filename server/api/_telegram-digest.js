@@ -149,7 +149,7 @@ function appBaseUrl() {
   return value.replace(/\/+$/, "");
 }
 
-function extractMessage(update) {
+function updateMessageFrom(update) {
   const updateType = [
     "message",
     "edited_message",
@@ -157,6 +157,46 @@ function extractMessage(update) {
     "edited_channel_post",
   ].find((key) => update?.[key]);
   const message = updateType ? update[updateType] : null;
+  return { updateType, message };
+}
+
+function chatTitleFrom(chat) {
+  return (
+    compactText(chat?.title) ||
+    compactText(chat?.username) ||
+    String(chat?.id || "")
+  );
+}
+
+function topicEventFromMessage(message) {
+  if (!message?.chat?.id || !message.message_id) return null;
+
+  const created = message.forum_topic_created;
+  if (created?.name) {
+    return {
+      messageThreadId: message.message_thread_id || message.message_id,
+      topicName: compactText(created.name),
+      iconColor: created.icon_color || null,
+      iconCustomEmojiId: created.icon_custom_emoji_id || null,
+    };
+  }
+
+  const edited = message.forum_topic_edited;
+  const editedName = compactText(edited?.name);
+  if (editedName) {
+    return {
+      messageThreadId: message.message_thread_id || message.message_id,
+      topicName: editedName,
+      iconColor: null,
+      iconCustomEmojiId: edited.icon_custom_emoji_id || null,
+    };
+  }
+
+  return null;
+}
+
+function extractMessage(update) {
+  const { updateType, message } = updateMessageFrom(update);
   if (!message?.chat?.id || !message.message_id) return null;
 
   const text = compactText(message.text || message.caption);
@@ -174,6 +214,37 @@ function extractMessage(update) {
   };
 }
 
+async function upsertTelegramDigestChat(supabaseAdmin, chat, now) {
+  const { error } = await supabaseAdmin.from("telegram_digest_chats").upsert(
+    {
+      chat_id: chat.id,
+      chat_title: chatTitleFrom(chat),
+      chat_type: chat.type || "unknown",
+      first_seen_at: now,
+      last_seen_at: now,
+    },
+    { onConflict: "chat_id" },
+  );
+  if (error) throw error;
+}
+
+async function storeTopicEvent(supabaseAdmin, message, topicEvent, now) {
+  await upsertTelegramDigestChat(supabaseAdmin, message.chat, now);
+
+  const { error } = await supabaseAdmin.from("telegram_digest_topics").upsert(
+    {
+      chat_id: message.chat.id,
+      message_thread_id: topicEvent.messageThreadId,
+      topic_name: topicEvent.topicName,
+      icon_color: topicEvent.iconColor,
+      icon_custom_emoji_id: topicEvent.iconCustomEmojiId,
+      last_seen_at: now,
+    },
+    { onConflict: "chat_id,message_thread_id" },
+  );
+  if (error) throw error;
+}
+
 async function storeTelegramUpdate(update) {
   const privateMessage = privateMessageFrom(update);
   if (privateMessage) {
@@ -188,29 +259,31 @@ async function storeTelegramUpdate(update) {
     };
   }
 
-  const message = extractMessage(update);
-  if (!message) return { stored: false, reason: "No text message." };
+  const { message: updateMessage } = updateMessageFrom(update);
+  if (!updateMessage) return { stored: false, reason: "No Telegram message." };
+
+  if (updateMessage?.chat?.type === "private") {
+    return { stored: false, reason: "Private message ignored." };
+  }
 
   const supabaseAdmin = getSupabaseAdmin();
   const now = new Date().toISOString();
-  const chatTitle =
-    compactText(message.chat.title) ||
-    compactText(message.chat.username) ||
-    String(message.chat.id);
+  const topicEvent = topicEventFromMessage(updateMessage);
+  if (topicEvent) {
+    await storeTopicEvent(supabaseAdmin, updateMessage, topicEvent, now);
+    return {
+      stored: false,
+      topicStored: true,
+      chatId: String(updateMessage.chat.id),
+      messageThreadId: topicEvent.messageThreadId,
+      topicName: topicEvent.topicName,
+    };
+  }
 
-  const { error: chatError } = await supabaseAdmin
-    .from("telegram_digest_chats")
-    .upsert(
-      {
-        chat_id: message.chat.id,
-        chat_title: chatTitle,
-        chat_type: message.chat.type || "unknown",
-        first_seen_at: now,
-        last_seen_at: now,
-      },
-      { onConflict: "chat_id" },
-    );
-  if (chatError) throw chatError;
+  const message = extractMessage(update);
+  if (!message) return { stored: false, reason: "No text message." };
+
+  await upsertTelegramDigestChat(supabaseAdmin, message.chat, now);
 
   const { error: messageError } = await supabaseAdmin
     .from("telegram_digest_messages")
@@ -272,7 +345,10 @@ function formatDigestInput(messages) {
         message.text_urls?.length > 0
           ? `\n   Link trovati: ${message.text_urls.join(", ")}`
           : "";
-      return `${index + 1}. [${time}] ${message.chat_title}: ${message.text}${urls}`;
+      const location = message.topic_label
+        ? `${message.chat_title} / ${message.topic_label}`
+        : message.chat_title;
+      return `${index + 1}. [${time}] ${location}: ${message.text}${urls}`;
     })
     .join("\n");
 }
@@ -285,7 +361,7 @@ function digestInstructions({ reportDate, messageCount, activeChatCount }) {
 Rules:
 - Write in ${language === "it" ? "Italian" : language}.
 - Summarize the previous day across all Telegram channels that had meaningful activity.
-- Keep channel-specific details visible: each channel with news should have its own short section.
+- Keep channel-specific and topic-thread-specific details visible: each channel or active topic thread with news should have its own short section when useful.
 - Do not tag people, mention usernames, or attribute opinions to named members.
 - Do not include private personal details.
 - Capture the vibe of the conversation, the main topics, concrete links/resources, books, tweets/X posts, articles, tools, demos, repositories, videos, asks, launches, and decisions.
@@ -477,13 +553,38 @@ async function dailyMessages(supabaseAdmin, chatId, reportDate) {
   const limit = Number(process.env.TELEGRAM_DIGEST_MAX_MESSAGES || 500);
   const { data, error } = await supabaseAdmin
     .from("telegram_digest_messages")
-    .select("message_id, sent_at, text, text_urls")
+    .select("message_id, message_thread_id, sent_at, text, text_urls")
     .eq("chat_id", chatId)
     .eq("message_local_date", reportDate)
     .order("sent_at", { ascending: true })
     .limit(Number.isFinite(limit) && limit > 0 ? limit : 500);
   if (error) throw error;
   return data || [];
+}
+
+async function topicMapForChats(supabaseAdmin, chatIds) {
+  if (!chatIds.length) return new Map();
+
+  const { data, error } = await supabaseAdmin
+    .from("telegram_digest_topics")
+    .select("chat_id, message_thread_id, topic_name")
+    .in("chat_id", chatIds);
+  if (error) throw error;
+
+  return new Map(
+    (data || []).map((topic) => [
+      `${topic.chat_id}:${topic.message_thread_id}`,
+      topic.topic_name,
+    ]),
+  );
+}
+
+function topicLabelForMessage(message, topicMap) {
+  if (!message.message_thread_id) return "General";
+  return (
+    topicMap.get(`${message.chat_id}:${message.message_thread_id}`) ||
+    `Topic #${message.message_thread_id}`
+  );
 }
 
 async function saveReport({
@@ -527,6 +628,10 @@ async function runDailyReport({ date, force = false }) {
 
   const results = [];
   const allMessages = [];
+  const topicMap = await topicMapForChats(
+    supabaseAdmin,
+    chats.map((chat) => chat.chat_id),
+  );
 
   for (const chat of chats) {
     const messages = await dailyMessages(
@@ -549,6 +654,10 @@ async function runDailyReport({ date, force = false }) {
         chat_id: chat.chat_id,
         chat_title: chat.chat_title,
         summary_context: chat.summary_context,
+        topic_label: topicLabelForMessage(
+          { ...message, chat_id: chat.chat_id },
+          topicMap,
+        ),
       });
     }
 

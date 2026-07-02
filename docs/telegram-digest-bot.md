@@ -7,7 +7,8 @@ previous-day Italian digest after midnight in Italy.
 
 - Receives Telegram updates at `/api/telegram/webhook`.
 - Stores only message text, message links, message IDs, chat IDs, timestamps,
-  and chat titles.
+  chat titles, and Telegram forum topic titles when Telegram sends topic
+  create/rename service events.
 - Does not store Telegram user names, handles, or sender IDs.
 - Runs `/api/telegram/daily-report` from Vercel Cron at `23:10 UTC`.
 - Summarizes the previous `Europe/Rome` calendar day.
@@ -60,6 +61,23 @@ channel post updates.
 The bot does not answer inside source channels. It only listens, stores the
 message text needed for the digest, sends the finished digest to your configured
 private chat ID, and exposes the generated digest inside the member website.
+
+## Forum Topics
+
+Telegram message updates include the numeric `message_thread_id`, but normal
+messages do not always include the human topic title. The bot stores topic
+titles from Telegram forum-topic service events:
+
+- `forum_topic_created`
+- `forum_topic_edited`
+
+Daily digests label each message as `Chat title / Topic title` when the topic
+title is known, `Chat title / General` for the main thread, or
+`Chat title / Topic #123` as a fallback.
+
+Existing topics created before this migration may need to be renamed once in
+Telegram, or seeded manually in `public.telegram_digest_topics`, before the bot
+can show their human title.
 
 ## Channel Tuning
 
