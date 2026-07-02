@@ -151,19 +151,24 @@ function inlineKeyboard(rows) {
 }
 
 const PROFILE_STATUS_KEYBOARD = inlineKeyboard([
-  [{ text: "I already have a profile", callback_data: CALLBACK_ACTIONS.YES }],
-  [{ text: "Create a new account", callback_data: CALLBACK_ACTIONS.NO }],
+  [{ text: "Ho gia un profilo", callback_data: CALLBACK_ACTIONS.YES }],
+  [{ text: "Crea un nuovo account", callback_data: CALLBACK_ACTIONS.NO }],
 ]);
 
 const HANDLE_MATCH_KEYBOARD = inlineKeyboard([
-  [{ text: "Yes, send the login email", callback_data: CALLBACK_ACTIONS.YES }],
-  [{ text: "This is not me", callback_data: CALLBACK_ACTIONS.NOT_ME }],
+  [
+    {
+      text: "Si, invia l'email di accesso",
+      callback_data: CALLBACK_ACTIONS.YES,
+    },
+  ],
+  [{ text: "Non sono io", callback_data: CALLBACK_ACTIONS.NOT_ME }],
 ]);
 
 const CREATE_ACCOUNT_KEYBOARD = inlineKeyboard([
   [
     {
-      text: "Create a new account",
+      text: "Crea un nuovo account",
       callback_data: CALLBACK_ACTIONS.CREATE_ACCOUNT,
     },
   ],
@@ -172,7 +177,7 @@ const CREATE_ACCOUNT_KEYBOARD = inlineKeyboard([
 const START_PRIVATE_ONBOARDING_KEYBOARD = inlineKeyboard([
   [
     {
-      text: "Start website onboarding",
+      text: "Avvia registrazione sito",
       url: "https://t.me/IB_users_Bot?start=community",
     },
   ],
@@ -222,10 +227,10 @@ function nextRomeMorning(now = new Date()) {
 }
 
 function callbackActionText(data) {
-  if (data === CALLBACK_ACTIONS.YES) return "yes";
+  if (data === CALLBACK_ACTIONS.YES) return "si";
   if (data === CALLBACK_ACTIONS.NO) return "no";
-  if (data === CALLBACK_ACTIONS.NOT_ME) return "this is not me";
-  if (data === CALLBACK_ACTIONS.CREATE_ACCOUNT) return "create a new account";
+  if (data === CALLBACK_ACTIONS.NOT_ME) return "non sono io";
+  if (data === CALLBACK_ACTIONS.CREATE_ACCOUNT) return "crea un nuovo account";
   return null;
 }
 
@@ -241,20 +246,20 @@ async function notifyTelegramOnboardingAdmins({ contact, flagType, details }) {
   if (!chatIds.length) return;
 
   const lines = [
-    "Telegram onboarding flag",
-    `Type: ${flagType}`,
-    `Telegram user ID: ${contact.telegram_user_id || "unknown"}`,
-    `Telegram username: ${contact.username || "none"}`,
+    "Segnalazione onboarding Telegram",
+    `Tipo: ${flagType}`,
+    `ID utente Telegram: ${contact.telegram_user_id || "sconosciuto"}`,
+    `Username Telegram: ${contact.username || "nessuno"}`,
   ];
 
   if (details?.matched_profile_id) {
-    lines.push(`Matched profile: ${details.matched_profile_id}`);
+    lines.push(`Profilo trovato: ${details.matched_profile_id}`);
   }
   if (details?.matched_profile_username) {
-    lines.push(`Matched profile username: ${details.matched_profile_username}`);
+    lines.push(`Username profilo trovato: ${details.matched_profile_username}`);
   }
   if (details?.reason) {
-    lines.push(`Reason: ${details.reason}`);
+    lines.push(`Motivo: ${details.reason}`);
   }
 
   await Promise.allSettled(
@@ -282,7 +287,7 @@ function normalizeTelegramUsername(value) {
 
 function obfuscateEmail(value) {
   const email = normalizeEmail(value);
-  if (!email) return "that email";
+  if (!email) return "questa email";
   const [local, domain] = email.split("@");
   const [domainName, ...domainRest] = domain.split(".");
   const mask = (part) => {
@@ -295,15 +300,15 @@ function obfuscateEmail(value) {
 
 function profileCompleteness(profile) {
   const checks = [
-    ["name", profile.full_name],
-    ["headline", profile.headline],
+    ["nome", profile.full_name],
+    ["titolo", profile.headline],
     ["bio", profile.bio],
-    ["role", profile.role],
-    ["city", profile.city || profile.location],
+    ["ruolo", profile.role],
+    ["citta", profile.city || profile.location],
     ["avatar", profile.avatar_url],
-    ["skills", Array.isArray(profile.skills) && profile.skills.length > 0],
+    ["competenze", Array.isArray(profile.skills) && profile.skills.length > 0],
     [
-      "looking_for",
+      "cosa cerchi",
       Array.isArray(profile.looking_for) && profile.looking_for.length > 0,
     ],
   ];
@@ -374,7 +379,7 @@ function communityIntroMessage() {
     "",
     "Usatemi per collegare Telegram al profilo sul sito, recuperare l'accesso e creare il profilo se non lo avete ancora fatto.",
     "",
-    "Scrivetemi in privato e vi guido in pochi passaggi. Se trovate un profilo gia associato al vostro handle, vi faro verificare via email prima di dare accesso.",
+    "Scrivetemi in privato e vi guido in pochi passaggi. Se trovate un profilo gia associato al vostro username Telegram, vi faro verificare via email prima di dare accesso.",
   ].join("\n");
 }
 
@@ -537,14 +542,14 @@ async function startOnboarding({ supabaseAdmin, contact, chatId }) {
     const profile = profileMatches[0];
     const completeness = profileCompleteness(profile);
     const missing = completeness.missing.length
-      ? ` Missing: ${completeness.missing.join(", ")}.`
+      ? ` Mancano: ${completeness.missing.join(", ")}.`
       : "";
     const profileLabel = profile.username
       ? `@${profile.username}`
-      : profile.full_name || "an existing Italian Builders profile";
+      : profile.full_name || "un profilo Italian Builders esistente";
     const message = profile.email
-      ? `This Telegram username looks like ${profileLabel}. The account email looks like ${obfuscateEmail(profile.email)}. Profile completeness is about ${completeness.score}%.${missing}\n\nIs this your account? Reply yes to send a login link to that email, or reply "this is not me" if this profile is not yours.`
-      : `This Telegram username looks like ${profileLabel}. Profile completeness is about ${completeness.score}%.${missing}\n\nIs this your account? Reply yes, or reply "this is not me" if this profile is not yours.`;
+      ? `Questo username Telegram sembra collegato a ${profileLabel}. L'email dell'account sembra ${obfuscateEmail(profile.email)}. Il profilo e completo circa al ${completeness.score}%.${missing}\n\nE il tuo account? Rispondi si per ricevere il link di accesso via email, oppure \"non sono io\" se questo profilo non e tuo.`
+      : `Questo username Telegram sembra collegato a ${profileLabel}. Il profilo e completo circa al ${completeness.score}%.${missing}\n\nE il tuo account? Rispondi si, oppure \"non sono io\" se questo profilo non e tuo.`;
 
     const existing = await currentSession(supabaseAdmin, contact.id);
     const payload = {
@@ -588,7 +593,7 @@ async function startOnboarding({ supabaseAdmin, contact, chatId }) {
     });
     await sendTelegramMessage(
       chatId,
-      "This Telegram username appears on more than one website profile, so I flagged it for admin review. Send the email address you use on the website and I can continue safely.",
+      "Questo username Telegram compare su piu di un profilo del sito, quindi ho segnalato il caso agli admin. Mandami l'email che usi sul sito e continuo in modo sicuro.",
     );
     const existing = await currentSession(supabaseAdmin, contact.id);
     const payload = {
@@ -631,7 +636,7 @@ async function startOnboarding({ supabaseAdmin, contact, chatId }) {
 
   await sendTelegramMessage(
     chatId,
-    "Welcome to Italian Builders. Have you already created your profile on the website? Reply yes or no.",
+    "Benvenuto in Italian Builders. Hai gia creato il tuo profilo sul sito? Rispondi si o no.",
     PROFILE_STATUS_KEYBOARD,
   );
   return { stored: true, started: true };
@@ -648,7 +653,7 @@ function negative(text) {
 }
 
 function wantsNewAccount(text) {
-  return /^(create a new account|create new account|new account|create account|start new account|make a new account)$/i.test(
+  return /^(create a new account|create new account|new account|create account|start new account|make a new account|crea un nuovo account|crea nuovo account|nuovo account|crea account|crea un nuovo profilo|crea nuovo profilo|nuovo profilo)$/i.test(
     compactText(text),
   );
 }
@@ -1079,7 +1084,7 @@ async function processQueuedMagicLoginEmails({
       if (privateChatId) {
         await sendTelegramMessage(
           privateChatId,
-          `Ho appena inviato il magic link a ${obfuscateEmail(row.email)}. Apri l'email piu recente e usa il codice su Italian Builders.`,
+          `Ho appena inviato il link di accesso a ${obfuscateEmail(row.email)}. Apri l'email piu recente e usa il codice su Italian Builders.`,
         );
       }
       processed += 1;
@@ -1109,7 +1114,7 @@ async function processQueuedMagicLoginEmails({
 async function sendQuotaExhaustedMessage(chatId, email) {
   await sendTelegramMessage(
     chatId,
-    `Per oggi abbiamo finito le email disponibili per i login. Ho messo in coda il tuo magic link per ${obfuscateEmail(email)}: appena si riapre la quota lo invio automaticamente. Se preferisci, torna domani e scrivimi /start per riprendere.`,
+    `Per oggi abbiamo finito le email disponibili per gli accessi. Ho messo in coda il tuo link di accesso per ${obfuscateEmail(email)}: appena si riapre la quota lo invio automaticamente. Se preferisci, torna domani e scrivimi /start per riprendere.`,
   );
 }
 
@@ -1281,7 +1286,7 @@ async function handleOnboardingMessage({
       });
       await sendTelegramMessage(
         chatId,
-        "Perfect. Send the email address you use on the website and I will check it safely.",
+        "Perfetto. Mandami l'email che usi sul sito e la verifico in modo sicuro.",
       );
       return { stored: true, existingProfile: true };
     }
@@ -1289,7 +1294,7 @@ async function handleOnboardingMessage({
     if (!negative(text)) {
       await sendTelegramMessage(
         chatId,
-        "Please choose one of the options below.",
+        "Scegli una delle opzioni qui sotto.",
         PROFILE_STATUS_KEYBOARD,
       );
       return { stored: true, waitingForProfileStatus: true };
@@ -1301,7 +1306,7 @@ async function handleOnboardingMessage({
     });
     await sendTelegramMessage(
       chatId,
-      "What name should appear on your profile?",
+      "Che nome vuoi mostrare sul tuo profilo?",
     );
     return { stored: true, waitingForName: true };
   }
@@ -1316,7 +1321,7 @@ async function handleOnboardingMessage({
         });
         await sendTelegramMessage(
           chatId,
-          "That profile does not have an email on file. Send the email address you use on the website and I will check it safely.",
+          "Quel profilo non ha un'email salvata. Mandami l'email che usi sul sito e la verifico in modo sicuro.",
         );
         return { stored: true, waitingForExistingEmail: true };
       }
@@ -1334,7 +1339,7 @@ async function handleOnboardingMessage({
         });
         await sendTelegramMessage(
           chatId,
-          `Here is your private website login link:\n\n${actionLink}`,
+          `Ecco il tuo link privato per accedere al sito:\n\n${actionLink}`,
         );
         return { stored: true, magicLoginSent: true };
       }
@@ -1357,7 +1362,7 @@ async function handleOnboardingMessage({
       });
       await sendTelegramMessage(
         chatId,
-        `I sent a magic login link to ${obfuscateEmail(matchedEmail)}. I did not send the login URL here because this Telegram account is not yet verified against that website profile.`,
+        `Ho inviato un link di accesso a ${obfuscateEmail(matchedEmail)}. Non mando il link qui su Telegram perche questo account Telegram non e ancora verificato rispetto a quel profilo del sito.`,
       );
       return { stored: true, magicLoginEmailSent: true };
     }
@@ -1375,7 +1380,7 @@ async function handleOnboardingMessage({
           matched_profile_id: payload.matched_profile_id,
           matched_profile_username: payload.matched_profile_username,
           reason:
-            "Telegram user said the matched website profile is not theirs.",
+            "L'utente Telegram ha dichiarato che il profilo trovato non e suo.",
         },
       });
       await updateSession(supabaseAdmin, session.id, {
@@ -1392,14 +1397,14 @@ async function handleOnboardingMessage({
       if (createNewAccount) {
         await sendTelegramMessage(
           chatId,
-          "Thanks. I flagged this handle mismatch for admin review. What name should appear on your new profile?",
+          "Grazie. Ho segnalato questa discrepanza agli admin. Che nome vuoi mostrare sul nuovo profilo?",
         );
         return { stored: true, waitingForName: true };
       }
 
       await sendTelegramMessage(
         chatId,
-        'Thanks. I flagged this handle mismatch for admin review. If you already have another website account, send that email. Otherwise reply "create a new account" and I will start a separate profile.',
+        'Grazie. Ho segnalato questa discrepanza agli admin. Se hai gia un altro account sul sito, mandami quella email. Altrimenti rispondi "crea un nuovo account" e preparo un profilo separato.',
         CREATE_ACCOUNT_KEYBOARD,
       );
       return { stored: true, handleMatchDeclined: true };
@@ -1407,7 +1412,7 @@ async function handleOnboardingMessage({
 
     await sendTelegramMessage(
       chatId,
-      "Please choose one of the options below.",
+      "Scegli una delle opzioni qui sotto.",
       HANDLE_MATCH_KEYBOARD,
     );
     return { stored: true, waitingForHandleMatchConfirmation: true };
@@ -1425,7 +1430,7 @@ async function handleOnboardingMessage({
       });
       await sendTelegramMessage(
         chatId,
-        "What name should appear on your new profile?",
+        "Che nome vuoi mostrare sul nuovo profilo?",
       );
       return { stored: true, waitingForName: true };
     }
@@ -1446,7 +1451,7 @@ async function handleOnboardingMessage({
 
     await sendTelegramMessage(
       chatId,
-      'Send the email for your existing website account, or reply "create a new account".',
+      'Mandami l\'email del tuo account esistente sul sito, oppure rispondi "crea un nuovo account".',
       CREATE_ACCOUNT_KEYBOARD,
     );
     return { stored: true, waitingForHandleMismatchChoice: true };
@@ -1455,7 +1460,7 @@ async function handleOnboardingMessage({
   if (session.state === SESSION_STATES.AWAITING_EXISTING_EMAIL) {
     const email = normalizeEmail(text);
     if (!email) {
-      await sendTelegramMessage(chatId, "Please send a valid email address.");
+      await sendTelegramMessage(chatId, "Mandami un indirizzo email valido.");
       return { stored: true, waitingForExistingEmail: true };
     }
 
@@ -1463,7 +1468,7 @@ async function handleOnboardingMessage({
     if (!profile) {
       await sendTelegramMessage(
         chatId,
-        "I could not find an approved website profile for that email. Reply no if you want to create one now.",
+        "Non ho trovato un profilo approvato sul sito per questa email. Rispondi no se vuoi crearne uno ora.",
         CREATE_ACCOUNT_KEYBOARD,
       );
       return { stored: true, existingProfileNotFound: true };
@@ -1485,7 +1490,7 @@ async function handleOnboardingMessage({
           matched_profile_email: obfuscateEmail(payload.matched_profile_email),
           provided_email: obfuscateEmail(email),
           reason:
-            "Telegram handle matched one website profile but user provided a different website email.",
+            "Lo username Telegram corrispondeva a un profilo, ma l'utente ha fornito un'email diversa.",
         },
       });
     }
@@ -1509,7 +1514,7 @@ async function handleOnboardingMessage({
       });
       await sendTelegramMessage(
         chatId,
-        `Here is your private website login link:\n\n${actionLink}`,
+        `Ecco il tuo link privato per accedere al sito:\n\n${actionLink}`,
       );
       return { stored: true, magicLoginSent: true };
     }
@@ -1538,14 +1543,14 @@ async function handleOnboardingMessage({
     });
     await sendTelegramMessage(
       chatId,
-      `I sent a magic login link to ${obfuscateEmail(email)}. I did not send the login URL here because this Telegram account is not yet verified against that website profile.`,
+      `Ho inviato un link di accesso a ${obfuscateEmail(email)}. Non mando il link qui su Telegram perche questo account Telegram non e ancora verificato rispetto a quel profilo del sito.`,
     );
     return { stored: true, magicLoginEmailSent: true };
   }
 
   if (session.state === SESSION_STATES.AWAITING_NAME) {
     if (text.length < 2) {
-      await sendTelegramMessage(chatId, "Please send your full name.");
+      await sendTelegramMessage(chatId, "Mandami il tuo nome completo.");
       return { stored: true, waitingForName: true };
     }
     await updateSession(supabaseAdmin, session.id, {
@@ -1554,7 +1559,7 @@ async function handleOnboardingMessage({
     });
     await sendTelegramMessage(
       chatId,
-      "What email do you want to use for the website account?",
+      "Quale email vuoi usare per l'account sul sito?",
     );
     return { stored: true, waitingForEmail: true };
   }
@@ -1562,7 +1567,7 @@ async function handleOnboardingMessage({
   if (session.state === SESSION_STATES.AWAITING_EMAIL) {
     const email = normalizeEmail(text);
     if (!email) {
-      await sendTelegramMessage(chatId, "Please send a valid email address.");
+      await sendTelegramMessage(chatId, "Mandami un indirizzo email valido.");
       return { stored: true, waitingForEmail: true };
     }
 
@@ -1599,7 +1604,7 @@ async function handleOnboardingMessage({
         });
         await sendTelegramMessage(
           chatId,
-          `That email already has a website profile. Here is your private website login link:\n\n${actionLink}`,
+          `Questa email ha gia un profilo sul sito. Ecco il tuo link privato per accedere:\n\n${actionLink}`,
         );
         return { stored: true, existingProfileRecovered: true };
       }
@@ -1628,7 +1633,7 @@ async function handleOnboardingMessage({
       });
       await sendTelegramMessage(
         chatId,
-        `That email already has a website profile, so I sent a magic login link to ${obfuscateEmail(email)} instead of creating a duplicate invite.`,
+        `Questa email ha gia un profilo sul sito, quindi ho inviato un link di accesso a ${obfuscateEmail(email)} invece di creare un invito duplicato.`,
       );
       return { stored: true, existingProfileRecoveredByEmail: true };
     }
@@ -1639,14 +1644,14 @@ async function handleOnboardingMessage({
     });
     await sendTelegramMessage(
       chatId,
-      "What best describes you? For example: founder, developer, designer, operator, student.",
+      "Quale ruolo ti descrive meglio? Per esempio: fondatore, sviluppatore, designer, operatore, studente.",
     );
     return { stored: true, waitingForRole: true };
   }
 
   if (session.state === SESSION_STATES.AWAITING_ROLE) {
     if (text.length < 2) {
-      await sendTelegramMessage(chatId, "Please send a short role.");
+      await sendTelegramMessage(chatId, "Mandami un ruolo breve.");
       return { stored: true, waitingForRole: true };
     }
     await updateSession(supabaseAdmin, session.id, {
@@ -1655,7 +1660,7 @@ async function handleOnboardingMessage({
     });
     await sendTelegramMessage(
       chatId,
-      "What are you building or exploring right now? One short paragraph is enough.",
+      "Cosa stai costruendo o esplorando in questo momento? Basta un breve paragrafo.",
     );
     return { stored: true, waitingForBuilding: true };
   }
@@ -1672,7 +1677,7 @@ async function handleOnboardingMessage({
     });
     await sendTelegramMessage(
       chatId,
-      `Your profile draft is ready. Open this link to finish account setup and choose your password:\n\n${actionLink}`,
+      `La bozza del tuo profilo e pronta. Apri questo link per completare l'account e scegliere la password:\n\n${actionLink}`,
     );
     return { stored: true, completed: true };
   }
@@ -1682,15 +1687,15 @@ async function handleOnboardingMessage({
     await sendTelegramMessage(
       chatId,
       pendingEmail
-        ? `Il tuo magic link per ${obfuscateEmail(pendingEmail)} e ancora in coda perche oggi abbiamo raggiunto il limite email. Lo invio automaticamente quando si riapre la quota.`
-        : "Il tuo magic link e ancora in coda perche oggi abbiamo raggiunto il limite email. Lo invio automaticamente quando si riapre la quota.",
+        ? `Il tuo link di accesso per ${obfuscateEmail(pendingEmail)} e ancora in coda perche oggi abbiamo raggiunto il limite email. Lo invio automaticamente quando si riapre la quota.`
+        : "Il tuo link di accesso e ancora in coda perche oggi abbiamo raggiunto il limite email. Lo invio automaticamente quando si riapre la quota.",
     );
     return { stored: true, emailQuotaWaiting: true };
   }
 
   await sendTelegramMessage(
     chatId,
-    "Send /start if you want to restart the website onboarding flow.",
+    "Scrivi /start se vuoi riavviare il flusso di registrazione sul sito.",
   );
   return { stored: true, idle: true };
 }
@@ -1717,7 +1722,7 @@ async function storeTelegramOnboardingUpdate(req, update) {
       privateChatId: callback.message.chat.id,
       groupSeen: false,
     });
-    await answerCallbackQuery(callback.id, "Got it.");
+    await answerCallbackQuery(callback.id, "Ricevuto.");
     return handleOnboardingMessage({
       req,
       supabaseAdmin,
