@@ -2074,7 +2074,7 @@ export function BuildersDirectoryPage() {
 export function BuilderProfilePage() {
   const { techLabels } = useTechLabels();
   const profileEditHref = usePlatformHref("/dashboard/profile");
-  const { user } = useSupabaseSession();
+  const { user, loading: sessionLoading } = useSupabaseSession();
   const params = useParams<{ username: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -2088,6 +2088,8 @@ export function BuilderProfilePage() {
     let cancelled = false;
 
     async function load() {
+      if (sessionLoading) return;
+
       setLoading(true);
       setProfile(null);
       setProjects([]);
@@ -2155,7 +2157,7 @@ export function BuilderProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [params.username, user?.id]);
+  }, [params.username, sessionLoading, user?.id]);
 
   if (loading) {
     return (
