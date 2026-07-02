@@ -119,6 +119,11 @@ queues the login email instead of sending blindly. In local environments without
 `RESEND_API_KEY`, the backend falls back to the internal delivery table so the
 flow remains testable.
 
+Resend quota and Supabase Auth email rate limits are separate. A low Resend count
+does not guarantee that Supabase Auth will accept another OTP send immediately.
+If Supabase Auth responds with a temporary email rate-limit error, the bot keeps
+the delivery queued for a later batch instead of marking it permanently failed.
+
 Set `TELEGRAM_ONBOARDING_DAILY_EMAIL_LIMIT` below the real Resend limit. The
 default is 90 so the project keeps room for other transactional emails. When the
 limit is reached, the bot queues the magic-link email and the daily cron at

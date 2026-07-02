@@ -323,6 +323,18 @@ function nextRomeMorning(now = new Date()) {
   return utc.toISOString();
 }
 
+function nextEmailRetryTime(now = new Date()) {
+  return new Date(now.getTime() + 1000 * 60 * 60).toISOString();
+}
+
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isTemporaryEmailRateLimitError(error) {
+  return /email rate limit exceeded|rate limit/i.test(errorMessage(error));
+}
+
 function callbackActionText(data) {
   if (data === CALLBACK_ACTIONS.YES) return "si";
   if (data === CALLBACK_ACTIONS.NO) return "no";
@@ -999,8 +1011,8 @@ async function queueMagicLoginEmail({
   redirectTo,
   purpose,
   reason = null,
+  scheduledFor = nextRomeMorning(),
 }) {
-  const scheduledFor = nextRomeMorning();
   await recordEmailDelivery({
     supabaseAdmin,
     contact,
@@ -1089,6 +1101,19 @@ async function sendMagicLoginEmailWithQuota({
       quotaSource: quota.source,
     };
   } catch (sendError) {
+    if (isTemporaryEmailRateLimitError(sendError)) {
+      return queueMagicLoginEmail({
+        supabaseAdmin,
+        contact,
+        session,
+        email,
+        redirectTo,
+        purpose,
+        reason: `email_provider_rate_limited:${errorMessage(sendError)}`,
+        scheduledFor: nextEmailRetryTime(),
+      });
+    }
+
     await recordEmailDelivery({
       supabaseAdmin,
       contact,
@@ -1097,7 +1122,7 @@ async function sendMagicLoginEmailWithQuota({
       purpose,
       status: "failed",
       redirectTo,
-      error: sendError instanceof Error ? sendError.message : String(sendError),
+      error: errorMessage(sendError),
     });
     throw sendError;
   }
@@ -1132,6 +1157,16 @@ async function processQueuedMagicLoginEmails({
 
   const remaining = emailLimit - sentToday;
   const batchSize = Math.max(Math.min(remaining, limit), 0);
+  if (limit <= 0) {
+    return {
+      processed: 0,
+      skipped: true,
+      reason: "batch_limit_zero",
+      quotaSource: quota.source,
+      sentToday,
+      remainingToday: Math.max(remaining, 0),
+    };
+  }
   if (batchSize <= 0) {
     return {
       processed: 0,
@@ -1186,14 +1221,23 @@ async function processQueuedMagicLoginEmails({
       }
       processed += 1;
     } catch (queueError) {
+      if (isTemporaryEmailRateLimitError(queueError)) {
+        await supabaseAdmin
+          .from("telegram_onboarding_email_deliveries")
+          .update({
+            status: "queued",
+            scheduled_for: nextEmailRetryTime(),
+            error: `email_provider_rate_limited:${errorMessage(queueError)}`,
+          })
+          .eq("id", row.id);
+        continue;
+      }
+
       await supabaseAdmin
         .from("telegram_onboarding_email_deliveries")
         .update({
           status: "failed",
-          error:
-            queueError instanceof Error
-              ? queueError.message
-              : String(queueError),
+          error: errorMessage(queueError),
         })
         .eq("id", row.id);
     }
@@ -1213,6 +1257,26 @@ async function sendQuotaExhaustedMessage(chatId, email) {
     chatId,
     `Per oggi abbiamo finito le email disponibili per gli accessi. Ho messo in coda il tuo link di accesso per ${obfuscateEmail(email)}: appena si riapre la quota lo invio automaticamente. Se preferisci, torna domani e scrivimi /start per riprendere.`,
   );
+}
+
+async function sendQueuedLoginEmailMessage(chatId, email, reason = null) {
+  if (String(reason || "").startsWith("email_provider_rate_limited")) {
+    await sendTelegramMessage(
+      chatId,
+      `Il sistema email ha risposto con un limite temporaneo. Ho messo in coda il link di accesso per ${obfuscateEmail(email)} e riprovero automaticamente al prossimo batch disponibile.`,
+    );
+    return;
+  }
+
+  if (String(reason || "").startsWith("email_quota_check_unavailable")) {
+    await sendTelegramMessage(
+      chatId,
+      `In questo momento non riesco a verificare il contatore email. Per sicurezza ho messo in coda il link di accesso per ${obfuscateEmail(email)} e lo inviero appena il controllo torna disponibile.`,
+    );
+    return;
+  }
+
+  await sendQuotaExhaustedMessage(chatId, email);
 }
 
 function loginCodeRedirectUrl(req, email, next = "/dashboard", extra = {}) {
@@ -1597,7 +1661,11 @@ async function handleOnboardingMessage({
         purpose: "handle_match_login",
       });
       if (delivery.queued) {
-        await sendQuotaExhaustedMessage(chatId, matchedEmail);
+        await sendQueuedLoginEmailMessage(
+          chatId,
+          matchedEmail,
+          delivery.reason,
+        );
         return { stored: true, magicLoginQueued: true };
       }
       await updateSession(supabaseAdmin, session.id, {
@@ -1781,7 +1849,7 @@ async function handleOnboardingMessage({
       purpose: "existing_profile_login",
     });
     if (delivery.queued) {
-      await sendQuotaExhaustedMessage(chatId, email);
+      await sendQueuedLoginEmailMessage(chatId, email, delivery.reason);
       return { stored: true, magicLoginQueued: true };
     }
 
@@ -1880,7 +1948,7 @@ async function handleOnboardingMessage({
         purpose: "existing_profile_recovery_from_new_flow",
       });
       if (delivery.queued) {
-        await sendQuotaExhaustedMessage(chatId, email);
+        await sendQueuedLoginEmailMessage(chatId, email, delivery.reason);
         return { stored: true, magicLoginQueued: true };
       }
       await updateSession(supabaseAdmin, session.id, {
