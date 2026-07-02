@@ -2,11 +2,10 @@ const { createClient } = require("@supabase/supabase-js");
 
 const DEFAULT_TIME_ZONE = "Europe/Rome";
 const DEFAULT_REPORT_LANGUAGE = "it";
-const DEFAULT_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free";
+const DEFAULT_MODEL = "google/gemini-3.5-flash";
 const DEFAULT_FALLBACK_MODELS = [
-  "qwen/qwen3-coder:free",
-  "google/gemma-4-31b-it:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
+  "~google/gemini-flash-latest",
+  "google/gemini-2.5-flash",
 ];
 const PROMPT_VERSION = "telegram-community-daily-digest-v2";
 const MAX_TELEGRAM_MESSAGE_LENGTH = 3900;
@@ -354,8 +353,17 @@ function formatDigestInput(messages) {
       const location = message.topic_label
         ? `${message.chat_title} / ${message.topic_label}`
         : message.chat_title;
-      return `${index + 1}. [${time}] ${location}: ${message.text}${urls}`;
+      return `${index + 1}. [${time}] sourceId=${message.source_id} ${location}: ${message.text}${urls}`;
     })
+    .join("\n");
+}
+
+function digestSources(messages) {
+  return sourceDigestTargets(messages)
+    .map(
+      (source) =>
+        `- sourceId=${source.sourceId}; channel="${source.chatTitle}"; topic="${source.topicLabel}"; messages=${source.messageCount}`,
+    )
     .join("\n");
 }
 
@@ -373,6 +381,8 @@ Rules:
 - Capture the vibe of the conversation, the main topics, concrete links/resources, books, tweets/X posts, articles, tools, demos, repositories, videos, asks, launches, and decisions.
 - If a URL is present, classify it when possible from the message context: tweet, book, article, tool, repo, video, event, product, or other.
 - Include one "Fatto interessante" connected to the main topic. If messages do not support a factual insight, use a practical observation instead of inventing facts.
+- Create one topic digest for every provided sourceId that had messages. Do not merge different Telegram topics into one section.
+- Copy each sourceId exactly into the matching topicDigests item.
 - Be specific and useful for someone who missed the day.
 - Return JSON only. No markdown fences.
 
@@ -383,6 +393,16 @@ JSON shape:
   "vibe": "string",
   "executiveTldr": "string",
   "mainTopics": ["string"],
+  "topicDigests": [
+    {
+      "sourceId": "string",
+      "channel": "string",
+      "topic": "string",
+      "summary": "string",
+      "highlights": ["string"],
+      "resources": [{"title": "string", "url": "string", "type": "tweet|book|article|tool|repo|video|event|product|other", "whyItMatters": "string"}]
+    }
+  ],
   "channelDigests": [
     {
       "channel": "string",
@@ -419,7 +439,7 @@ function buildDigestPrompt({ messages, reportDate, activeChatCount }) {
     },
     {
       role: "user",
-      content: `Create the previous-day digest from these Telegram messages.\n\n${formatDigestInput(messages)}`,
+      content: `Create the previous-day digest from these Telegram messages.\n\nRequired source sections:\n${digestSources(messages)}\n\nMessages:\n${formatDigestInput(messages)}`,
     },
   ];
 }
@@ -575,6 +595,7 @@ function sourceDigestTargets(messages) {
   for (const message of messages) {
     const key = `${message.chat_id}:${message.message_thread_id || "general"}`;
     const target = targets.get(key) || {
+      sourceId: key,
       chatId: message.chat_id,
       chatTitle: message.chat_title,
       messageThreadId: message.message_thread_id || null,
@@ -598,6 +619,14 @@ function normalizedMatch(value) {
 }
 
 function digestSectionForTarget(summary, target) {
+  const topicSections = Array.isArray(summary?.topicDigests)
+    ? summary.topicDigests
+    : [];
+  const bySourceId = topicSections.find(
+    (section) => compactText(section?.sourceId) === target.sourceId,
+  );
+  if (bySourceId) return bySourceId;
+
   const sections = Array.isArray(summary?.channelDigests)
     ? summary.channelDigests
     : [];

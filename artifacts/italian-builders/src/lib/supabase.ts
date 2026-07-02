@@ -191,6 +191,19 @@ export type TelegramDailyReport = {
     vibe?: string;
     executiveTldr?: string;
     mainTopics?: string[];
+    topicDigests?: Array<{
+      sourceId?: string;
+      channel?: string;
+      topic?: string;
+      summary?: string;
+      highlights?: string[];
+      resources?: Array<{
+        title?: string;
+        url?: string;
+        type?: string;
+        whyItMatters?: string;
+      }>;
+    }>;
     channelDigests?: Array<{
       channel?: string;
       topic?: string;

@@ -4756,9 +4756,14 @@ function DigestReportCard({ report }: { report: TelegramDailyReport }) {
   const mainTopics = reportStringList(summary.mainTopics);
   const crossChannelSignals = reportStringList(summary.crossChannelSignals);
   const openQuestions = reportStringList(summary.openQuestions);
-  const channelDigests = Array.isArray(summary.channelDigests)
-    ? summary.channelDigests
+  const topicDigests = Array.isArray(summary.topicDigests)
+    ? summary.topicDigests
     : [];
+  const channelDigests = topicDigests.length
+    ? topicDigests
+    : Array.isArray(summary.channelDigests)
+      ? summary.channelDigests
+      : [];
 
   return (
     <Card className="p-6">
@@ -4808,7 +4813,7 @@ function DigestReportCard({ report }: { report: TelegramDailyReport }) {
         {channelDigests.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-mono uppercase text-zinc-500">
-              Channels
+              Topic sections
             </h3>
             {channelDigests.map((channel, index) => (
               <div

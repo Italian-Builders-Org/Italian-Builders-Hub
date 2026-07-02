@@ -17,6 +17,8 @@ previous-day Italian digest after midnight in Italy.
   the full member-only digest.
 - Saves the generated report to `public.telegram_daily_reports`, where it is
   readable only by signed-in members.
+- Uses `google/gemini-3.5-flash` through OpenRouter by default, with Gemini
+  Flash fallback models configured in code.
 
 Telegram bots cannot fetch arbitrary old chat history at the end of the day.
 They must receive updates during the day and persist the messages needed for the
@@ -76,6 +78,10 @@ titles from Telegram forum-topic service events:
 Daily digests label each message as `Chat title / Topic title` when the topic
 title is known, `Chat title / General` for the main thread, or
 `Chat title / Topic #123` as a fallback.
+
+The generated JSON contains one `topicDigests` item for each active Telegram
+source section, keyed by `sourceId = chat_id:message_thread_id`. The bot uses
+that same key to post the correct TLDR back into the matching Telegram topic.
 
 Existing topics created before this migration may need to be renamed once in
 Telegram, or seeded manually in `public.telegram_digest_topics`, before the bot
