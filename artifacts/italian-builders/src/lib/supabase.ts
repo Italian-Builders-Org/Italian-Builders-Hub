@@ -211,6 +211,17 @@ export type TelegramDailyReport = {
   model: string;
   prompt_version: string;
   sent_message_id: number | null;
+  source_posts_json?: Array<{
+    chat_id?: number;
+    chat_title?: string;
+    message_thread_id?: number | null;
+    topic_label?: string;
+    message_count?: number;
+    sent_message_id?: number;
+    status?: string;
+    error?: string;
+  }>;
+  source_posts_published_at?: string | null;
   generated_at: string;
   created_at: string;
   updated_at: string;

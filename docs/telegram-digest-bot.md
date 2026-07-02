@@ -13,6 +13,8 @@ previous-day Italian digest after midnight in Italy.
 - Runs `/api/telegram/daily-report` from Vercel Cron at `23:10 UTC`.
 - Summarizes the previous `Europe/Rome` calendar day.
 - Sends the report only to `TELEGRAM_DIGEST_OWNER_CHAT_ID`.
+- Posts a short TLDR back to each active Telegram chat/topic with a link to
+  the full member-only digest.
 - Saves the generated report to `public.telegram_daily_reports`, where it is
   readable only by signed-in members.
 

@@ -5,6 +5,7 @@ const DEFAULT_REPORT_LANGUAGE = "it";
 const DEFAULT_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free";
 const PROMPT_VERSION = "telegram-community-daily-digest-v2";
 const MAX_TELEGRAM_MESSAGE_LENGTH = 3900;
+const MAX_SOURCE_TEASER_LENGTH = 900;
 
 let cachedSupabaseAdmin;
 
@@ -442,6 +443,10 @@ function normalizeDigestText(payload, fallbackText) {
   return compactText(fallbackText);
 }
 
+function reportUrl(reportDate) {
+  return `${appBaseUrl()}/dashboard/digests?date=${encodeURIComponent(reportDate)}`;
+}
+
 async function createOpenRouterDigest({
   messages,
   reportDate,
@@ -526,6 +531,130 @@ async function sendDigestToTelegram(chatId, text) {
   return firstMessageId;
 }
 
+function truncateText(text, maxLength = MAX_SOURCE_TEASER_LENGTH) {
+  const value = compactText(text);
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 1).trim()}...`;
+}
+
+function sourceDigestTargets(messages) {
+  const targets = new Map();
+
+  for (const message of messages) {
+    const key = `${message.chat_id}:${message.message_thread_id || "general"}`;
+    const target = targets.get(key) || {
+      chatId: message.chat_id,
+      chatTitle: message.chat_title,
+      messageThreadId: message.message_thread_id || null,
+      topicLabel: message.topic_label || "General",
+      messageCount: 0,
+    };
+    target.messageCount += 1;
+    targets.set(key, target);
+  }
+
+  return Array.from(targets.values()).sort((a, b) => {
+    if (String(a.chatTitle) !== String(b.chatTitle)) {
+      return String(a.chatTitle).localeCompare(String(b.chatTitle));
+    }
+    return String(a.topicLabel).localeCompare(String(b.topicLabel));
+  });
+}
+
+function normalizedMatch(value) {
+  return compactText(value).toLowerCase();
+}
+
+function digestSectionForTarget(summary, target) {
+  const sections = Array.isArray(summary?.channelDigests)
+    ? summary.channelDigests
+    : [];
+  const chatTitle = normalizedMatch(target.chatTitle);
+  const topicLabel = normalizedMatch(target.topicLabel);
+
+  return (
+    sections.find((section) => {
+      const channel = normalizedMatch(section?.channel);
+      const topic = normalizedMatch(section?.topic);
+      return (
+        channel === chatTitle &&
+        topic &&
+        (topic === topicLabel ||
+          topic.includes(topicLabel) ||
+          topicLabel.includes(topic))
+      );
+    }) ||
+    sections.find((section) => normalizedMatch(section?.channel) === chatTitle)
+  );
+}
+
+function sourceDigestTeaser({ digest, reportDate, target }) {
+  const section = digestSectionForTarget(digest.summary, target);
+  const title = section?.topic || target.topicLabel || "Daily digest";
+  const summary =
+    section?.summary ||
+    digest.summary?.executiveTldr ||
+    digest.text ||
+    "Il digest della giornata e' disponibile sul sito.";
+  const highlights = Array.isArray(section?.highlights)
+    ? section.highlights.slice(0, 2)
+    : [];
+  const highlightsText = highlights.length
+    ? `\n\nPunti chiave:\n${highlights.map((item) => `- ${compactText(item)}`).join("\n")}`
+    : "";
+
+  return truncateText(
+    [
+      `TLDR ${reportDate} - ${title}`,
+      "",
+      summary,
+      highlightsText,
+      "",
+      `Digest completo: ${reportUrl(reportDate)}`,
+    ].join("\n"),
+  );
+}
+
+async function sendSourceDigestTeasers({ digest, reportDate, messages }) {
+  const posts = [];
+
+  for (const target of sourceDigestTargets(messages)) {
+    const payload = {
+      chat_id: String(target.chatId),
+      text: sourceDigestTeaser({ digest, reportDate, target }),
+      disable_web_page_preview: true,
+    };
+    if (target.messageThreadId) {
+      payload.message_thread_id = target.messageThreadId;
+    }
+
+    try {
+      const result = await telegramRequest("sendMessage", payload);
+      posts.push({
+        chat_id: target.chatId,
+        chat_title: target.chatTitle,
+        message_thread_id: target.messageThreadId,
+        topic_label: target.topicLabel,
+        message_count: target.messageCount,
+        sent_message_id: result.message_id,
+        status: "sent",
+      });
+    } catch (error) {
+      posts.push({
+        chat_id: target.chatId,
+        chat_title: target.chatTitle,
+        message_thread_id: target.messageThreadId,
+        topic_label: target.topicLabel,
+        message_count: target.messageCount,
+        status: "failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  return posts;
+}
+
 async function enabledChats(supabaseAdmin) {
   const { data, error } = await supabaseAdmin
     .from("telegram_digest_chats")
@@ -594,6 +723,7 @@ async function saveReport({
   messageCount,
   activeChatCount,
   sentMessageId,
+  sourcePosts = [],
 }) {
   const { error } = await supabaseAdmin.from("telegram_daily_reports").upsert(
     {
@@ -607,10 +737,23 @@ async function saveReport({
       prompt_version: PROMPT_VERSION,
       raw_response: digest.rawResponse,
       sent_message_id: sentMessageId,
+      source_posts_json: sourcePosts,
       generated_at: new Date().toISOString(),
     },
     { onConflict: "report_scope,report_date" },
   );
+  if (error) throw error;
+}
+
+async function updateReportSourcePosts(supabaseAdmin, reportDate, sourcePosts) {
+  const { error } = await supabaseAdmin
+    .from("telegram_daily_reports")
+    .update({
+      source_posts_json: sourcePosts,
+      source_posts_published_at: new Date().toISOString(),
+    })
+    .eq("report_scope", "community")
+    .eq("report_date", reportDate);
   if (error) throw error;
 }
 
@@ -619,7 +762,7 @@ async function runDailyReport({ date, force = false }) {
   const reportDate = validateDate(date || defaultReportDate());
   const chats = await enabledChats(supabaseAdmin);
   const prior = await existingReport(supabaseAdmin, reportDate);
-  if (prior?.sent_message_id && !force) {
+  if (prior && !force) {
     return {
       reportDate,
       results: [{ status: "skipped_existing_report" }],
@@ -692,12 +835,22 @@ async function runDailyReport({ date, force = false }) {
     sentMessageId,
   });
 
+  const sourcePosts = await sendSourceDigestTeasers({
+    digest,
+    reportDate,
+    messages: allMessages,
+  });
+  if (sourcePosts.length) {
+    await updateReportSourcePosts(supabaseAdmin, reportDate, sourcePosts);
+  }
+
   results.push({
     status: sentMessageId
       ? "sent_private_digest"
       : "saved_without_private_send",
     messageCount: allMessages.length,
     sentMessageId,
+    sourcePosts,
   });
 
   return { reportDate, results };
