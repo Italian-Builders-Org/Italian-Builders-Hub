@@ -4897,6 +4897,7 @@ function DigestReportCard({ report }: { report: TelegramDailyReport }) {
 
 export function DashboardDigestsPage() {
   const { techLabels } = useTechLabels();
+  const { user, loading: sessionLoading } = useSupabaseSession();
   const [reports, setReports] = useState<TelegramDailyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -4905,10 +4906,17 @@ export function DashboardDigestsPage() {
     let cancelled = false;
 
     async function load() {
-      if (!supabase) {
+      if (sessionLoading) return;
+
+      if (!supabase || !user) {
+        setReports([]);
+        setError(null);
         setLoading(false);
         return;
       }
+
+      setLoading(true);
+      setError(null);
 
       const { data, error: queryError } = await supabase
         .from("telegram_daily_reports")
@@ -4928,7 +4936,7 @@ export function DashboardDigestsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sessionLoading, user?.id]);
 
   return (
     <RequireAuth>
