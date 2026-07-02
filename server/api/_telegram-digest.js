@@ -3,6 +3,11 @@ const { createClient } = require("@supabase/supabase-js");
 const DEFAULT_TIME_ZONE = "Europe/Rome";
 const DEFAULT_REPORT_LANGUAGE = "it";
 const DEFAULT_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free";
+const DEFAULT_FALLBACK_MODELS = [
+  "qwen/qwen3-coder:free",
+  "google/gemma-4-31b-it:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+];
 const PROMPT_VERSION = "telegram-community-daily-digest-v2";
 const MAX_TELEGRAM_MESSAGE_LENGTH = 3900;
 const MAX_SOURCE_TEASER_LENGTH = 900;
@@ -459,44 +464,71 @@ async function createOpenRouterDigest({
     });
   }
 
-  const model = process.env.TELEGRAM_DIGEST_OPENROUTER_MODEL || DEFAULT_MODEL;
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
-        "http-referer": appBaseUrl(),
-        "x-openrouter-title": "Italian Builders Telegram Digest",
-      },
-      body: JSON.stringify({
-        model,
-        messages: buildDigestPrompt({ messages, reportDate, activeChatCount }),
-        max_tokens: 1800,
-        temperature: 0.2,
-        response_format: { type: "json_object" },
-      }),
-    },
+  const configuredModels = String(
+    process.env.TELEGRAM_DIGEST_OPENROUTER_MODELS ||
+      process.env.TELEGRAM_DIGEST_OPENROUTER_MODEL ||
+      DEFAULT_MODEL,
+  )
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
+  const models = Array.from(
+    new Set([...configuredModels, ...DEFAULT_FALLBACK_MODELS]),
   );
-  const payload = await response.json().catch(() => null);
+  const errors = [];
+  const prompt = buildDigestPrompt({ messages, reportDate, activeChatCount });
 
-  if (!response.ok) {
-    throw new Error(
-      payload?.error?.message || "OpenRouter digest request failed.",
+  for (const model of models) {
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${apiKey}`,
+          "content-type": "application/json",
+          "http-referer": appBaseUrl(),
+          "x-openrouter-title": "Italian Builders Telegram Digest",
+        },
+        body: JSON.stringify({
+          model,
+          messages: prompt,
+          max_tokens: 1800,
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+        }),
+      },
     );
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      errors.push({
+        model,
+        status: response.status,
+        error: payload?.error?.message || "OpenRouter digest request failed.",
+      });
+      continue;
+    }
+
+    const text = responseText(payload);
+    if (!text) {
+      errors.push({ model, error: "OpenRouter returned an empty digest." });
+      continue;
+    }
+    const summary = parseDigestJson(text);
+
+    return {
+      text: normalizeDigestText(summary, text),
+      model,
+      summary: summary || { telegramText: text },
+      rawResponse: { ...payload, fallbackErrors: errors },
+    };
   }
 
-  const text = responseText(payload);
-  if (!text) throw new Error("OpenRouter returned an empty digest.");
-  const summary = parseDigestJson(text);
-
-  return {
-    text: normalizeDigestText(summary, text),
-    model,
-    summary: summary || { telegramText: text },
-    rawResponse: payload,
-  };
+  throw new Error(
+    `OpenRouter digest request failed for all configured models: ${errors
+      .map((item) => `${item.model} (${item.status || "no-status"}: ${item.error})`)
+      .join("; ")}`,
+  );
 }
 
 function splitTelegramText(text) {
