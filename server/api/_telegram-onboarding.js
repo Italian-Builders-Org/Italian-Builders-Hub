@@ -1128,6 +1128,108 @@ async function sendMagicLoginEmailWithQuota({
   }
 }
 
+function emailPurposeLabel(purpose) {
+  switch (purpose) {
+    case "handle_match_login":
+      return "accesso al profilo trovato dal tuo username Telegram";
+    case "existing_profile_login":
+      return "accesso al tuo profilo Italian Builders";
+    case "existing_profile_recovery_from_new_flow":
+      return "recupero del profilo gia esistente";
+    default:
+      return "accesso a Italian Builders";
+  }
+}
+
+function contactFromQueuedEmailRow(row) {
+  const contact = row?.telegram_onboarding_contacts;
+  if (Array.isArray(contact)) return contact[0] || null;
+  return contact || null;
+}
+
+function contactGreetingName(contact) {
+  return (
+    compactText(contact?.first_name) ||
+    compactText(contact?.username) ||
+    "builder"
+  );
+}
+
+async function updateQueuedEmailTelegramNotification({
+  supabaseAdmin,
+  row,
+  patch,
+}) {
+  const attempts = Number(row.telegram_notification_attempts || 0) + 1;
+  const { error } = await supabaseAdmin
+    .from("telegram_onboarding_email_deliveries")
+    .update({
+      telegram_notification_attempts: attempts,
+      ...patch,
+    })
+    .eq("id", row.id);
+  if (error) throw error;
+}
+
+async function notifyQueuedEmailSent({ supabaseAdmin, row }) {
+  let contact = contactFromQueuedEmailRow(row);
+  if (!contact?.private_chat_id && row.contact_id) {
+    const { data, error } = await supabaseAdmin
+      .from("telegram_onboarding_contacts")
+      .select("private_chat_id, username, first_name")
+      .eq("id", row.contact_id)
+      .maybeSingle();
+    if (error) throw error;
+    contact = data;
+  }
+
+  if (!contact?.private_chat_id) {
+    await updateQueuedEmailTelegramNotification({
+      supabaseAdmin,
+      row,
+      patch: {
+        telegram_notification_error: "telegram_private_chat_missing",
+      },
+    });
+    return { sent: false, reason: "telegram_private_chat_missing" };
+  }
+
+  const message = [
+    `Ciao ${contactGreetingName(contact)}, ti ho appena mandato l'email "${emailPurposeLabel(row.purpose)}" a ${obfuscateEmail(row.email)}.`,
+    "",
+    "Apri l'email piu recente e usa il codice su Italian Builders.",
+  ].join("\n");
+
+  try {
+    const telegramMessage = await sendTelegramMessage(
+      contact.private_chat_id,
+      message,
+    );
+    await updateQueuedEmailTelegramNotification({
+      supabaseAdmin,
+      row,
+      patch: {
+        telegram_notification_sent_at: new Date().toISOString(),
+        telegram_notification_error: null,
+        telegram_notification_message_id: telegramMessage?.message_id || null,
+      },
+    });
+    return { sent: true };
+  } catch (notificationError) {
+    await updateQueuedEmailTelegramNotification({
+      supabaseAdmin,
+      row,
+      patch: {
+        telegram_notification_error: errorMessage(notificationError),
+      },
+    });
+    return {
+      sent: false,
+      reason: errorMessage(notificationError),
+    };
+  }
+}
+
 async function processQueuedMagicLoginEmails({
   supabaseAdmin,
   limit = 50,
@@ -1180,7 +1282,9 @@ async function processQueuedMagicLoginEmails({
 
   const { data: queuedRows, error } = await supabaseAdmin
     .from("telegram_onboarding_email_deliveries")
-    .select("*, telegram_onboarding_contacts(private_chat_id)")
+    .select(
+      "*, telegram_onboarding_contacts(private_chat_id, username, first_name)",
+    )
     .eq("status", "queued")
     .lte("scheduled_for", new Date().toISOString())
     .order("created_at", { ascending: true })
@@ -1188,6 +1292,8 @@ async function processQueuedMagicLoginEmails({
   if (error) throw error;
 
   let processed = 0;
+  let telegramNotificationsSent = 0;
+  let telegramNotificationsFailed = 0;
   for (const row of queuedRows || []) {
     try {
       await sendMagicLoginEmail({
@@ -1212,13 +1318,12 @@ async function processQueuedMagicLoginEmails({
         });
       }
 
-      const privateChatId = row.telegram_onboarding_contacts?.private_chat_id;
-      if (privateChatId) {
-        await sendTelegramMessage(
-          privateChatId,
-          `Ho appena inviato il link di accesso a ${obfuscateEmail(row.email)}. Apri l'email piu recente e usa il codice su Italian Builders.`,
-        );
-      }
+      const notification = await notifyQueuedEmailSent({
+        supabaseAdmin,
+        row,
+      });
+      if (notification.sent) telegramNotificationsSent += 1;
+      else telegramNotificationsFailed += 1;
       processed += 1;
     } catch (queueError) {
       if (isTemporaryEmailRateLimitError(queueError)) {
@@ -1249,6 +1354,8 @@ async function processQueuedMagicLoginEmails({
     quotaSource: quota.source,
     sentToday: sentToday + processed,
     remainingToday: Math.max(emailLimit - sentToday - processed, 0),
+    telegramNotificationsSent,
+    telegramNotificationsFailed,
   };
 }
 

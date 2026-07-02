@@ -129,3 +129,10 @@ default is 90 so the project keeps room for other transactional emails. When the
 limit is reached, the bot queues the magic-link email and the daily cron at
 `/api/telegram-onboarding/email-queue` sends queued emails once quota is
 available again.
+
+When a queued email is later sent by the batch job, the bot also sends a private
+Telegram follow-up to the user with the email topic and obfuscated recipient
+email. The delivery row records the Telegram notification timestamp, attempts,
+message ID, and any notification error separately from the email status, so a
+successful email is not marked failed only because Telegram could not notify the
+user.
