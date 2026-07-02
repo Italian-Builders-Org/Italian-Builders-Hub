@@ -49,6 +49,7 @@ import {
   DashboardProfilePage,
   DashboardProjectsPage,
   InvitePage,
+  LoginCodePage,
   ProjectDetailPage,
   ProjectEditorPage,
   ProjectsDirectoryPage,
@@ -102,6 +103,7 @@ function Router() {
         <Route path="/hp-2/privacy" component={Hp2PrivacyPage} />
         <Route path="/hp-2/terms" component={Hp2TermsPage} />
         <Route path="/hp-2/login" component={DashboardPage} />
+        <Route path="/hp-2/login-code" component={LoginCodePage} />
         <Route path="/hp-2/reset-password" component={ResetPasswordPage} />
         <Route path="/hp-2/invite/:token" component={InvitePage} />
         <Route path="/hp-2/dashboard" component={DashboardPage} />
@@ -158,6 +160,7 @@ function Router() {
         <Route path="/privacy" component={PrivacyPolicyPage} />
         <Route path="/terms" component={TermsOfServicePage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
+        <Route path="/login-code" component={LoginCodePage} />
         <Route path="/invite/:token" component={InvitePage} />
         <Route path="/dashboard" component={DashboardPage} />
         <Route

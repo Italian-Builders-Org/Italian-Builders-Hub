@@ -100,11 +100,13 @@ function escapeHtml(value) {
 }
 
 const TELEGRAM_COMMUNITY_URL = "https://t.me/+soxY4hNPmxdhYjRk";
+const EMAIL_LOGO_URL = "https://italianbuilders.co/logo-vector.svg";
 
 function acceptedInviteEmailHtml({ name, actionLink }) {
   const safeName = escapeHtml(name || "there");
   const safeActionLink = escapeHtml(actionLink);
   const safeTelegramCommunityUrl = escapeHtml(TELEGRAM_COMMUNITY_URL);
+  const safeLogoUrl = escapeHtml(EMAIL_LOGO_URL);
 
   return `<!doctype html>
 <html>
@@ -115,7 +117,7 @@ function acceptedInviteEmailHtml({ name, actionLink }) {
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#09090b;border:1px solid #27272a;border-radius:8px;overflow:hidden;">
             <tr>
               <td style="padding:42px 40px;background:linear-gradient(180deg,rgba(37,99,235,0.12),rgba(9,9,11,0));">
-                <p style="margin:0 0 30px;color:#60a5fa;font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;">Italian Builders</p>
+                <p style="margin:0 0 30px;"><img src="${safeLogoUrl}" width="176" alt="Italian Builders" style="display:block;width:176px;max-width:100%;height:auto;border:0;" /></p>
                 <h1 style="margin:0 0 18px;color:#f8fafc;font-size:32px;line-height:1.12;font-weight:800;">You are in. Now make it easy for the community to discover you.</h1>
                 <p style="margin:0 0 16px;color:#d4d4d8;font-size:16px;line-height:1.55;">Hi ${safeName},</p>
                 <p style="margin:0 0 16px;color:#d4d4d8;font-size:16px;line-height:1.55;">You have been accepted into the Italian Builders Community, a curated place for founders, developers, designers, operators, and makers building from Italy or with Italian roots.</p>
@@ -340,6 +342,7 @@ async function createDirectInvite(req, payload = {}) {
       token,
       invited_by: context.user.id,
       expires_at: expiresAt,
+      delivery_channel: email ? "email" : "manual",
     })
     .select("*")
     .single();
@@ -485,6 +488,7 @@ async function activateWaitlistSignupWithContext(req, rawId, context) {
       token,
       invited_by: context.user.id,
       expires_at: expiresAt,
+      delivery_channel: "email",
     })
     .select("id, token, status")
     .single();

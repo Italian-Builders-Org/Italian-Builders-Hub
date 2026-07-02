@@ -5,6 +5,7 @@ const FROM_EMAIL = "no-reply@italianbuilders.co";
 const SMTP_HOST = "smtp.resend.com";
 const SMTP_PORT = "587";
 const SMTP_USER = "resend";
+const EMAIL_LOGO_URL = "https://italianbuilders.co/logo-vector.svg";
 
 function parseEnv(path) {
   const env = {};
@@ -26,7 +27,16 @@ function parseEnv(path) {
   return env;
 }
 
-function authEmailTemplate({ eyebrow, title, body, buttonLabel, href, codeLabel, codeValue, footer }) {
+function authEmailTemplate({
+  eyebrow,
+  title,
+  body,
+  buttonLabel,
+  href,
+  codeLabel,
+  codeValue,
+  footer,
+}) {
   const actionBlock = href
     ? `
       <tr>
@@ -73,12 +83,7 @@ function authEmailTemplate({ eyebrow, title, body, buttonLabel, href, codeLabel,
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#18181b;border:1px solid #27272a;border-radius:6px;overflow:hidden;">
             <tr>
               <td style="background:#09090b;border-bottom:1px solid #27272a;padding:22px 32px;">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="width:28px;height:28px;background:#f4f4f5;color:#09090b;font-family:Menlo,Consolas,monospace;font-size:13px;font-weight:800;text-align:center;vertical-align:middle;">IB</td>
-                    <td style="padding-left:12px;color:#f4f4f5;font-family:Inter,Arial,sans-serif;font-size:15px;font-weight:700;">Italian Builders</td>
-                  </tr>
-                </table>
+                <img src="${EMAIL_LOGO_URL}" width="176" alt="Italian Builders" style="display:block;width:176px;max-width:100%;height:auto;border:0;">
               </td>
             </tr>
             <tr>
@@ -130,7 +135,8 @@ const templates = {
     body: "Use this secure link to confirm your email address and continue setting up your Italian Builders profile.",
     buttonLabel: "Confirm account",
     href: "{{ .ConfirmationURL }}",
-    footer: "You received this because someone started an Italian Builders account with this email. If that was not you, ignore this message.",
+    footer:
+      "You received this because someone started an Italian Builders account with this email. If that was not you, ignore this message.",
   }),
   invite: authEmailTemplate({
     eyebrow: "Member invite",
@@ -138,7 +144,8 @@ const templates = {
     body: "You have been invited to create an Italian Builders account. Use the secure link below to accept the invitation.",
     buttonLabel: "Accept invite",
     href: "{{ .ConfirmationURL }}",
-    footer: "This invite is intended for {{ .Email }}. If you were not expecting it, you can ignore this message.",
+    footer:
+      "This invite is intended for {{ .Email }}. If you were not expecting it, you can ignore this message.",
   }),
   magic_link: authEmailTemplate({
     eyebrow: "Sign-in verification",
@@ -148,7 +155,8 @@ const templates = {
     href: "{{ .ConfirmationURL }}",
     codeLabel: "One-time code",
     codeValue: "{{ .Token }}",
-    footer: "If you did not request this sign-in, ignore this message. The code will expire automatically.",
+    footer:
+      "If you did not request this sign-in, ignore this message. The code will expire automatically.",
   }),
   email_change: authEmailTemplate({
     eyebrow: "Email change",
@@ -156,7 +164,8 @@ const templates = {
     body: "Use this secure link to confirm that {{ .NewEmail }} should be used for your Italian Builders account.",
     buttonLabel: "Confirm email change",
     href: "{{ .ConfirmationURL }}",
-    footer: "If you did not request an email change, do not click the link and keep using your current account email.",
+    footer:
+      "If you did not request an email change, do not click the link and keep using your current account email.",
   }),
   recovery: authEmailTemplate({
     eyebrow: "Password reset",
@@ -166,7 +175,8 @@ const templates = {
     href: "{{ .ConfirmationURL }}",
     codeLabel: "Reset code",
     codeValue: "{{ .Token }}",
-    footer: "If you did not request a password reset, ignore this message. Your current password will stay unchanged.",
+    footer:
+      "If you did not request a password reset, ignore this message. Your current password will stay unchanged.",
   }),
   reauthentication: authEmailTemplate({
     eyebrow: "Sensitive action",
@@ -180,13 +190,15 @@ const templates = {
     eyebrow: "Security notification",
     title: "Your password was changed.",
     body: "The password for your Italian Builders account was changed. If you made this change, no further action is needed.",
-    footer: "If you did not make this change, reset your password and review your account access immediately.",
+    footer:
+      "If you did not make this change, reset your password and review your account access immediately.",
   }),
   email_changed_notification: authEmailTemplate({
     eyebrow: "Security notification",
     title: "Your email address was changed.",
     body: "The email address on your Italian Builders account changed from {{ .OldEmail }} to {{ .Email }}.",
-    footer: "If you did not make this change, contact an Italian Builders admin and secure your account.",
+    footer:
+      "If you did not make this change, contact an Italian Builders admin and secure your account.",
   }),
   phone_changed_notification: authEmailTemplate({
     eyebrow: "Security notification",
@@ -210,7 +222,8 @@ const templates = {
     eyebrow: "Security notification",
     title: "A verification method was added.",
     body: "A new multi-factor verification method was added to your Italian Builders account.",
-    footer: "If you did not make this change, remove the method and review your account security.",
+    footer:
+      "If you did not make this change, remove the method and review your account security.",
   }),
   mfa_factor_unenrolled_notification: authEmailTemplate({
     eyebrow: "Security notification",
@@ -255,20 +268,34 @@ function buildPayload(env) {
     mailer_templates_recovery_content: templates.recovery,
     mailer_subjects_reauthentication: subjects.reauthentication,
     mailer_templates_reauthentication_content: templates.reauthentication,
-    mailer_subjects_password_changed_notification: subjects.password_changed_notification,
-    mailer_templates_password_changed_notification_content: templates.password_changed_notification,
-    mailer_subjects_email_changed_notification: subjects.email_changed_notification,
-    mailer_templates_email_changed_notification_content: templates.email_changed_notification,
-    mailer_subjects_phone_changed_notification: subjects.phone_changed_notification,
-    mailer_templates_phone_changed_notification_content: templates.phone_changed_notification,
-    mailer_subjects_identity_linked_notification: subjects.identity_linked_notification,
-    mailer_templates_identity_linked_notification_content: templates.identity_linked_notification,
-    mailer_subjects_identity_unlinked_notification: subjects.identity_unlinked_notification,
-    mailer_templates_identity_unlinked_notification_content: templates.identity_unlinked_notification,
-    mailer_subjects_mfa_factor_enrolled_notification: subjects.mfa_factor_enrolled_notification,
-    mailer_templates_mfa_factor_enrolled_notification_content: templates.mfa_factor_enrolled_notification,
-    mailer_subjects_mfa_factor_unenrolled_notification: subjects.mfa_factor_unenrolled_notification,
-    mailer_templates_mfa_factor_unenrolled_notification_content: templates.mfa_factor_unenrolled_notification,
+    mailer_subjects_password_changed_notification:
+      subjects.password_changed_notification,
+    mailer_templates_password_changed_notification_content:
+      templates.password_changed_notification,
+    mailer_subjects_email_changed_notification:
+      subjects.email_changed_notification,
+    mailer_templates_email_changed_notification_content:
+      templates.email_changed_notification,
+    mailer_subjects_phone_changed_notification:
+      subjects.phone_changed_notification,
+    mailer_templates_phone_changed_notification_content:
+      templates.phone_changed_notification,
+    mailer_subjects_identity_linked_notification:
+      subjects.identity_linked_notification,
+    mailer_templates_identity_linked_notification_content:
+      templates.identity_linked_notification,
+    mailer_subjects_identity_unlinked_notification:
+      subjects.identity_unlinked_notification,
+    mailer_templates_identity_unlinked_notification_content:
+      templates.identity_unlinked_notification,
+    mailer_subjects_mfa_factor_enrolled_notification:
+      subjects.mfa_factor_enrolled_notification,
+    mailer_templates_mfa_factor_enrolled_notification_content:
+      templates.mfa_factor_enrolled_notification,
+    mailer_subjects_mfa_factor_unenrolled_notification:
+      subjects.mfa_factor_unenrolled_notification,
+    mailer_templates_mfa_factor_unenrolled_notification_content:
+      templates.mfa_factor_unenrolled_notification,
   };
 }
 
@@ -291,18 +318,29 @@ if (!token || !projectRef) {
   throw new Error("Missing SUPABASE_ACCESS_TOKEN or SUPABASE_PROJECT_REF");
 }
 
-const response = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/config/auth`, {
-  method: "PATCH",
-  headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
+const response = await fetch(
+  `https://api.supabase.com/v1/projects/${projectRef}/config/auth`,
+  {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
   },
-  body: JSON.stringify(payload),
-});
+);
 
 const result = await response.json().catch(() => ({}));
 if (!response.ok) {
-  throw new Error(`Supabase Auth config update failed (${response.status}): ${JSON.stringify(result)}`);
+  throw new Error(
+    `Supabase Auth config update failed (${response.status}): ${JSON.stringify(result)}`,
+  );
 }
 
-console.log(JSON.stringify({ ok: true, projectRef, updatedFields: Object.keys(payload).length }, null, 2));
+console.log(
+  JSON.stringify(
+    { ok: true, projectRef, updatedFields: Object.keys(payload).length },
+    null,
+    2,
+  ),
+);

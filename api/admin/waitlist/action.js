@@ -12,6 +12,12 @@ const {
   setupTelegramWebhook,
   storeTelegramUpdate,
 } = require("../../../server/api/_telegram-digest");
+const {
+  processQueuedTelegramOnboardingEmails,
+  requireTelegramOnboardingWebhookSecret,
+  setupTelegramOnboardingWebhook,
+  storeTelegramOnboardingUpdate,
+} = require("../../../server/api/_telegram-onboarding");
 
 function queryValue(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -32,6 +38,18 @@ module.exports = async function handler(req, res) {
       requireTelegramWebhookSecret(req);
       const update = parseBody(req.body);
       const result = await storeTelegramUpdate(update);
+      res.status(200).json({ ok: true, ...result });
+      return;
+    }
+
+    if (action === "telegram-onboarding-webhook") {
+      if (req.method !== "POST") {
+        res.status(405).json({ error: "Method not allowed." });
+        return;
+      }
+      requireTelegramOnboardingWebhookSecret(req);
+      const update = parseBody(req.body);
+      const result = await storeTelegramOnboardingUpdate(req, update);
       res.status(200).json({ ok: true, ...result });
       return;
     }
@@ -73,6 +91,43 @@ module.exports = async function handler(req, res) {
         dropPendingUpdates: body.dropPendingUpdates === true,
       });
       res.status(200).json({ ok: true, result });
+      return;
+    }
+
+    if (action === "telegram-onboarding-setup-webhook") {
+      if (req.method !== "POST") {
+        res.status(405).json({ error: "Method not allowed." });
+        return;
+      }
+      requireBearerSecret(
+        req,
+        ["TELEGRAM_ONBOARDING_SETUP_SECRET", "CRON_SECRET"],
+        "TELEGRAM_ONBOARDING_SETUP_SECRET or CRON_SECRET",
+      );
+      const body = parseBody(req.body);
+      const result = await setupTelegramOnboardingWebhook({
+        dropPendingUpdates: body.dropPendingUpdates === true,
+      });
+      res.status(200).json({ ok: true, result });
+      return;
+    }
+
+    if (action === "telegram-onboarding-email-queue") {
+      if (req.method !== "GET" && req.method !== "POST") {
+        res.status(405).json({ error: "Method not allowed." });
+        return;
+      }
+      requireBearerSecret(
+        req,
+        ["CRON_SECRET", "TELEGRAM_ONBOARDING_SETUP_SECRET"],
+        "CRON_SECRET or TELEGRAM_ONBOARDING_SETUP_SECRET",
+      );
+      const body = req.method === "POST" ? parseBody(req.body) : {};
+      const limit = Number.parseInt(req.query?.limit || body.limit || "50", 10);
+      const result = await processQueuedTelegramOnboardingEmails({
+        limit: Number.isFinite(limit) ? limit : 50,
+      });
+      res.status(200).json({ ok: true, ...result });
       return;
     }
 

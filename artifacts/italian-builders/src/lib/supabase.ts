@@ -42,6 +42,8 @@ export type Profile = {
   latitude: number | null;
   longitude: number | null;
   telegram_handle: string | null;
+  telegram_bot_username: string | null;
+  telegram_bot_username_set_at: string | null;
   email: string | null;
   email_public: boolean;
   website_url: string | null;
@@ -118,7 +120,12 @@ export type Project = {
   updated_at: string;
   profiles?: Pick<
     Profile,
-    "username" | "full_name" | "avatar_url" | "headline" | "telegram_handle"
+    | "username"
+    | "full_name"
+    | "avatar_url"
+    | "headline"
+    | "telegram_handle"
+    | "telegram_bot_username"
   > | null;
   project_members?: ProjectMember[];
 };

@@ -3,6 +3,7 @@ const { createClient } = require("@supabase/supabase-js");
 const { appBaseUrl } = require("./_app-base-url");
 
 const verificationTtlHours = 24;
+const EMAIL_LOGO_URL = "https://italianbuilders.co/logo-vector.svg";
 
 let cachedSupabaseAdmin;
 
@@ -155,6 +156,10 @@ async function sendVerificationEmail({ to, name, url }) {
     });
   }
 
+  const safeName = escapeHtml(name);
+  const safeUrl = escapeHtml(url);
+  const safeLogoUrl = escapeHtml(EMAIL_LOGO_URL);
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -166,9 +171,33 @@ async function sendVerificationEmail({ to, name, url }) {
       to,
       subject: "Verify your Italian Builders waitlist request",
       text: `Hi ${name},\n\nConfirm your email to join the Italian Builders waitlist:\n${url}\n\nThis link expires in ${verificationTtlHours} hours.\n\nIf you did not request this, you can ignore this email.`,
-      html: `<p>Hi ${escapeHtml(name)},</p><p>Confirm your email to join the Italian Builders waitlist:</p><p><a href="${escapeHtml(
-        url,
-      )}">Verify email</a></p><p>This link expires in ${verificationTtlHours} hours.</p><p>If you did not request this, you can ignore this email.</p>`,
+      html: `<!doctype html>
+<html>
+  <body style="margin:0;background:#020817;color:#f8fafc;font-family:Inter,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#020817;padding:32px 18px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#09090b;border:1px solid #27272a;border-radius:8px;overflow:hidden;">
+            <tr>
+              <td style="padding:36px 36px 38px;">
+                <p style="margin:0 0 30px;"><img src="${safeLogoUrl}" width="176" alt="Italian Builders" style="display:block;width:176px;max-width:100%;height:auto;border:0;" /></p>
+                <h1 style="margin:0 0 18px;color:#f8fafc;font-size:28px;line-height:1.16;font-weight:800;">Confirm your waitlist request.</h1>
+                <p style="margin:0 0 16px;color:#d4d4d8;font-size:16px;line-height:1.55;">Hi ${safeName},</p>
+                <p style="margin:0 0 24px;color:#d4d4d8;font-size:16px;line-height:1.55;">Confirm your email to join the Italian Builders waitlist.</p>
+                <p style="margin:0 0 24px;">
+                  <a href="${safeUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;padding:13px 18px;font-weight:750;">Verify email</a>
+                </p>
+                <p style="margin:0 0 16px;color:#d4d4d8;font-size:16px;line-height:1.55;">This link expires in ${verificationTtlHours} hours.</p>
+                <p style="margin:0;color:#a1a1aa;font-size:13px;line-height:1.5;">If you did not request this, you can ignore this email.</p>
+                <p style="margin:26px 0 0;padding-top:18px;border-top:1px solid #27272a;color:#71717a;font-size:13px;line-height:1.5;">If the button does not work, open this link:<br /><a href="${safeUrl}" style="color:#60a5fa;word-break:break-all;">${safeUrl}</a></p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`,
     }),
   });
 

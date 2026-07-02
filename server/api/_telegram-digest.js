@@ -89,14 +89,14 @@ function isAllowedPrivateSender(message) {
 
 function requireBearerSecret(req, envNames, label) {
   const token = bearerToken(req);
-  const expected = envNames.map((name) => process.env[name]).find(Boolean);
+  const expected = envNames.map((name) => process.env[name]).filter(Boolean);
 
-  if (!expected) {
+  if (!expected.length) {
     throw Object.assign(new Error(`${label} is not configured.`), {
       statusCode: 500,
     });
   }
-  if (!token || token !== expected) {
+  if (!token || !expected.includes(token)) {
     throw Object.assign(new Error("Unauthorized."), { statusCode: 401 });
   }
 }
@@ -564,7 +564,10 @@ async function createOpenRouterDigest({
 
   throw new Error(
     `OpenRouter digest request failed for all configured models: ${errors
-      .map((item) => `${item.model} (${item.status || "no-status"}: ${item.error})`)
+      .map(
+        (item) =>
+          `${item.model} (${item.status || "no-status"}: ${item.error})`,
+      )
       .join("; ")}`,
   );
 }

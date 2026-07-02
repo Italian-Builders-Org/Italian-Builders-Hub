@@ -83,12 +83,11 @@
           #09090b;
       }
 
-      .brand {
-        font-size: 14px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #60a5fa;
+      .logo {
+        display: block;
+        width: 176px;
+        max-width: 100%;
+        height: auto;
         margin-bottom: 34px;
       }
 
@@ -127,6 +126,12 @@
         font-weight: 750;
         margin: 4px 0 20px;
         box-shadow: 0 14px 30px rgba(37, 99, 235, 0.28);
+      }
+
+      .button.secondary {
+        background: #18181b;
+        border: 1px solid #3f3f46;
+        box-shadow: none;
       }
 
       .note {
@@ -178,7 +183,11 @@
         </section>
 
         <section class="email">
-          <div class="brand">Italian Builders</div>
+          <img
+            class="logo"
+            src="https://italianbuilders.co/logo-vector.svg"
+            alt="Italian Builders"
+          />
           <h1>
             You are in. Now make it easy for the community to discover you.
           </h1>
@@ -201,6 +210,13 @@
             <li>Make it easier for the right people to find you.</li>
           </ul>
           <a class="button" href="#">Create your profile</a>
+          <p>
+            Also join the Telegram community so you can meet the other builders,
+            follow updates, and start conversations right away.
+          </p>
+          <a class="button secondary" href="https://t.me/+soxY4hNPmxdhYjRk"
+            >Join the Telegram community</a
+          >
           <p>
             We are opening access manually so the first members can set the tone
             with real projects, useful intros, and concrete conversations.

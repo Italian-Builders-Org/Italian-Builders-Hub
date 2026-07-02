@@ -202,6 +202,12 @@ const italianCitySelect =
   "istat_code, name, search_name, region, province_code, latitude, longitude";
 const hiddenProjectCategorySlugs = new Set(["virtual-try-on"]);
 
+function effectiveTelegramHandle(
+  profile?: Pick<Profile, "telegram_bot_username" | "telegram_handle"> | null,
+) {
+  return profile?.telegram_bot_username || profile?.telegram_handle || null;
+}
+
 function projectCategoryLabels(
   project: Pick<Project, "category" | "project_category_tags">,
 ) {
@@ -388,6 +394,20 @@ function usePlatformNavigate() {
   const [, navigate] = useLocation();
   const r2 = useR2PlatformMode();
   return (path: string) => navigate(platformPath(path, r2));
+}
+
+function safeInternalPath(value: string | null, fallback = "/dashboard") {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return fallback;
+  }
+  return value;
+}
+
+function loginCodeRedirectPath(email: string, next: string) {
+  const params = new URLSearchParams();
+  if (email) params.set("email", email);
+  params.set("next", next);
+  return `/login-code?${params.toString()}`;
 }
 
 function R2PlatformHeader({ isAdmin }: { isAdmin: boolean }) {
@@ -1319,7 +1339,7 @@ function LookingForModal({
 }) {
   if (!item) return null;
   const telegramHref = telegramDeepLink(
-    allowTelegramContact ? project.profiles?.telegram_handle : null,
+    allowTelegramContact ? effectiveTelegramHandle(project.profiles) : null,
     `Hi, I saw ${project.name} on Italian Builders. I can help with ${item.tag}.`,
   );
 
@@ -1830,6 +1850,253 @@ export function ResetPasswordPage() {
               />
               <SignInPanel compact />
             </div>
+          )}
+        </Card>
+      </section>
+    </PageShell>
+  );
+}
+
+export function LoginCodePage() {
+  const { techLabels } = useTechLabels();
+  const navigate = usePlatformNavigate();
+  const [email, setEmail] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return (params.get("email") || "").trim().toLowerCase();
+  });
+  const [code, setCode] = useState("");
+  const [checking, setChecking] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const nextPath = safeInternalPath(
+    new URLSearchParams(window.location.search).get("next"),
+  );
+
+  useEffect(() => {
+    if (!supabase) {
+      setError("The community backend is not configured in this deployment.");
+      setChecking(false);
+      return;
+    }
+
+    let mounted = true;
+    async function checkAuthCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(
+        window.location.hash.replace(/^#/, ""),
+      );
+      const authCode = params.get("code");
+      const authError =
+        hashParams.get("error_description") || hashParams.get("error");
+
+      if (authCode) {
+        const { error: exchangeError } =
+          await supabase!.auth.exchangeCodeForSession(authCode);
+        if (!mounted) return;
+        if (!exchangeError) {
+          navigate(nextPath);
+          return;
+        }
+        setError(exchangeError.message);
+      }
+
+      const { data } = await supabase!.auth.getSession();
+      if (!mounted) return;
+      if (data.session) {
+        navigate(nextPath);
+        return;
+      }
+
+      if (authError) {
+        setError(
+          "That email link is invalid or has expired. Enter the one-time code from the same email below, or request a fresh login email.",
+        );
+      }
+      setChecking(false);
+    }
+
+    checkAuthCallback();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+
+    if (!supabase) {
+      setError("The community backend is not configured in this deployment.");
+      setSaving(false);
+      return;
+    }
+
+    const authEmail = email.trim().toLowerCase();
+    const token = code.replace(/\D/g, "");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail)) {
+      setError("Enter the email address that received the code.");
+      setSaving(false);
+      return;
+    }
+    if (token.length !== 8 && token.length !== 6) {
+      setError("Enter the one-time code from the email.");
+      setSaving(false);
+      return;
+    }
+
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: authEmail,
+      token,
+      type: "email",
+    });
+
+    if (verifyError) {
+      setError(
+        verifyError.message.toLowerCase().includes("expired")
+          ? "That code is invalid or expired. Request a fresh login email from Telegram and use the newest code."
+          : verifyError.message,
+      );
+    } else {
+      setMessage("Signed in. Opening your dashboard...");
+      navigate(nextPath);
+    }
+    setSaving(false);
+  }
+
+  async function resendLoginEmail() {
+    setResending(true);
+    setError(null);
+    setMessage(null);
+
+    if (!supabase) {
+      setError("The community backend is not configured in this deployment.");
+      setResending(false);
+      return;
+    }
+
+    const authEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail)) {
+      setError("Enter the email address first.");
+      setResending(false);
+      return;
+    }
+
+    const redirectTo = authRedirectUrl(
+      loginCodeRedirectPath(authEmail, nextPath),
+    );
+    const { error: resendError } = await supabase.auth.signInWithOtp({
+      email: authEmail,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: redirectTo,
+      },
+    });
+
+    if (resendError) {
+      setError(resendError.message);
+    } else {
+      setMessage(`Sent a fresh login email to ${authEmail}.`);
+    }
+    setResending(false);
+  }
+
+  return (
+    <PageShell>
+      <HeroBlock
+        eyebrow={{ tech: "EMAIL_OTP", friendly: "Email login" }}
+        title={{
+          tech: "Enter one-time code.",
+          friendly: "Enter your email code.",
+        }}
+        copy={{
+          tech: "Use the current Supabase email OTP to create a member session.",
+          friendly:
+            "Use the one-time code from the Italian Builders email to finish signing in.",
+        }}
+      />
+      <section className="container mx-auto max-w-xl px-4 py-12 md:px-6">
+        <Card className="p-6">
+          {checking ? (
+            <p className="text-sm text-zinc-400">
+              {techLabels ? "CHECKING_LOGIN_LINK" : "Checking login link..."}
+            </p>
+          ) : (
+            <form onSubmit={submit} className="space-y-4">
+              <div>
+                <h2 className="text-xl font-bold text-zinc-100">
+                  {techLabels ? "VERIFY_EMAIL_CODE" : "Verify email code"}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  {techLabels
+                    ? "Paste the numeric code from the latest auth email."
+                    : "Paste the one-time code from the latest email we sent you."}
+                </p>
+              </div>
+              <Field label={{ tech: "EMAIL_ADDRESS", friendly: "Email" }}>
+                <Input
+                  className={inputClass}
+                  type="email"
+                  value={email}
+                  onChange={(event) =>
+                    setEmail(event.target.value.trim().toLowerCase())
+                  }
+                  required
+                />
+              </Field>
+              <Field
+                label={{ tech: "ONE_TIME_CODE", friendly: "One-time code" }}
+              >
+                <Input
+                  className={`${inputClass} font-mono text-lg tracking-[0.35em]`}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(event) =>
+                    setCode(event.target.value.replace(/\D/g, "").slice(0, 8))
+                  }
+                  placeholder="000000"
+                  required
+                />
+              </Field>
+              <StatusMessage message={message} />
+              <ActionableErrorMessage message={error} />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="h-10 rounded-sm bg-blue-600 text-white hover:bg-blue-500"
+                >
+                  {saving
+                    ? techLabels
+                      ? "VERIFYING..."
+                      : "Verifying..."
+                    : techLabels
+                      ? "VERIFY_CODE"
+                      : "Verify code"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={resending}
+                  className="h-10 rounded-sm border-zinc-800 bg-transparent text-zinc-200 hover:bg-zinc-900"
+                  onClick={resendLoginEmail}
+                >
+                  {resending
+                    ? techLabels
+                      ? "SENDING..."
+                      : "Sending..."
+                    : techLabels
+                      ? "SEND_NEW_CODE"
+                      : "Send new code"}
+                </Button>
+              </div>
+            </form>
           )}
         </Card>
       </section>
@@ -2378,12 +2645,14 @@ export function BuilderProfilePage() {
                   })}
                 </dd>
               </div>
-              {user?.id && profile.telegram_handle && (
+              {user?.id && effectiveTelegramHandle(profile) && (
                 <div>
                   <dt className="font-mono text-xs uppercase text-zinc-600">
                     {techLabels ? "TELEGRAM_HANDLE" : "Telegram"}
                   </dt>
-                  <dd className="text-zinc-300">{profile.telegram_handle}</dd>
+                  <dd className="text-zinc-300">
+                    {effectiveTelegramHandle(profile)}
+                  </dd>
                 </div>
               )}
               {profile.email_public && profile.email && (
@@ -2629,7 +2898,7 @@ export function ProjectDetailPage() {
         return;
       }
       const ownerProfileSelect = user?.id
-        ? "profiles(username, full_name, avatar_url, headline, telegram_handle)"
+        ? "profiles(username, full_name, avatar_url, headline, telegram_handle, telegram_bot_username)"
         : "profiles(username, full_name, avatar_url, headline)";
       const { data } = await supabase
         .from("projects")
@@ -6062,7 +6331,7 @@ function DashboardContributionsInner({ userId }: { userId: string }) {
       supabase
         .from("project_members")
         .select(
-          "*, projects(*, profiles(username, full_name, avatar_url, headline, telegram_handle))",
+          "*, projects(*, profiles(username, full_name, avatar_url, headline, telegram_handle, telegram_bot_username))",
         )
         .eq("profile_id", userId)
         .order("created_at", { ascending: false }),
@@ -7348,7 +7617,7 @@ function AdminMembersInner({
   }
 
   const filtered = profiles.filter((profile) =>
-    `${profile.full_name} ${profile.email ?? ""} ${profile.telegram_handle ?? ""} ${profile.username}`
+    `${profile.full_name} ${profile.email ?? ""} ${effectiveTelegramHandle(profile) ?? ""} ${profile.username}`
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
@@ -7414,7 +7683,7 @@ function AdminMembersInner({
                     </div>
                     <p className="mt-1 text-sm text-zinc-500">
                       {profile.platform_role} · {profile.visibility} ·{" "}
-                      {profile.email || profile.telegram_handle}
+                      {profile.email || effectiveTelegramHandle(profile)}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 md:justify-end">
