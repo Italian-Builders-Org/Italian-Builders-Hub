@@ -2200,6 +2200,7 @@ function RequireAuth({
 
 export function BuildersDirectoryPage() {
   const { techLabels } = useTechLabels();
+  const { user, loading: sessionLoading } = useSupabaseSession();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [query, setQuery] = useState("");
   const [role, setRole] = useState("All");
@@ -2208,21 +2209,24 @@ export function BuildersDirectoryPage() {
 
   useEffect(() => {
     async function load() {
+      if (sessionLoading) return;
       if (!supabase) {
         setLoading(false);
         return;
       }
+      setLoading(true);
+      const visibleStatuses = user?.id ? ["public", "members"] : ["public"];
       const { data, error: queryError } = await supabase
         .from("profiles")
         .select(anonymousProfileSelect)
-        .eq("visibility", "public")
+        .in("visibility", visibleStatuses)
         .order("created_at", { ascending: false });
       setProfiles((data as Profile[]) ?? []);
       setError(getError(queryError));
       setLoading(false);
     }
     load();
-  }, []);
+  }, [sessionLoading, user?.id]);
 
   const roles = useMemo(
     () => [
@@ -2246,7 +2250,9 @@ export function BuildersDirectoryPage() {
     <PageShell>
       <HeroBlock
         eyebrow={{
-          tech: "> DIRECTORY_SCAN --public",
+          tech: user?.id
+            ? "> DIRECTORY_SCAN --member-visible"
+            : "> DIRECTORY_SCAN --public",
           friendly: "Builder directory",
         }}
         title={{
@@ -2254,9 +2260,13 @@ export function BuildersDirectoryPage() {
           friendly: "Find Italian builders.",
         }}
         copy={{
-          tech: "Indexed public profiles with skills, artifacts and contact endpoints.",
+          tech: user?.id
+            ? "Indexed public and community-only profiles with skills, artifacts and contact endpoints."
+            : "Indexed public profiles with skills, artifacts and contact endpoints.",
           friendly:
-            "Public profiles from invited members, with skills, projects and social links.",
+            user?.id
+              ? "Public and community-only profiles from invited members, with skills, projects and social links."
+              : "Public profiles from invited members, with skills, projects and social links.",
         }}
       />
       <section className="container mx-auto px-4 py-12 md:px-6">

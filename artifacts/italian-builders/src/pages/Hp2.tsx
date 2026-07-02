@@ -421,6 +421,7 @@ function randomizeBuilders(builders: Hp2Builder[]) {
 }
 
 function useHp2Content(): Hp2Content {
+  const { user, loading: sessionLoading } = useSupabaseSession();
   const { data: apiBuilders, isLoading: apiLoading } = useListBuilders({
     query: { queryKey: getListBuildersQueryKey() },
   });
@@ -435,13 +436,15 @@ function useHp2Content(): Hp2Content {
   const [profileLoading, setProfileLoading] = useState(Boolean(supabase));
 
   useEffect(() => {
+    if (sessionLoading) return;
     if (!supabase) return;
     let cancelled = false;
+    const visibleStatuses = user?.id ? ["public", "members"] : ["public"];
 
     supabase
       .from("profiles")
       .select(profileSelect, { count: "exact" })
-      .eq("visibility", "public")
+      .in("visibility", visibleStatuses)
       .order("created_at", { ascending: false })
       .limit(18)
       .then(
@@ -459,7 +462,7 @@ function useHp2Content(): Hp2Content {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sessionLoading, user?.id]);
 
   const builders = useMemo(() => {
     let sourceBuilders: Hp2Builder[];

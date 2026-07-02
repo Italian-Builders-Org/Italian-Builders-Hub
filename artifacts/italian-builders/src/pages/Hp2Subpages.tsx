@@ -15,7 +15,7 @@ import {
   hasItems,
 } from "@/data/directory";
 import { defaultAvatarUrl } from "@/lib/assets";
-import { supabase } from "@/lib/supabase";
+import { supabase, useSupabaseSession } from "@/lib/supabase";
 import { Seo, communityProjectSeo, profileSeo, projectSeo } from "@/lib/seo";
 import type {
   CommunityProject,
@@ -254,25 +254,29 @@ function profileLocation(
 }
 
 function useR2Profiles() {
+  const { user, loading: sessionLoading } = useSupabaseSession();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
+      if (sessionLoading) return;
       if (!supabase) {
         setLoading(false);
         return;
       }
+      setLoading(true);
+      const visibleStatuses = user?.id ? ["public", "members"] : ["public"];
       const { data } = await supabase
         .from("profiles")
         .select(publicProfileSelect)
-        .eq("visibility", "public")
+        .in("visibility", visibleStatuses)
         .order("created_at", { ascending: false });
       setProfiles((data as Profile[] | null) ?? []);
       setLoading(false);
     }
     load();
-  }, []);
+  }, [sessionLoading, user?.id]);
 
   return { profiles, loading };
 }
@@ -434,21 +438,25 @@ export function Hp2BuildersPage() {
 
 export function Hp2BuilderProfilePage() {
   const params = useParams<{ username: string }>();
+  const { user, loading: sessionLoading } = useSupabaseSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
+      if (sessionLoading) return;
       if (!supabase || !params.username) {
         setLoading(false);
         return;
       }
+      setLoading(true);
+      const visibleStatuses = user?.id ? ["public", "members"] : ["public"];
       const { data } = await supabase
         .from("profiles")
         .select(publicProfileSelect)
         .eq("username", params.username)
-        .eq("visibility", "public")
+        .in("visibility", visibleStatuses)
         .maybeSingle();
       const nextProfile = (data as Profile | null) ?? null;
       setProfile(nextProfile);
@@ -466,7 +474,7 @@ export function Hp2BuilderProfilePage() {
       setLoading(false);
     }
     load();
-  }, [params.username]);
+  }, [params.username, sessionLoading, user?.id]);
 
   if (loading) {
     return (

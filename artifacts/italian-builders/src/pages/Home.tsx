@@ -765,6 +765,7 @@ function getSupabaseErrorMessage(
 }
 
 function useHomeDatabaseContent() {
+  const { user, loading: sessionLoading } = useSupabaseSession();
   const [content, setContent] = useState<HomeDatabaseContent>(
     emptyHomeDatabaseContent,
   );
@@ -773,6 +774,7 @@ function useHomeDatabaseContent() {
     let cancelled = false;
 
     async function load() {
+      if (sessionLoading) return;
       if (!supabase) {
         setContent({
           ...emptyHomeDatabaseContent,
@@ -782,12 +784,13 @@ function useHomeDatabaseContent() {
         return;
       }
 
+      const visibleStatuses = user?.id ? ["public", "members"] : ["public"];
       const [profileResponse, projectResponse, communityProjectResponse] =
         await Promise.all([
           supabase
             .from("profiles")
             .select(anonymousProfileSelect, { count: "exact" })
-            .eq("visibility", "public")
+            .in("visibility", visibleStatuses)
             .order("created_at", { ascending: false })
             .limit(80),
           supabase
@@ -838,7 +841,7 @@ function useHomeDatabaseContent() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sessionLoading, user?.id]);
 
   return content;
 }
