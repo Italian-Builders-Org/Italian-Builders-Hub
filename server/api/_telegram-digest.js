@@ -449,10 +449,16 @@ function responseText(payload) {
 }
 
 function parseDigestJson(text) {
+  const cleaned = String(text || "")
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
   try {
-    return JSON.parse(text);
+    return JSON.parse(cleaned);
   } catch {
-    const match = text.match(/\{[\s\S]*\}/);
+    const match = cleaned.match(/\{[\s\S]*\}/);
     if (!match) return null;
     try {
       return JSON.parse(match[0]);
@@ -512,7 +518,7 @@ async function createOpenRouterDigest({
         body: JSON.stringify({
           model,
           messages: prompt,
-          max_tokens: 1800,
+          max_tokens: 5000,
           temperature: 0.2,
           response_format: { type: "json_object" },
         }),
@@ -655,7 +661,6 @@ function sourceDigestTeaser({ digest, reportDate, target }) {
   const summary =
     section?.summary ||
     digest.summary?.executiveTldr ||
-    digest.text ||
     "Il digest della giornata e' disponibile sul sito.";
   const highlights = Array.isArray(section?.highlights)
     ? section.highlights.slice(0, 2)
