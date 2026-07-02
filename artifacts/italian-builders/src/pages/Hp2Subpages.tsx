@@ -1301,15 +1301,19 @@ export function Hp2PrivacyPage() {
         ],
         [
           "Information we collect",
-          "Waitlist records, account information, public profile content, project listings, media, links, technical logs, security events, and local interface preferences.",
+          "Waitlist records, account information, public profile content, project listings, media, links, technical logs, security events, local interface preferences, and Telegram community message text needed to generate daily digests.",
         ],
         [
           "How we use information",
-          "We use this information to run the community, review access requests, authenticate members, display public profiles and projects, store media, contact members, and keep the website reliable.",
+          "We use this information to run the community, review access requests, authenticate members, display public profiles and projects, store media, contact members, create member-only Telegram topic digests, and keep the website reliable.",
+        ],
+        [
+          "Telegram digest bot",
+          "The Telegram bot stores message text, links, chat IDs, topic IDs, message IDs, and timestamps from approved community chats. It does not store sender names, Telegram handles, or tag people in digests. Digest generation may send the relevant message text to OpenRouter model providers. Full digests are visible only to signed-in members.",
         ],
         [
           "Service providers",
-          "We use Vercel, Supabase, Cloudflare R2, Sentry when configured, Google Fonts, LinkedIn, and X where those services are part of the product experience.",
+          "We use Vercel, Supabase, Cloudflare R2, OpenRouter for digest generation, Sentry when configured, Google Fonts, LinkedIn, X, and Telegram where those services are part of the product experience.",
         ],
         ["Contact", "For privacy requests, contact info@italianbuilders.co."],
       ]}

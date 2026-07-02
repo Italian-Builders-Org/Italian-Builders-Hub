@@ -97,6 +97,7 @@ export function PrivacyPolicyPage() {
             "Waitlist and invite information, such as name, email address, role, what you are building, website or project links, and social handles you choose to provide.",
             "Account information, such as email address, authentication data, username, profile details, profile visibility settings, and invite status.",
             "Community content, such as builder profiles, project listings, community project details, links, images, videos, and collaboration notes that you choose to submit.",
+            "Telegram digest data from approved community chats, including message text, links, chat IDs, topic IDs, message IDs, and timestamps. We do not store sender names or Telegram handles for digest generation.",
             "Technical information, such as IP address, browser type, device information, log events, security events, page URLs, and error diagnostics.",
             "Preference data stored in your browser, such as label mode, session state, cookie notice status, and interface preferences.",
           ]}
@@ -108,6 +109,7 @@ export function PrivacyPolicyPage() {
           items={[
             "To run the community, review access requests, create invites, authenticate members, and display public or member-visible profiles and projects.",
             "To store and serve media uploaded by authenticated members.",
+            "To generate member-only Telegram topic digests and post short TLDR links back into approved Telegram chats.",
             "To keep the website reliable, secure, and maintainable.",
             "To contact you about your access request, account, invite, or important community updates.",
             "To comply with legal obligations and enforce the Terms of Service.",
@@ -125,6 +127,23 @@ export function PrivacyPolicyPage() {
         </p>
       </Section>
 
+      <Section title="Telegram digest bot">
+        <p>
+          The Italian Builders Telegram digest bot is added only to approved
+          community chats. It stores the message text, links, chat IDs, topic
+          IDs, message IDs, and timestamps needed to create daily topic
+          summaries. It does not store sender names or Telegram handles, and
+          digest output does not tag people.
+        </p>
+        <p>
+          To generate digests, relevant message text may be sent to OpenRouter
+          and its model providers. Full digests are available only to signed-in
+          members on the Italian Builders website. Short TLDR messages may be
+          posted back into the matching Telegram chat or topic with a link to
+          the full member-only digest.
+        </p>
+      </Section>
+
       <Section title="Service providers">
         <p>
           We use trusted providers to operate the service. They process data
@@ -135,6 +154,8 @@ export function PrivacyPolicyPage() {
             "Vercel for hosting, deployment, serverless API routes, and Open Graph image generation.",
             "Supabase for authentication, database records, member sessions, invite flows, and related backend services.",
             "Cloudflare R2 for member-uploaded media storage and public media delivery.",
+            "OpenRouter and selected model providers for Telegram digest generation.",
+            "Telegram for bot message delivery, webhook updates, and community chat interactions.",
             "Sentry for error monitoring, performance diagnostics, and issue investigation when configured.",
             "Google Fonts for loading web fonts used by the interface.",
             "LinkedIn and X when you click our social links or choose to publish those links on your profile.",
