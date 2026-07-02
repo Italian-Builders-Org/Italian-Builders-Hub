@@ -7,6 +7,8 @@ const DEFAULT_FALLBACK_MODELS = [
   "~google/gemini-flash-latest",
   "google/gemini-2.5-flash",
 ];
+const DEFAULT_PUBLIC_SITE_URL = "https://italianbuilders.co";
+const DEFAULT_DIGEST_PUBLIC_PATH = "/hp-2/dashboard/digests";
 const PROMPT_VERSION = "telegram-community-daily-digest-v2";
 const MAX_TELEGRAM_MESSAGE_LENGTH = 3900;
 const MAX_SOURCE_TEASER_LENGTH = 900;
@@ -475,7 +477,17 @@ function normalizeDigestText(payload, fallbackText) {
 }
 
 function reportUrl(reportDate) {
-  return `${appBaseUrl()}/dashboard/digests?date=${encodeURIComponent(reportDate)}`;
+  const baseUrl = compactText(
+    process.env.TELEGRAM_DIGEST_PUBLIC_BASE_URL ||
+      process.env.PUBLIC_SITE_URL ||
+      DEFAULT_PUBLIC_SITE_URL,
+  ).replace(/\/+$/, "");
+  const path = compactText(
+    process.env.TELEGRAM_DIGEST_PUBLIC_PATH || DEFAULT_DIGEST_PUBLIC_PATH,
+  );
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  return `${baseUrl}${normalizedPath}?date=${encodeURIComponent(reportDate)}`;
 }
 
 async function createOpenRouterDigest({

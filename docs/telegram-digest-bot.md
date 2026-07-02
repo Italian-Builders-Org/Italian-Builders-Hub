@@ -14,7 +14,7 @@ previous-day Italian digest after midnight in Italy.
 - Summarizes the previous `Europe/Rome` calendar day.
 - Sends the report only to `TELEGRAM_DIGEST_OWNER_CHAT_ID`.
 - Posts a short TLDR back to each active Telegram chat/topic with a link to
-  the full member-only digest.
+  the full member-only V2 digest page on `https://italianbuilders.co`.
 - Saves the generated report to `public.telegram_daily_reports`, where it is
   readable only by signed-in members.
 - Uses `google/gemini-3.5-flash` through OpenRouter by default, with Gemini
@@ -42,6 +42,8 @@ TELEGRAM_SETUP_SECRET
 TELEGRAM_DIGEST_CRON_SECRET
 TELEGRAM_DIGEST_OWNER_CHAT_ID
 OPENROUTER_API_KEY
+TELEGRAM_DIGEST_PUBLIC_BASE_URL=https://italianbuilders.co
+TELEGRAM_DIGEST_PUBLIC_PATH=/hp-2/dashboard/digests
 ```
 
 4. Deploy the project so `/api/telegram/webhook` is public over HTTPS.
