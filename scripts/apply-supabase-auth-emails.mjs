@@ -6,6 +6,7 @@ const SMTP_HOST = "smtp.resend.com";
 const SMTP_PORT = "587";
 const SMTP_USER = "resend";
 const EMAIL_LOGO_URL = "https://italianbuilders.co/logo-vector.svg";
+const AUTH_EMAIL_RATE_LIMIT_PER_HOUR = 90;
 
 function parseEnv(path) {
   const env = {};
@@ -249,6 +250,9 @@ function buildPayload(env) {
     smtp_user: SMTP_USER,
     smtp_pass: resendKey,
     smtp_sender_name: PROJECT_NAME,
+    rate_limit_email_sent: AUTH_EMAIL_RATE_LIMIT_PER_HOUR,
+    rate_limit_otp: AUTH_EMAIL_RATE_LIMIT_PER_HOUR,
+    rate_limit_verify: AUTH_EMAIL_RATE_LIMIT_PER_HOUR,
     mailer_notifications_password_changed_enabled: true,
     mailer_notifications_email_changed_enabled: true,
     mailer_notifications_phone_changed_enabled: true,
