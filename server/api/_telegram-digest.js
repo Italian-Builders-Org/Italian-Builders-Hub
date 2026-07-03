@@ -997,41 +997,47 @@ function sourceDigestTeaser({ digest, reportDate, target }) {
     ? `\n\nPunti chiave:\n${highlights.map((item) => `- ${compactText(item)}`).join("\n")}`
     : "";
 
-  return truncateText(
-    [
-      prefix,
-      `TLDR ${reportDate} - ${title}`,
-      "",
-      summary,
-      highlightsText,
-      "",
-      `Digest completo: ${reportUrl(reportDate)}`,
-    ].join("\n"),
-  );
+  return [
+    prefix,
+    `TLDR ${reportDate} - ${title}`,
+    "",
+    summary,
+    highlightsText,
+    "",
+    `Digest completo: ${reportUrl(reportDate)}`,
+  ]
+    .filter((part) => part !== "")
+    .join("\n");
 }
 
 async function sendSourceDigestTeasers({ digest, reportDate, messages }) {
   const posts = [];
 
   for (const target of sourceDigestTargets(messages)) {
-    const payload = {
-      chat_id: String(target.chatId),
-      text: sourceDigestTeaser({ digest, reportDate, target }),
-      disable_web_page_preview: true,
-    };
-    if (target.messageThreadId) {
-      payload.message_thread_id = target.messageThreadId;
-    }
-
     try {
-      const result = await telegramRequest("sendMessage", payload);
+      const sentMessageIds = [];
+      for (const chunk of splitTelegramText(
+        sourceDigestTeaser({ digest, reportDate, target }),
+      )) {
+        const payload = {
+          chat_id: String(target.chatId),
+          text: chunk,
+          disable_web_page_preview: true,
+        };
+        if (target.messageThreadId) {
+          payload.message_thread_id = target.messageThreadId;
+        }
+        const result = await telegramRequest("sendMessage", payload);
+        sentMessageIds.push(result.message_id);
+      }
       posts.push({
         chat_id: target.chatId,
         chat_title: target.chatTitle,
         message_thread_id: target.messageThreadId,
         topic_label: target.topicLabel,
         message_count: target.messageCount,
-        sent_message_id: result.message_id,
+        sent_message_id: sentMessageIds[0] || null,
+        sent_message_ids: sentMessageIds,
         status: "sent",
       });
     } catch (error) {
@@ -1287,6 +1293,7 @@ module.exports = {
   requireTelegramWebhookSecret,
   runDailyReport,
   sendError,
+  sendSourceDigestTeasers,
   setupTelegramWebhook,
   storeTelegramUpdate,
 };
