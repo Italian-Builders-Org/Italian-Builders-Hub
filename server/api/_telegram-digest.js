@@ -12,6 +12,7 @@ const DEFAULT_DIGEST_PUBLIC_PATH = "/hp-2/dashboard/digests";
 const PROMPT_VERSION = "telegram-community-daily-digest-v2";
 const MAX_TELEGRAM_MESSAGE_LENGTH = 3900;
 const MAX_SOURCE_TEASER_LENGTH = 900;
+const DEFAULT_MAX_DAILY_MESSAGES = 3000;
 
 let cachedSupabaseAdmin;
 
@@ -476,6 +477,18 @@ function normalizeDigestText(payload, fallbackText) {
   return compactText(fallbackText);
 }
 
+function openRouterModels() {
+  const configuredModels = String(
+    process.env.TELEGRAM_DIGEST_OPENROUTER_MODELS ||
+      process.env.TELEGRAM_DIGEST_OPENROUTER_MODEL ||
+      DEFAULT_MODEL,
+  )
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
+  return Array.from(new Set([...configuredModels, ...DEFAULT_FALLBACK_MODELS]));
+}
+
 function reportUrl(reportDate) {
   const baseUrl = compactText(
     process.env.TELEGRAM_DIGEST_PUBLIC_BASE_URL ||
@@ -502,21 +515,33 @@ async function createOpenRouterDigest({
     });
   }
 
-  const configuredModels = String(
-    process.env.TELEGRAM_DIGEST_OPENROUTER_MODELS ||
-      process.env.TELEGRAM_DIGEST_OPENROUTER_MODEL ||
-      DEFAULT_MODEL,
-  )
-    .split(",")
-    .map((model) => model.trim())
-    .filter(Boolean);
-  const models = Array.from(
-    new Set([...configuredModels, ...DEFAULT_FALLBACK_MODELS]),
+  const sourceDigests = await Promise.all(
+    sourceMessageGroups(messages).map((group) =>
+      createOpenRouterSourceDigest({
+        apiKey,
+        group,
+        reportDate,
+      }),
+    ),
   );
-  const errors = [];
-  const prompt = buildDigestPrompt({ messages, reportDate, activeChatCount });
+  return createOpenRouterAggregateDigest({
+    apiKey,
+    sourceDigests,
+    reportDate,
+    messageCount: messages.length,
+    activeChatCount,
+  });
+}
 
-  for (const model of models) {
+async function openRouterJsonRequest({
+  apiKey,
+  prompt,
+  maxTokens,
+  requestLabel,
+}) {
+  const errors = [];
+
+  for (const model of openRouterModels()) {
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -530,7 +555,7 @@ async function createOpenRouterDigest({
         body: JSON.stringify({
           model,
           messages: prompt,
-          max_tokens: 5000,
+          max_tokens: maxTokens,
           temperature: 0.2,
           response_format: { type: "json_object" },
         }),
@@ -549,27 +574,310 @@ async function createOpenRouterDigest({
 
     const text = responseText(payload);
     if (!text) {
-      errors.push({ model, error: "OpenRouter returned an empty digest." });
+      errors.push({ model, error: "OpenRouter returned an empty response." });
       continue;
     }
     const summary = parseDigestJson(text);
+    if (!summary) {
+      errors.push({ model, error: "OpenRouter returned invalid JSON." });
+      continue;
+    }
 
     return {
-      text: normalizeDigestText(summary, text),
       model,
-      summary: summary || { telegramText: text },
-      rawResponse: { ...payload, fallbackErrors: errors },
+      summary,
+      rawResponse: {
+        id: payload?.id,
+        model: payload?.model,
+        usage: payload?.usage,
+        fallbackErrors: errors,
+      },
     };
   }
 
   throw new Error(
-    `OpenRouter digest request failed for all configured models: ${errors
+    `OpenRouter ${requestLabel} request failed for all configured models: ${errors
       .map(
         (item) =>
           `${item.model} (${item.status || "no-status"}: ${item.error})`,
       )
       .join("; ")}`,
   );
+}
+
+function sourceMessageGroups(messages) {
+  return sourceDigestTargets(messages).map((target) => ({
+    target,
+    messages: messages.filter(
+      (message) =>
+        String(message.chat_id) === String(target.chatId) &&
+        String(message.message_thread_id || "general") ===
+          String(target.messageThreadId || "general"),
+    ),
+  }));
+}
+
+function buildSourceDigestPrompt({ group, reportDate }) {
+  return [
+    {
+      role: "system",
+      content: `Write one private Telegram topic digest for Italian Builders.
+
+Rules:
+- Write in Italian.
+- Summarize only this sourceId. Do not include other channels or topics.
+- Do not tag people, mention usernames, or attribute opinions to named members.
+- Capture concrete links/resources, books, tweets/X posts, articles, tools, demos, repos, videos, asks, launches, and decisions.
+- Return JSON only. No markdown fences.
+
+JSON shape:
+{
+  "sourceId": "string",
+  "channel": "string",
+  "topic": "string",
+  "summary": "string",
+  "highlights": ["string"],
+  "resources": [{"title": "string", "url": "string", "type": "tweet|book|article|tool|repo|video|event|product|other", "whyItMatters": "string"}],
+  "telegramText": "string"
+}
+
+The "telegramText" field must be a polished plain-text TLDR for this topic under 800 characters.`,
+    },
+    {
+      role: "user",
+      content: `Report date: ${reportDate}
+sourceId: ${group.target.sourceId}
+channel: ${group.target.chatTitle}
+topic: ${group.target.topicLabel}
+messages: ${group.messages.length}
+
+${formatDigestInput(group.messages)}`,
+    },
+  ];
+}
+
+function fallbackSourceDigest(group) {
+  const texts = group.messages
+    .map((message) => compactText(message.text))
+    .filter(Boolean);
+  const urls = Array.from(
+    new Set(group.messages.flatMap((message) => message.text_urls || [])),
+  ).slice(0, 6);
+  const summary = texts.length
+    ? truncateText(texts.slice(0, 5).join(" "), 500)
+    : "Attivita' rilevata nel topic, ma il modello non ha restituito un riepilogo strutturato.";
+
+  return {
+    sourceId: group.target.sourceId,
+    channel: group.target.chatTitle,
+    topic: group.target.topicLabel,
+    summary,
+    highlights: texts.slice(0, 3).map((text) => truncateText(text, 160)),
+    resources: urls.map((url) => ({
+      title: url,
+      url,
+      type: "other",
+      whyItMatters: "Link condiviso nella conversazione.",
+    })),
+    telegramText: summary,
+  };
+}
+
+async function createOpenRouterSourceDigest({ apiKey, group, reportDate }) {
+  try {
+    const digest = await openRouterJsonRequest({
+      apiKey,
+      prompt: buildSourceDigestPrompt({ group, reportDate }),
+      maxTokens: 1600,
+      requestLabel: `source ${group.target.sourceId}`,
+    });
+    return {
+      ...fallbackSourceDigest(group),
+      ...digest.summary,
+      sourceId: group.target.sourceId,
+      channel: group.target.chatTitle,
+      topic: group.target.topicLabel,
+      _model: digest.model,
+      _rawResponse: digest.rawResponse,
+    };
+  } catch (error) {
+    return {
+      ...fallbackSourceDigest(group),
+      _error: error instanceof Error ? error.message : "Unknown source error",
+    };
+  }
+}
+
+function buildAggregateDigestPrompt({
+  sourceDigests,
+  reportDate,
+  messageCount,
+  activeChatCount,
+}) {
+  const publicSourceDigests = sourceDigests.map(
+    ({ _model, _rawResponse, _error, ...digest }) => digest,
+  );
+
+  return [
+    {
+      role: "system",
+      content: `Assemble a private daily intelligence briefing for the Italian Builders community from pre-generated topic digests.
+
+Rules:
+- Write in Italian.
+- Keep every topic digest. Do not drop sourceIds.
+- Do not tag people, mention usernames, or attribute opinions to named members.
+- Return compact valid JSON only. No markdown fences.
+
+JSON shape:
+{
+  "title": "string",
+  "date": "YYYY-MM-DD",
+  "vibe": "string",
+  "executiveTldr": "string",
+  "mainTopics": ["string"],
+  "topicDigests": [same topic digest objects from input],
+  "channelDigests": [same topic digest objects from input],
+  "crossChannelSignals": ["string"],
+  "interestingFact": "string",
+  "openQuestions": ["string"],
+  "telegramText": "string"
+}
+
+The "telegramText" field must be a polished plain-text whole-day summary under 2500 characters.`,
+    },
+    {
+      role: "user",
+      content: JSON.stringify({
+        reportDate,
+        activeChatCount,
+        messageCount,
+        topicDigests: publicSourceDigests,
+      }),
+    },
+  ];
+}
+
+function deterministicAggregateDigest({
+  sourceDigests,
+  reportDate,
+  messageCount,
+  activeChatCount,
+}) {
+  const topicDigests = sourceDigests.map(
+    ({ _model, _rawResponse, _error, ...digest }) => digest,
+  );
+  const mainTopics = topicDigests
+    .map((digest) => digest.topic)
+    .filter(Boolean)
+    .slice(0, 10);
+  const executiveTldr = topicDigests
+    .map((digest) => `${digest.topic}: ${digest.summary}`)
+    .join("\n\n");
+
+  return {
+    title: `Italian Builders daily digest - ${reportDate}`,
+    date: reportDate,
+    vibe: "Sintesi generata dai topic Telegram attivi della giornata.",
+    executiveTldr,
+    mainTopics,
+    topicDigests,
+    channelDigests: topicDigests,
+    crossChannelSignals: [],
+    interestingFact:
+      "Il digest e' stato generato per topic separati per preservare il contesto delle conversazioni.",
+    openQuestions: [],
+    telegramText: truncateText(executiveTldr, 2500),
+  };
+}
+
+async function createOpenRouterAggregateDigest({
+  apiKey,
+  sourceDigests,
+  reportDate,
+  messageCount,
+  activeChatCount,
+}) {
+  const fallback = deterministicAggregateDigest({
+    sourceDigests,
+    reportDate,
+    messageCount,
+    activeChatCount,
+  });
+  const useAggregateModel =
+    process.env.TELEGRAM_DIGEST_USE_AGGREGATE_MODEL === "true";
+
+  if (!useAggregateModel) {
+    return {
+      text: fallback.telegramText,
+      model: "topic-digest-aggregate-v1",
+      summary: fallback,
+      rawResponse: {
+        aggregate: { mode: "deterministic" },
+        sources: sourceDigests.map((source) => ({
+          sourceId: source.sourceId,
+          model: source._model || null,
+          error: source._error || null,
+          rawResponse: source._rawResponse || null,
+        })),
+      },
+    };
+  }
+
+  try {
+    const digest = await openRouterJsonRequest({
+      apiKey,
+      prompt: buildAggregateDigestPrompt({
+        sourceDigests,
+        reportDate,
+        messageCount,
+        activeChatCount,
+      }),
+      maxTokens: 5000,
+      requestLabel: "aggregate digest",
+    });
+    const summary = {
+      ...fallback,
+      ...digest.summary,
+      topicDigests: Array.isArray(digest.summary?.topicDigests)
+        ? digest.summary.topicDigests
+        : fallback.topicDigests,
+      channelDigests: Array.isArray(digest.summary?.channelDigests)
+        ? digest.summary.channelDigests
+        : fallback.topicDigests,
+    };
+
+    return {
+      text: normalizeDigestText(summary, fallback.telegramText),
+      model: digest.model,
+      summary,
+      rawResponse: {
+        aggregate: digest.rawResponse,
+        sources: sourceDigests.map((source) => ({
+          sourceId: source.sourceId,
+          model: source._model || null,
+          error: source._error || null,
+          rawResponse: source._rawResponse || null,
+        })),
+      },
+    };
+  } catch (error) {
+    return {
+      text: fallback.telegramText,
+      model: "deterministic-fallback",
+      summary: fallback,
+      rawResponse: {
+        aggregateError:
+          error instanceof Error ? error.message : "Unknown aggregate error",
+        sources: sourceDigests.map((source) => ({
+          sourceId: source.sourceId,
+          model: source._model || null,
+          error: source._error || null,
+          rawResponse: source._rawResponse || null,
+        })),
+      },
+    };
+  }
 }
 
 function splitTelegramText(text) {
@@ -605,7 +913,10 @@ async function sendDigestToTelegram(chatId, text) {
 }
 
 function truncateText(text, maxLength = MAX_SOURCE_TEASER_LENGTH) {
-  const value = compactText(text);
+  const value = String(text || "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   if (value.length <= maxLength) return value;
   return `${value.slice(0, maxLength - 1).trim()}...`;
 }
@@ -673,7 +984,9 @@ function digestSectionForTarget(summary, target) {
 function sourceDigestTeaser({ digest, reportDate, target }) {
   const section = digestSectionForTarget(digest.summary, target);
   const title = section?.topic || target.topicLabel || "Daily digest";
+  const prefix = compactText(process.env.TELEGRAM_DIGEST_TEASER_PREFIX);
   const summary =
+    compactText(section?.telegramText) ||
     section?.summary ||
     digest.summary?.executiveTldr ||
     "Il digest della giornata e' disponibile sul sito.";
@@ -686,6 +999,7 @@ function sourceDigestTeaser({ digest, reportDate, target }) {
 
   return truncateText(
     [
+      prefix,
       `TLDR ${reportDate} - ${title}`,
       "",
       summary,
@@ -760,7 +1074,9 @@ async function existingReport(supabaseAdmin, reportDate) {
 }
 
 async function dailyMessages(supabaseAdmin, chatId, reportDate) {
-  const limit = Number(process.env.TELEGRAM_DIGEST_MAX_MESSAGES || 500);
+  const limit = Number(
+    process.env.TELEGRAM_DIGEST_MAX_MESSAGES || DEFAULT_MAX_DAILY_MESSAGES,
+  );
   const { data, error } = await supabaseAdmin
     .from("telegram_digest_messages")
     .select("message_id, message_thread_id, sent_at, text, text_urls")
