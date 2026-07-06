@@ -8,6 +8,7 @@ const {
   parseBody,
   requireBearerSecret,
   requireTelegramWebhookSecret,
+  runModerationScan,
   runDailyReport,
   setupTelegramWebhook,
   storeTelegramUpdate,
@@ -72,6 +73,25 @@ module.exports = async function handler(req, res) {
           req.query?.force === "1" ||
           req.query?.force === "true" ||
           body.force === true,
+      });
+      res.status(200).json({ ok: true, ...result });
+      return;
+    }
+
+    if (action === "telegram-moderation-scan") {
+      if (req.method !== "GET" && req.method !== "POST") {
+        res.status(405).json({ error: "Method not allowed." });
+        return;
+      }
+      requireBearerSecret(
+        req,
+        ["TELEGRAM_MODERATION_SECRET", "CRON_SECRET"],
+        "TELEGRAM_MODERATION_SECRET or CRON_SECRET",
+      );
+      const body = req.method === "POST" ? parseBody(req.body) : {};
+      const limit = Number.parseInt(req.query?.limit || body.limit || "", 10);
+      const result = await runModerationScan({
+        limit: Number.isFinite(limit) ? limit : undefined,
       });
       res.status(200).json({ ok: true, ...result });
       return;

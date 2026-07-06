@@ -13,6 +13,51 @@ const PROMPT_VERSION = "telegram-community-daily-digest-v2";
 const MAX_TELEGRAM_MESSAGE_LENGTH = 3900;
 const MAX_SOURCE_TEASER_LENGTH = 900;
 const DEFAULT_MAX_DAILY_MESSAGES = 3000;
+const DEFAULT_MODERATION_BATCH_LIMIT = 60;
+
+const MODERATION_RULES = [
+  {
+    key: "empty_self_promo",
+    severity: "medium",
+    label: "No spam e no self-promo a vuoto",
+    rule:
+      "Puoi condividere il tuo progetto, ma con contesto e valore. Link secchi senza spiegazione o promo ripetuta senza valore sono violazioni.",
+  },
+  {
+    key: "aggressive_dm_recruiting",
+    severity: "high",
+    label: "Niente recruiting o vendita aggressiva in DM",
+    rule:
+      "Segnalare solo se nella chat emerge traccia ragionevolmente chiara, per esempio lamentele o screenshot su spam in privato.",
+  },
+  {
+    key: "persistent_offtopic",
+    severity: "low",
+    label: "Restiamo in tema",
+    rule:
+      "Il gruppo e' su tech, building, startup e crescita su X. Politica, calcio e drama vari restano fuori dalla chat principale. Un singolo messaggio occasionale fuori tema non basta.",
+  },
+  {
+    key: "personal_attack_flame",
+    severity: "high",
+    label: "Rispetto e zero flame",
+    rule:
+      "Feedback e critiche tecniche sono permessi; attacchi personali, insulti e maleducazione chiara no.",
+  },
+  {
+    key: "crypto_shilling_gain_scheme",
+    severity: "high",
+    label: "No catene, crypto-shilling o opportunita' di guadagno",
+    rule:
+      "Schemi, airdrop, trading signals, pump, guadagni facili o promesse speculative sono violazioni.",
+  },
+  {
+    key: "blasphemy",
+    severity: "medium",
+    label: "No bestemmie",
+    rule: "Segnalare bestemmie esplicite per rispetto verso le persone credenti.",
+  },
+];
 
 let cachedSupabaseAdmin;
 
@@ -219,7 +264,15 @@ function extractMessage(update) {
     messageThreadId: message.message_thread_id || null,
     sentAt: new Date(Number(message.date || 0) * 1000).toISOString(),
     text,
+    author: message.from || null,
+    senderChat: message.sender_chat || null,
   };
+}
+
+function displayNameFromUser(user) {
+  return compactText(
+    [user?.first_name, user?.last_name].filter(Boolean).join(" "),
+  );
 }
 
 async function upsertTelegramDigestChat(supabaseAdmin, chat, now) {
@@ -306,6 +359,19 @@ async function storeTelegramUpdate(update) {
         text: message.text,
         text_urls: extractUrls(message.text),
         text_char_count: message.text.length,
+        from_user_id: message.author?.id || null,
+        from_username: compactText(message.author?.username) || null,
+        from_first_name: compactText(message.author?.first_name) || null,
+        from_last_name: compactText(message.author?.last_name) || null,
+        from_is_bot:
+          typeof message.author?.is_bot === "boolean"
+            ? message.author.is_bot
+            : null,
+        sender_chat_id: message.senderChat?.id || null,
+        sender_chat_title: chatTitleFrom(message.senderChat) || null,
+        moderation_checked_at: null,
+        moderation_status: "pending",
+        moderation_result_json: {},
       },
       { onConflict: "chat_id,message_id" },
     );
@@ -880,6 +946,283 @@ async function createOpenRouterAggregateDigest({
   }
 }
 
+function moderationRulesText() {
+  return MODERATION_RULES.map(
+    (rule) =>
+      `- ${rule.key} (${rule.severity}) ${rule.label}: ${rule.rule}`,
+  ).join("\n");
+}
+
+function moderationPrompt(messages) {
+  return [
+    {
+      role: "system",
+      content: `You are a conservative moderation triage agent for the Italian Builders Telegram community.
+
+You only flag messages for admin review. You never decide punishments, strikes, deletions, or removals.
+
+Rules:
+${moderationRulesText()}
+
+Evaluation criteria:
+- In doubt, do not flag. False negatives are better than accusing an innocent member.
+- Consider context, irony, quotes, jokes between members, and honest technical criticism.
+- Sharing a project with context is allowed.
+- One flag per message maximum. If multiple rules could apply, choose the main rule.
+- Return only reasonably clear violations.
+- Return JSON only. No markdown fences.
+
+JSON shape:
+{
+  "flags": [
+    {
+      "messageKey": "string",
+      "ruleKey": "empty_self_promo|aggressive_dm_recruiting|persistent_offtopic|personal_attack_flame|crypto_shilling_gain_scheme|blasphemy",
+      "severity": "low|medium|high",
+      "reason": "string",
+      "evidence": "short quote or description"
+    }
+  ]
+}`,
+    },
+    {
+      role: "user",
+      content: JSON.stringify({
+        messages: messages.map((message) => ({
+          messageKey: `${message.chat_id}:${message.message_id}`,
+          chatTitle: message.telegram_digest_chats?.chat_title || null,
+          messageThreadId: message.message_thread_id,
+          sentAt: message.sent_at,
+          fromUsername: message.from_username,
+          fromDisplayName: displayNameFromRow(message),
+          text: message.text,
+          urls: message.text_urls || [],
+        })),
+      }),
+    },
+  ];
+}
+
+function displayNameFromRow(message) {
+  return compactText(
+    [message.from_first_name, message.from_last_name].filter(Boolean).join(" "),
+  );
+}
+
+function moderationRule(ruleKey) {
+  return MODERATION_RULES.find((rule) => rule.key === ruleKey) || null;
+}
+
+function cleanModerationFlags(summary, messages) {
+  const byKey = new Map(
+    messages.map((message) => [`${message.chat_id}:${message.message_id}`, message]),
+  );
+  const usedKeys = new Set();
+  const flags = Array.isArray(summary?.flags) ? summary.flags : [];
+
+  return flags
+    .map((flag) => {
+      const messageKey = compactText(flag?.messageKey);
+      const message = byKey.get(messageKey);
+      const rule = moderationRule(compactText(flag?.ruleKey));
+      if (!message || !rule || usedKeys.has(messageKey)) return null;
+      usedKeys.add(messageKey);
+      return {
+        message,
+        rule,
+        severity: ["low", "medium", "high"].includes(flag?.severity)
+          ? flag.severity
+          : rule.severity,
+        reason: compactText(flag?.reason),
+        evidence: compactText(flag?.evidence),
+        rawFlag: flag,
+      };
+    })
+    .filter((flag) => flag && flag.reason);
+}
+
+async function pendingModerationMessages(supabaseAdmin, limit) {
+  const { data, error } = await supabaseAdmin
+    .from("telegram_digest_messages")
+    .select(
+      "chat_id, message_id, message_thread_id, sent_at, text, text_urls, from_user_id, from_username, from_first_name, from_last_name, sender_chat_title, telegram_digest_chats(chat_title)",
+    )
+    .eq("moderation_status", "pending")
+    .order("sent_at", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+async function markModerationClean(supabaseAdmin, messages, rawResult, model) {
+  if (!messages.length) return;
+  const now = new Date().toISOString();
+  const keys = messages.map((message) => ({
+    chatId: message.chat_id,
+    messageId: message.message_id,
+  }));
+
+  for (const key of keys) {
+    const { error } = await supabaseAdmin
+      .from("telegram_digest_messages")
+      .update({
+        moderation_checked_at: now,
+        moderation_status: "clean",
+        moderation_result_json: { model, rawResult },
+      })
+      .eq("chat_id", key.chatId)
+      .eq("message_id", key.messageId);
+    if (error) throw error;
+  }
+}
+
+function moderationAlertText(flag) {
+  const username = compactText(flag.message.from_username);
+  const displayName = displayNameFromRow(flag.message);
+  const author = username
+    ? `@${username}${displayName ? ` (${displayName})` : ""}`
+    : displayName || "Utente sconosciuto";
+  const chatTitle = flag.message.telegram_digest_chats?.chat_title || "Chat";
+  const thread = flag.message.message_thread_id
+    ? `Topic #${flag.message.message_thread_id}`
+    : "General";
+
+  return [
+    `🚩 Possibile violazione (${flag.severity})`,
+    `Regola: ${flag.rule.label}`,
+    `Chat: ${chatTitle} / ${thread}`,
+    `Utente: ${author}`,
+    "",
+    `Motivo: ${flag.reason}`,
+    flag.evidence ? `Evidenza: ${flag.evidence}` : "",
+    "",
+    `Messaggio: ${truncateText(flag.message.text, 900)}`,
+    "",
+    "Solo segnalazione: decide l'admin. Nessuno strike automatico.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function notifyModerationFlag(flag) {
+  const chatId = process.env.TELEGRAM_MODERATION_ALERT_CHAT_ID;
+  if (!chatId) return null;
+  return telegramRequest("sendMessage", {
+    chat_id: String(chatId),
+    text: moderationAlertText(flag),
+    disable_web_page_preview: true,
+  });
+}
+
+async function saveModerationFlags(supabaseAdmin, flags, model, rawResult) {
+  const saved = [];
+  const now = new Date().toISOString();
+
+  for (const flag of flags) {
+    const alert = await notifyModerationFlag(flag).catch((error) => ({
+      error: error instanceof Error ? error.message : "Unknown alert error",
+    }));
+    const row = {
+      chat_id: flag.message.chat_id,
+      message_id: flag.message.message_id,
+      message_thread_id: flag.message.message_thread_id,
+      message_sent_at: flag.message.sent_at,
+      from_user_id: flag.message.from_user_id,
+      from_username: flag.message.from_username,
+      from_display_name: displayNameFromRow(flag.message),
+      rule_key: flag.rule.key,
+      severity: flag.severity,
+      reason: flag.reason,
+      evidence: flag.evidence || null,
+      moderation_model: model,
+      raw_result: { rawResult, rawFlag: flag.rawFlag },
+      notified_at: alert?.message_id ? now : null,
+      alert_message_id: alert?.message_id || null,
+      updated_at: now,
+    };
+
+    const { error } = await supabaseAdmin
+      .from("telegram_moderation_flags")
+      .upsert(row, { onConflict: "chat_id,message_id" });
+    if (error) throw error;
+
+    const { error: messageError } = await supabaseAdmin
+      .from("telegram_digest_messages")
+      .update({
+        moderation_checked_at: now,
+        moderation_status: "flagged",
+        moderation_result_json: row.raw_result,
+      })
+      .eq("chat_id", flag.message.chat_id)
+      .eq("message_id", flag.message.message_id);
+    if (messageError) throw messageError;
+
+    saved.push({
+      chatId: String(flag.message.chat_id),
+      messageId: flag.message.message_id,
+      ruleKey: flag.rule.key,
+      severity: flag.severity,
+      alerted: Boolean(alert?.message_id),
+      alertError: alert?.error || null,
+    });
+  }
+
+  return saved;
+}
+
+async function runModerationScan({ limit } = {}) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw Object.assign(new Error("OPENROUTER_API_KEY is required."), {
+      statusCode: 500,
+    });
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+  const batchLimit = Number(limit || process.env.TELEGRAM_MODERATION_BATCH_LIMIT);
+  const messages = await pendingModerationMessages(
+    supabaseAdmin,
+    Number.isFinite(batchLimit) && batchLimit > 0
+      ? batchLimit
+      : DEFAULT_MODERATION_BATCH_LIMIT,
+  );
+  if (!messages.length) return { scanned: 0, flags: [] };
+
+  const result = await openRouterJsonRequest({
+    apiKey,
+    prompt: moderationPrompt(messages),
+    maxTokens: 1800,
+    requestLabel: "moderation",
+  });
+  const flags = cleanModerationFlags(result.summary, messages);
+  const flaggedKeys = new Set(
+    flags.map((flag) => `${flag.message.chat_id}:${flag.message.message_id}`),
+  );
+  const cleanMessages = messages.filter(
+    (message) => !flaggedKeys.has(`${message.chat_id}:${message.message_id}`),
+  );
+
+  await markModerationClean(
+    supabaseAdmin,
+    cleanMessages,
+    result.summary,
+    result.model,
+  );
+  const savedFlags = await saveModerationFlags(
+    supabaseAdmin,
+    flags,
+    result.model,
+    result.summary,
+  );
+
+  return {
+    scanned: messages.length,
+    clean: cleanMessages.length,
+    flagged: savedFlags.length,
+    flags: savedFlags,
+  };
+}
+
 function splitTelegramText(text) {
   const chunks = [];
   let remaining = text;
@@ -1291,6 +1634,7 @@ module.exports = {
   parseBody,
   requireBearerSecret,
   requireTelegramWebhookSecret,
+  runModerationScan,
   runDailyReport,
   sendError,
   sendSourceDigestTeasers,

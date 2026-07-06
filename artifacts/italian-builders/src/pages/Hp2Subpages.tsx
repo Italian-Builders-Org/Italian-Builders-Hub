@@ -1317,7 +1317,7 @@ export function Hp2PrivacyPage() {
         ],
         [
           "Telegram digest bot",
-          "The Telegram bot stores message text, links, chat IDs, topic IDs, message IDs, and timestamps from approved community chats. It does not store sender names, Telegram handles, or tag people in digests. Digest generation may send the relevant message text to OpenRouter model providers. Full digests are visible only to signed-in members.",
+          "The Telegram bot stores message text, links, chat IDs, topic IDs, message IDs, timestamps, and minimal sender metadata from approved community chats. Sender metadata is used for admin-only moderation review. Public digest output does not tag people. Digest and moderation processing may send relevant message text to OpenRouter model providers. Full digests are visible only to signed-in members.",
         ],
         [
           "Service providers",

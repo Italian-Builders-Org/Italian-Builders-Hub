@@ -9,7 +9,9 @@ previous-day Italian digest after midnight in Italy.
 - Stores only message text, message links, message IDs, chat IDs, timestamps,
   chat titles, and Telegram forum topic titles when Telegram sends topic
   create/rename service events.
-- Does not store Telegram user names, handles, or sender IDs.
+- Stores Telegram sender metadata only for moderation review: sender ID,
+  username, first/last name, and sender-chat title when Telegram provides them.
+  Digest output still avoids usernames and person tags.
 - Runs `/api/telegram/daily-report` from Vercel Cron at `23:10 UTC`.
 - Summarizes the previous `Europe/Rome` calendar day.
 - Sends the report only to `TELEGRAM_DIGEST_OWNER_CHAT_ID`.
@@ -17,6 +19,9 @@ previous-day Italian digest after midnight in Italy.
   the full member-only V2 digest page on `https://italianbuilders.co`.
 - Saves the generated report to `public.telegram_daily_reports`, where it is
   readable only by signed-in members.
+- Scans new messages for clear community-rule violations and creates
+  admin-review moderation flags. The bot does not apply strikes, delete
+  messages, or remove members.
 - Uses `google/gemini-3.5-flash` through OpenRouter by default, with Gemini
   Flash fallback models configured in code.
 
@@ -44,6 +49,7 @@ TELEGRAM_DIGEST_OWNER_CHAT_ID
 OPENROUTER_API_KEY
 TELEGRAM_DIGEST_PUBLIC_BASE_URL=https://italianbuilders.co
 TELEGRAM_DIGEST_PUBLIC_PATH=/hp-2/dashboard/digests
+TELEGRAM_MODERATION_ALERT_CHAT_ID
 ```
 
 4. Deploy the project so `/api/telegram/webhook` is public over HTTPS.
@@ -67,6 +73,21 @@ channel post updates.
 The bot does not answer inside source channels. It only listens, stores the
 message text needed for the digest, sends the finished digest to your configured
 private chat ID, and exposes the generated digest inside the member website.
+
+## Moderation Triage
+
+The moderation layer is flag-only. It scans stored messages against the
+community rules and writes clear suspected violations to
+`public.telegram_moderation_flags`. If `TELEGRAM_MODERATION_ALERT_CHAT_ID` is
+configured, it also sends an admin alert.
+
+Rules are intentionally conservative:
+
+- In doubt, do not flag.
+- One flag per message maximum.
+- Context, irony, quotes, jokes, and honest technical criticism are considered.
+- Sharing a project with useful context is allowed.
+- Admins decide warnings, removals, or any other action.
 
 ## Forum Topics
 
