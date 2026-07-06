@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/telegram/moderation-scan",
-      "schedule": "*/10 * * * *"
+      "schedule": "20 6 * * *"
     },
     {
       "path": "/api/telegram-onboarding/email-queue",
