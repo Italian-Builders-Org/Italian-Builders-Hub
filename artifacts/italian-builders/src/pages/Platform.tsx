@@ -1472,10 +1472,12 @@ function SignInPanel({
   compact = false,
   allowSignup = false,
   invitedEmail,
+  onPasswordAuth,
 }: {
   compact?: boolean;
   allowSignup?: boolean;
   invitedEmail?: string | null;
+  onPasswordAuth?: () => void;
 }) {
   const { techLabels } = useTechLabels();
   const joinHref = usePlatformHref("/join");
@@ -1532,10 +1534,13 @@ function SignInPanel({
     }
 
     const authEmail = email.trim().toLowerCase();
+    const passwordResetRedirectTo = invitedEmail
+      ? authRedirectUrl()
+      : authRedirectUrl("/reset-password");
     const result =
       mode === "forgot"
         ? await supabase.auth.resetPasswordForEmail(authEmail, {
-            redirectTo: authRedirectUrl("/reset-password"),
+            redirectTo: passwordResetRedirectTo,
           })
         : mode === "signin"
           ? await supabase.auth.signInWithPassword({
@@ -1551,6 +1556,9 @@ function SignInPanel({
     if (result.error) {
       setError(friendlyAuthError(result.error.message));
     } else {
+      if (mode !== "forgot") {
+        onPasswordAuth?.();
+      }
       setMessage(
         mode === "forgot"
           ? `Check ${authEmail} for the password reset link.`
@@ -4435,7 +4443,6 @@ function ProfileForm({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [invitePassword, setInvitePassword] = useState("");
   const [mode, setMode] = useState<ProfileEditorMode>("edit");
   const [previewDevice, setPreviewDevice] =
     useState<ProfilePreviewDevice>("desktop");
@@ -4488,21 +4495,6 @@ function ProfileForm({
     }
 
     if (inviteToken) {
-      if (invitePassword.length < 6) {
-        setError("Set a password with at least 6 characters.");
-        setSaving(false);
-        return;
-      }
-
-      const { error: passwordError } = await supabase.auth.updateUser({
-        password: invitePassword,
-      });
-      if (passwordError) {
-        setError(passwordError.message);
-        setSaving(false);
-        return;
-      }
-
       const { error: rpcError } = await supabase.rpc("accept_invite", {
         invite_token: inviteToken,
         profile_username: form.username,
@@ -4648,29 +4640,6 @@ function ProfileForm({
         <ActionableErrorMessage message={error} />
       </div>
 
-      {inviteToken && (
-        <section className="dt-card p-4 md:p-5">
-          <Field
-            label={{ tech: "ACCOUNT_PASSWORD", friendly: "Account password" }}
-            required
-            hint={
-              techLabels
-                ? "Set the password for future member login."
-                : "Set the password you will use to sign in later."
-            }
-          >
-            <Input
-              className={inputClass}
-              type="password"
-              value={invitePassword}
-              onChange={(event) => setInvitePassword(event.target.value)}
-              required
-              minLength={6}
-            />
-          </Field>
-        </section>
-      )}
-
       {mode === "preview" ? (
         <div className="space-y-4">
           <div className="flex justify-end gap-2">
@@ -4698,6 +4667,194 @@ function ProfileForm({
   );
 }
 
+function invitePasswordStorageKey(inviteToken: string, userId: string) {
+  return `italian-builders:invite-password:${inviteToken}:${userId}`;
+}
+
+function readInvitePasswordReady(inviteToken: string, userId: string) {
+  if (typeof window === "undefined") return false;
+  try {
+    return (
+      window.sessionStorage.getItem(
+        invitePasswordStorageKey(inviteToken, userId),
+      ) === "set"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function markInvitePasswordReady(inviteToken: string, userId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      invitePasswordStorageKey(inviteToken, userId),
+      "set",
+    );
+  } catch {
+    // Session storage is a convenience guard; the Auth password update is the source of truth.
+  }
+}
+
+function InvitePasswordGate({
+  userId,
+  inviteToken,
+  signedInAs,
+  passwordAlreadySet = false,
+  children,
+}: {
+  userId: string;
+  inviteToken: string;
+  signedInAs?: string | null;
+  passwordAlreadySet?: boolean;
+  children: React.ReactNode;
+}) {
+  const { techLabels } = useTechLabels();
+  const [passwordReady, setPasswordReady] = useState(() =>
+    readInvitePasswordReady(inviteToken, userId),
+  );
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (passwordAlreadySet) {
+      markInvitePasswordReady(inviteToken, userId);
+      setPasswordReady(true);
+      return;
+    }
+    setPasswordReady(readInvitePasswordReady(inviteToken, userId));
+  }, [inviteToken, passwordAlreadySet, userId]);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+
+    if (!supabase) {
+      setError("The community backend is not configured in this deployment.");
+      setSaving(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      setSaving(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setSaving(false);
+      return;
+    }
+
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+    if (sessionError || sessionData.session?.user.id !== userId) {
+      setError(
+        "Your invite session expired. Open the invite link again before setting a password.",
+      );
+      setSaving(false);
+      return;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password,
+    });
+    if (updateError) {
+      setError(updateError.message);
+      setSaving(false);
+      return;
+    }
+
+    markInvitePasswordReady(inviteToken, userId);
+    setPassword("");
+    setConfirmPassword("");
+    setMessage("Password saved. Complete your profile to activate the invite.");
+    setPasswordReady(true);
+    setSaving(false);
+  }
+
+  if (passwordReady) {
+    return (
+      <div className="space-y-4">
+        <StatusMessage message={message} />
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <Card className="space-y-5 p-6">
+      <div className="flex items-start gap-3">
+        <Lock className="mt-0.5 shrink-0 text-blue-400" size={18} />
+        <div>
+          <h2 className="text-xl font-bold text-zinc-100">
+            {techLabels ? "SET_ACCOUNT_PASSWORD" : "Set your password first"}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+            {techLabels
+              ? "Persist auth credential before profile onboarding."
+              : "Save the password you will use for future login before completing your public profile."}
+          </p>
+          {signedInAs && (
+            <p className="mt-2 font-mono text-xs text-zinc-600">
+              {techLabels ? "SESSION_EMAIL" : "Signed in as"} {signedInAs}
+            </p>
+          )}
+        </div>
+      </div>
+      <form onSubmit={submit} className="space-y-4">
+        <Field
+          label={{ tech: "ACCOUNT_PASSWORD", friendly: "Account password" }}
+          required
+        >
+          <Input
+            className={inputClass}
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            minLength={6}
+          />
+        </Field>
+        <Field
+          label={{ tech: "CONFIRM_PASSWORD", friendly: "Confirm password" }}
+          required
+        >
+          <Input
+            className={inputClass}
+            type="password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+            minLength={6}
+          />
+        </Field>
+        <StatusMessage message={message} />
+        <ActionableErrorMessage message={error} />
+        <Button
+          type="submit"
+          disabled={saving}
+          className="h-10 rounded-sm bg-blue-600 px-4 text-white hover:bg-blue-500"
+        >
+          {saving
+            ? techLabels
+              ? "SAVING..."
+              : "Saving..."
+            : techLabels
+              ? "SAVE_PASSWORD"
+              : "Save password"}
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
 export function InvitePage() {
   const { techLabels } = useTechLabels();
   const dashboardHref = usePlatformHref("/dashboard");
@@ -4711,6 +4868,7 @@ export function InvitePage() {
   const [invite, setInvite] = useState<InviteLookup | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [passwordAuthCompleted, setPasswordAuthCompleted] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -4729,6 +4887,10 @@ export function InvitePage() {
       setLoading(false);
     }
     load();
+  }, [params.token]);
+
+  useEffect(() => {
+    setPasswordAuthCompleted(false);
   }, [params.token]);
 
   const inviteEmail = invite?.email ?? null;
@@ -4777,7 +4939,12 @@ export function InvitePage() {
             />
           )}
           {!authLoading && !user && (
-            <SignInPanel compact allowSignup invitedEmail={inviteEmail} />
+            <SignInPanel
+              compact
+              allowSignup
+              invitedEmail={inviteEmail}
+              onPasswordAuth={() => setPasswordAuthCompleted(true)}
+            />
           )}
         </div>
         {inviteBlockedByExistingProfile ? (
@@ -4850,12 +5017,19 @@ export function InvitePage() {
             </Button>
           </Card>
         ) : user && invite?.id ? (
-          <ProfileForm
+          <InvitePasswordGate
             userId={user.id}
-            initialProfile={null}
             inviteToken={params.token}
-            initialForm={inviteToProfileForm(invite)}
-          />
+            signedInAs={signedInAs}
+            passwordAlreadySet={passwordAuthCompleted}
+          >
+            <ProfileForm
+              userId={user.id}
+              initialProfile={null}
+              inviteToken={params.token}
+              initialForm={inviteToProfileForm(invite)}
+            />
+          </InvitePasswordGate>
         ) : user && invite ? (
           <Card className="space-y-4 p-6 text-sm text-zinc-500">
             <div className="flex items-center gap-3">

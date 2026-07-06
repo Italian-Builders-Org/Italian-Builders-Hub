@@ -17,7 +17,7 @@ const defaultDescription =
   "Italian Builders helps founders, developers, designers and makers discover each other, share projects and create opportunities.";
 const defaultImage = absoluteUrl("/api/og-home-image");
 const defaultImageAlt =
-  "Italian Builders homepage hero: connecting the people who build.";
+  "Italian Builders homepage hero with builder map, projects and community initiatives.";
 const socialProfiles = [
   "https://x.com/italianbldrs",
   "https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all",

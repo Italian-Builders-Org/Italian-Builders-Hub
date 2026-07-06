@@ -494,7 +494,7 @@ function buildImage(stats) {
             },
           },
           h("div", { style: { fontSize: 20, color: "#f4f4f5" } }, communityProjectCount),
-          h("div", { style: { fontSize: 10, color: "#71717a", letterSpacing: 1.8, textTransform: "uppercase" } }, "Ideas"),
+          h("div", { style: { fontSize: 10, color: "#71717a", letterSpacing: 1.8, textTransform: "uppercase" } }, "Initiatives"),
         ),
       ),
     ),
