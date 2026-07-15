@@ -8,11 +8,10 @@ import type {
 } from "@/lib/supabase";
 
 const siteName = "Italian Builders";
-const siteOrigin =
-  (import.meta.env.VITE_APP_BASE_URL as string | undefined)?.replace(
-    /\/$/,
-    "",
-  ) || "https://italianbuilders.co";
+// Canonical SEO URLs must always use the public production domain. The
+// deployment base URL can legitimately be a Vercel alias and must not leak
+// into canonical, Open Graph, or structured-data URLs.
+const siteOrigin = "https://italianbuilders.co";
 const defaultDescription =
   "Italian Builders helps founders, developers, designers and makers discover each other, share projects and create opportunities.";
 const defaultImage = absoluteUrl("/api/og-home-image");
