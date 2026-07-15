@@ -15,6 +15,7 @@ import {
   Linkedin,
   Lock,
   LogOut,
+  MapPin,
   MessageCircle,
   Monitor,
   Newspaper,
@@ -29,8 +30,8 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import { Header, Footer, StyleSwitch, useTechLabels } from "@/pages/Home";
 import { R2FooterAuthLinks } from "@/pages/Hp2";
+import { useTechLabels } from "@/lib/label-mode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { defaultAvatarUrl } from "@/lib/assets";
@@ -197,10 +198,78 @@ const projectCategorySelect =
 const projectCategoryRelationSelect =
   "project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))";
 const anonymousProfileSelect =
-  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
+  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, municipality_istat_code, province_code, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
 const italianCitySelect =
   "istat_code, name, search_name, region, province_code, latitude, longitude";
 const hiddenProjectCategorySlugs = new Set(["virtual-try-on"]);
+const allFilterValue = "All";
+
+type FilterOption = {
+  value: string;
+  label: string;
+};
+
+function sortedUnique(values: Array<string | null | undefined>) {
+  return Array.from(
+    new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]),
+  ).sort((a, b) => a.localeCompare(b));
+}
+
+function profileLocationFilterOption(profile: Profile): FilterOption | null {
+  const city = profile.city?.trim();
+  if (!city) return null;
+
+  const province = profile.province_code?.trim().toUpperCase() ?? "";
+  const value =
+    profile.municipality_istat_code ||
+    `${province || "unknown"}:${normalizeItalianCitySearch(city)}`;
+
+  return {
+    value,
+    label: province ? `${city} (${province})` : city,
+  };
+}
+
+function uniqueOptions(options: Array<FilterOption | null>) {
+  const seen = new Set<string>();
+  return options
+    .filter((option): option is FilterOption => Boolean(option))
+    .filter((option) => {
+      if (seen.has(option.value)) return false;
+      seen.add(option.value);
+      return true;
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function profileMatchesLocation(
+  profile: Profile,
+  province: string,
+  city: string,
+) {
+  if (
+    province !== allFilterValue &&
+    profile.province_code?.toUpperCase() !== province
+  ) {
+    return false;
+  }
+
+  if (city !== allFilterValue) {
+    return profileLocationFilterOption(profile)?.value === city;
+  }
+
+  return true;
+}
+
+function profileLocationLabel(
+  profile: Pick<Profile, "city" | "country" | "location">,
+) {
+  return locationLabel({
+    city: profile.city,
+    country: profile.country,
+    fallback: profile.location,
+  });
+}
 
 function effectiveTelegramHandle(
   profile?: Pick<Profile, "telegram_bot_username" | "telegram_handle"> | null,
@@ -360,29 +429,10 @@ function telegramDeepLink(handle?: string | null, text?: string) {
 }
 
 function useR2PlatformMode() {
-  const [location] = useLocation();
-  return location.startsWith("/hp-2");
+  return true;
 }
 
-function platformPath(path: string, r2: boolean) {
-  if (!r2 || !path.startsWith("/")) return path;
-  if (path.startsWith("/hp-2")) return path;
-  if (
-    path === "/" ||
-    path.startsWith("/dashboard") ||
-    path.startsWith("/admin") ||
-    path.startsWith("/builders") ||
-    path.startsWith("/projects") ||
-    path.startsWith("/community-projects") ||
-    path === "/content" ||
-    path.startsWith("/pantheon") ||
-    path.startsWith("/mission") ||
-    path.startsWith("/join") ||
-    path.startsWith("/privacy") ||
-    path.startsWith("/terms")
-  ) {
-    return path === "/" ? "/hp-2" : `/hp-2${path}`;
-  }
+function platformPath(path: string, _r2: boolean) {
   return path;
 }
 
@@ -421,24 +471,24 @@ function R2PlatformHeader({ isAdmin }: { isAdmin: boolean }) {
 
   async function signOut() {
     await supabase?.auth.signOut();
-    window.location.href = "/hp-2";
+    window.location.href = "/";
   }
 
   const profileHref = profile?.username
-    ? `/hp-2/builders/${profile.username}`
-    : "/hp-2/dashboard/profile";
+    ? `/builders/${profile.username}`
+    : "/dashboard/profile";
 
   return (
     <header className="hp2-mast hp2-platform-mast">
-      <a href="/hp-2" className="hp2-logo-link" aria-label="Italian Builders">
+      <a href="/" className="hp2-logo-link" aria-label="Italian Builders">
         <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
       </a>
-      <nav aria-label="R2 member navigation">
-        <a href="/hp-2/builders">Builders</a>
-        <a href="/hp-2/projects">Projects</a>
-        <a href="/hp-2/community-projects">Community</a>
-        <a href="/hp-2/content">Content</a>
-        <a href="/hp-2/pantheon">Pantheon</a>
+      <nav aria-label="Member navigation">
+        <a href="/builders">Builders</a>
+        <a href="/projects">Projects</a>
+        <a href="/community-projects">Community</a>
+        <a href="/content">Content</a>
+        <a href="/pantheon">Pantheon</a>
         {loading ? (
           <span className="hp2-auth-placeholder" />
         ) : user ? (
@@ -447,19 +497,18 @@ function R2PlatformHeader({ isAdmin }: { isAdmin: boolean }) {
               <img src={profile?.avatar_url || defaultAvatarUrl} alt="" />
               Profile
             </a>
-            <a href="/hp-2/dashboard">Dashboard</a>
-            {isAdmin && <a href="/hp-2/admin">Admin</a>}
+            <a href="/dashboard">Dashboard</a>
+            {isAdmin && <a href="/admin">Admin</a>}
             <button type="button" onClick={signOut}>
               <LogOut size={13} /> Sign out
             </button>
           </>
         ) : (
           <>
-            <a href="/hp-2/login">Login</a>
-            <a href="/hp-2/join">Join</a>
+            <a href="/login">Login</a>
+            <a href="/join">Join</a>
           </>
         )}
-        <StyleSwitch currentStyle="r2" />
       </nav>
     </header>
   );
@@ -492,20 +541,17 @@ function platformBreadcrumbLabel(segment: string) {
 
 function R2PlatformBreadcrumbBar() {
   const [location] = useLocation();
-  const pathname = location.split(/[?#]/)[0].replace(/\/+$/, "") || "/hp-2";
+  const pathname = location.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
 
-  if (pathname === "/hp-2") return null;
+  if (pathname === "/") return null;
 
-  const segments = pathname
-    .replace(/^\/hp-2\/?/, "")
-    .split("/")
-    .filter(Boolean);
+  const segments = pathname.replace(/^\/+/, "").split("/").filter(Boolean);
 
   return (
     <div className="hp2-breadcrumbs">
-      <a href="/hp-2">Home</a>
+      <a href="/">Home</a>
       {segments.map((segment, index) => {
-        const href = `/hp-2/${segments.slice(0, index + 1).join("/")}`;
+        const href = `/${segments.slice(0, index + 1).join("/")}`;
         const isCurrent = index === segments.length - 1;
         const label = platformBreadcrumbLabel(segment);
 
@@ -533,36 +579,36 @@ function R2PlatformFooter({ isAdmin }: { isAdmin: boolean }) {
       <div className="hp2-footer-links">
         <section aria-label="Member">
           <h2>Member</h2>
-          <a href="/hp-2/dashboard">Dashboard</a>
-          <a href="/hp-2/dashboard/digests">Daily digest</a>
-          <a href="/hp-2/dashboard/profile">Profile</a>
-          <a href="/hp-2/dashboard/projects">My projects</a>
-          <a href="/hp-2/dashboard/contributions">Contributions</a>
+          <a href="/dashboard">Dashboard</a>
+          <a href="/dashboard/digests">Daily digest</a>
+          <a href="/dashboard/profile">Profile</a>
+          <a href="/dashboard/projects">My projects</a>
+          <a href="/dashboard/contributions">Contributions</a>
         </section>
         {isAdmin && (
           <section aria-label="Admin">
             <h2>Admin</h2>
-            <a href="/hp-2/admin">Admin home</a>
-            <a href="/hp-2/admin/waitlist">Waitlist</a>
-            <a href="/hp-2/admin/invites">Invites</a>
-            <a href="/hp-2/admin/members">Members</a>
-            <a href="/hp-2/admin/content">Content</a>
-            <a href="/hp-2/admin/community-projects">Community projects</a>
+            <a href="/admin">Admin home</a>
+            <a href="/admin/waitlist">Waitlist</a>
+            <a href="/admin/invites">Invites</a>
+            <a href="/admin/members">Members</a>
+            <a href="/admin/content">Content</a>
+            <a href="/admin/community-projects">Community projects</a>
           </section>
         )}
         <section aria-label="Public">
           <h2>Public</h2>
-          <a href="/hp-2/builders">Builders</a>
-          <a href="/hp-2/projects">Project showcase</a>
-          <a href="/hp-2/community-projects">Community projects</a>
-          <a href="/hp-2/content">Content</a>
-          <a href="/hp-2/pantheon">Pantheon</a>
-          <a href="/hp-2/mission">Mission</a>
+          <a href="/builders">Builders</a>
+          <a href="/projects">Project showcase</a>
+          <a href="/community-projects">Community projects</a>
+          <a href="/content">Content</a>
+          <a href="/pantheon">Pantheon</a>
+          <a href="/mission">Mission</a>
         </section>
         <section aria-label="Legal">
           <h2>Legal</h2>
-          <a href="/hp-2/privacy">Privacy policy</a>
-          <a href="/hp-2/terms">Terms of service</a>
+          <a href="/privacy">Privacy policy</a>
+          <a href="/terms">Terms of service</a>
           <a href="mailto:info@italianbuilders.co">Contact us</a>
         </section>
         <section aria-label="Social">
@@ -590,7 +636,6 @@ function R2PlatformFooter({ isAdmin }: { isAdmin: boolean }) {
         <p>© {new Date().getFullYear()} Italian Builders.</p>
         <div>
           <R2FooterAuthLinks />
-          <StyleSwitch />
         </div>
       </div>
     </footer>
@@ -612,19 +657,7 @@ function R2PlatformShell({ children }: { children: React.ReactNode }) {
 }
 
 function PageShell({ children }: { children: React.ReactNode }) {
-  const r2 = useR2PlatformMode();
-
-  if (r2) {
-    return <R2PlatformShell>{children}</R2PlatformShell>;
-  }
-
-  return (
-    <div className="dark-technical-theme min-h-screen bg-zinc-950">
-      <Header />
-      <main>{children}</main>
-      <Footer />
-    </div>
-  );
+  return <R2PlatformShell>{children}</R2PlatformShell>;
 }
 
 function HeroBlock({
@@ -2264,9 +2297,14 @@ export function BuildersDirectoryPage() {
   const { user, loading: sessionLoading } = useSupabaseSession();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [query, setQuery] = useState("");
-  const [role, setRole] = useState("All");
+  const [role, setRole] = useState(allFilterValue);
+  const [province, setProvince] = useState(allFilterValue);
+  const [city, setCity] = useState(allFilterValue);
+  const [skill, setSkill] = useState(allFilterValue);
+  const [need, setNeed] = useState(allFilterValue);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const memberDiscoveryEnabled = Boolean(user?.id);
 
   useEffect(() => {
     async function load() {
@@ -2290,22 +2328,62 @@ export function BuildersDirectoryPage() {
   }, [sessionLoading, user?.id]);
 
   const roles = useMemo(
-    () => [
-      "All",
-      ...Array.from(
-        new Set(profiles.map((profile) => profile.role).filter(Boolean)),
-      ),
-    ],
+    () => sortedUnique(profiles.map((profile) => profile.role)),
     [profiles],
   );
+  const provinces = useMemo(
+    () =>
+      sortedUnique(
+        profiles.map((profile) => profile.province_code?.toUpperCase()),
+      ),
+    [profiles],
+  );
+  const cities = useMemo(() => {
+    const candidates =
+      province === allFilterValue
+        ? profiles
+        : profiles.filter(
+            (profile) => profile.province_code?.toUpperCase() === province,
+          );
+    return uniqueOptions(candidates.map(profileLocationFilterOption));
+  }, [profiles, province]);
+  const skills = useMemo(
+    () => sortedUnique(profiles.flatMap((profile) => profile.skills ?? [])),
+    [profiles],
+  );
+  const needs = useMemo(
+    () =>
+      sortedUnique(profiles.flatMap((profile) => profile.looking_for ?? [])),
+    [profiles],
+  );
+
+  useEffect(() => {
+    setCity(allFilterValue);
+  }, [province]);
+
   const filtered = profiles.filter((profile) => {
+    const normalizedQuery = query.toLowerCase();
     const haystack =
-      `${profile.full_name} ${profile.username} ${profile.headline ?? ""} ${profile.city ?? ""} ${profile.skills?.join(" ") ?? ""}`.toLowerCase();
+      `${profile.full_name} ${profile.username} ${profile.headline ?? ""} ${profile.bio ?? ""} ${profile.city ?? ""} ${profile.province_code ?? ""} ${profile.skills?.join(" ") ?? ""} ${profile.looking_for?.join(" ") ?? ""}`.toLowerCase();
+    const matchesMemberFilters =
+      !memberDiscoveryEnabled ||
+      (profileMatchesLocation(profile, province, city) &&
+        (skill === allFilterValue || profile.skills?.includes(skill)) &&
+        (need === allFilterValue || profile.looking_for?.includes(need)));
+
     return (
-      haystack.includes(query.toLowerCase()) &&
-      (role === "All" || profile.role === role)
+      haystack.includes(normalizedQuery) &&
+      (role === allFilterValue || profile.role === role) &&
+      matchesMemberFilters
     );
   });
+  const hasActiveFilters =
+    query.trim().length > 0 ||
+    role !== allFilterValue ||
+    province !== allFilterValue ||
+    city !== allFilterValue ||
+    skill !== allFilterValue ||
+    need !== allFilterValue;
 
   return (
     <PageShell>
@@ -2330,7 +2408,13 @@ export function BuildersDirectoryPage() {
         }}
       />
       <section className="container mx-auto px-4 py-12 md:px-6">
-        <div className="mb-8 grid gap-3 md:grid-cols-[1fr_220px]">
+        <div
+          className={`mb-3 grid gap-3 ${
+            memberDiscoveryEnabled
+              ? "md:grid-cols-[minmax(0,1fr)_180px_150px_220px]"
+              : "md:grid-cols-[minmax(0,1fr)_220px]"
+          }`}
+        >
           <div className="relative">
             <Search className="absolute left-3 top-3 text-zinc-600" size={16} />
             <Input
@@ -2345,24 +2429,88 @@ export function BuildersDirectoryPage() {
             value={role}
             onChange={(event) => setRole(event.target.value)}
           >
+            <option value={allFilterValue}>All roles</option>
             {roles.map((item) => (
-              <option key={item}>{item}</option>
+              <option key={item} value={item}>
+                {item}
+              </option>
             ))}
           </select>
+          {memberDiscoveryEnabled && (
+            <>
+              <select
+                className={selectClass}
+                value={province}
+                onChange={(event) => setProvince(event.target.value)}
+              >
+                <option value={allFilterValue}>All provinces</option>
+                {provinces.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              <select
+                className={selectClass}
+                value={city}
+                onChange={(event) => setCity(event.target.value)}
+              >
+                <option value={allFilterValue}>All comuni</option>
+                {cities.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
+        {memberDiscoveryEnabled && (
+          <div className="mb-8 grid gap-3 md:grid-cols-2">
+            <select
+              className={selectClass}
+              value={skill}
+              onChange={(event) => setSkill(event.target.value)}
+            >
+              <option value={allFilterValue}>All skills</option>
+              {skills.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+            <select
+              className={selectClass}
+              value={need}
+              onChange={(event) => setNeed(event.target.value)}
+            >
+              <option value={allFilterValue}>All needs</option>
+              {needs.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <ActionableErrorMessage message={error} />
         {loading ? (
           <SkeletonList />
         ) : filtered.length === 0 ? (
           <EmptyState
             title={{
-              tech: "NO_PUBLIC_PROFILES",
-              friendly: "No public builders yet",
+              tech: hasActiveFilters ? "NO_MATCHING_PROFILES" : "NO_PROFILES",
+              friendly: hasActiveFilters
+                ? "No matching builders"
+                : "No builders yet",
             }}
             copy={{
-              tech: "No public profile records are currently available.",
-              friendly:
-                "Once invited members complete onboarding, they will appear here.",
+              tech: hasActiveFilters
+                ? "No profile records match the active discovery filters."
+                : "No visible profile records are currently available.",
+              friendly: hasActiveFilters
+                ? "Try another city, provincia, skill, or search query."
+                : "Once invited members complete onboarding, they will appear here.",
             }}
           />
         ) : (
@@ -2391,10 +2539,23 @@ export function BuildersDirectoryPage() {
                 <p className="mb-2 text-sm font-medium text-zinc-200">
                   {profile.headline || profile.role || "Builder"}
                 </p>
+                <p className="mb-4 inline-flex items-center gap-1.5 text-xs font-mono uppercase text-zinc-500">
+                  <MapPin size={12} /> {profileLocationLabel(profile)}
+                  {profile.province_code ? ` · ${profile.province_code}` : ""}
+                </p>
                 <p className="mb-5 line-clamp-3 text-sm leading-relaxed text-zinc-500">
                   {profile.bio || "This member has not added a bio yet."}
                 </p>
                 <Tags items={profile.skills} />
+                {memberDiscoveryEnabled &&
+                  (profile.looking_for?.length ?? 0) > 0 && (
+                    <div className="mt-4 border-t border-zinc-900 pt-4">
+                      <p className="mb-2 text-[10px] font-mono uppercase text-zinc-600">
+                        Looking for
+                      </p>
+                      <Tags items={profile.looking_for} />
+                    </div>
+                  )}
                 <span className="mt-5 inline-flex items-center gap-2 text-xs font-mono uppercase text-blue-400">
                   {techLabels ? "OPEN_PROFILE" : "View profile"}{" "}
                   <ArrowRight size={12} />
@@ -3672,6 +3833,8 @@ type ProfileFormState = {
   country: string;
   latitude: string;
   longitude: string;
+  municipality_istat_code: string;
+  province_code: string;
   intro_video_url: string;
   visibility: Profile["visibility"];
 };
@@ -3701,6 +3864,8 @@ function profileToForm(profile: Profile | null): ProfileFormState {
     country,
     latitude: profile?.latitude?.toString() ?? inferredCoords.latitude,
     longitude: profile?.longitude?.toString() ?? inferredCoords.longitude,
+    municipality_istat_code: profile?.municipality_istat_code ?? "",
+    province_code: profile?.province_code ?? "",
     intro_video_url: profile?.intro_video_url ?? "",
     visibility: profile?.visibility ?? "members",
   };
@@ -3849,6 +4014,8 @@ function ProfileEditorView({
   function updateCity(value: string) {
     const coords = inferredCoordinateText(value, form.country);
     update("city", value);
+    update("municipality_istat_code", "");
+    update("province_code", "");
     update("latitude", coords.latitude);
     update("longitude", coords.longitude);
   }
@@ -3856,6 +4023,10 @@ function ProfileEditorView({
   function updateCountry(value: string) {
     const coords = inferredCoordinateText(form.city, value);
     update("country", value);
+    if (!cityLookupEnabled(value)) {
+      update("municipality_istat_code", "");
+      update("province_code", "");
+    }
     update("latitude", coords.latitude);
     update("longitude", coords.longitude);
   }
@@ -3864,6 +4035,8 @@ function ProfileEditorView({
     const coords = italianCityCoordinateText(city);
     update("city", city.name);
     update("country", "Italy");
+    update("municipality_istat_code", city.istat_code);
+    update("province_code", city.province_code ?? "");
     update("latitude", coords.latitude);
     update("longitude", coords.longitude);
   }
@@ -4527,6 +4700,8 @@ function ProfileForm({
             location: null,
             latitude,
             longitude,
+            municipality_istat_code: form.municipality_istat_code || null,
+            province_code: form.province_code || null,
             intro_video_url:
               normalizeHttpUrlInput(form.intro_video_url) || null,
             visibility: form.visibility,
@@ -4562,6 +4737,8 @@ function ProfileForm({
       location: null,
       latitude,
       longitude,
+      municipality_istat_code: form.municipality_istat_code || null,
+      province_code: form.province_code || null,
       intro_video_url: normalizeHttpUrlInput(form.intro_video_url) || null,
       visibility: form.visibility,
       onboarding_completed: true,

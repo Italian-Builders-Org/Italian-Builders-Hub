@@ -150,7 +150,7 @@ function routeConfig(path: string): SeoConfig {
   const normalized = path === "" ? "/" : path;
   const routePath =
     normalized === "/hp-2"
-      ? "/hp-2"
+      ? "/"
       : normalized.startsWith("/hp-2/")
         ? normalized.replace(/^\/hp-2/, "") || "/"
         : normalized;
@@ -161,12 +161,13 @@ function routeConfig(path: string): SeoConfig {
     routePath.startsWith("/admin") ||
     routePath.startsWith("/invite") ||
     routePath.startsWith("/reset-password") ||
-    normalized === "/hp-2/login"
+    routePath === "/login" ||
+    routePath === "/login-code"
   ) {
     return {
       title: "Member area | Italian Builders",
       description: "Private Italian Builders member area.",
-      path: normalized,
+      path: routePath,
       ...noIndex,
     };
   }
@@ -176,14 +177,14 @@ function routeConfig(path: string): SeoConfig {
       title: "Italian builder directory | Italian Builders",
       description:
         "Browse public profiles from Italian founders, makers, developers, designers, operators, and technical contributors.",
-      path: normalized,
+      path: routePath,
       jsonLd: [
         {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          "@id": pageId(normalized),
+          "@id": pageId(routePath),
           name: "Italian builder directory",
-          url: absoluteUrl(normalized),
+          url: absoluteUrl(routePath),
           isPartOf: { "@id": `${siteOrigin}/#website` },
         },
       ],
@@ -195,14 +196,14 @@ function routeConfig(path: string): SeoConfig {
       title: "Italian builder projects | Italian Builders",
       description:
         "Explore live products, experiments, and open-source work from the Italian Builders network.",
-      path: normalized,
+      path: routePath,
       jsonLd: [
         {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          "@id": pageId(normalized),
+          "@id": pageId(routePath),
           name: "Italian builder projects",
-          url: absoluteUrl(normalized),
+          url: absoluteUrl(routePath),
           isPartOf: { "@id": `${siteOrigin}/#website` },
         },
       ],
@@ -214,7 +215,7 @@ function routeConfig(path: string): SeoConfig {
       title: "Community projects | Italian Builders",
       description:
         "Discover shared workstreams and community-maintained projects from Italian Builders members.",
-      path: normalized,
+      path: routePath,
     };
   }
 
@@ -223,14 +224,14 @@ function routeConfig(path: string): SeoConfig {
       title: "Community media | Italian Builders",
       description:
         "Browse videos, posts, and curated media from the Italian Builders community.",
-      path: normalized,
+      path: routePath,
       jsonLd: [
         {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          "@id": pageId(normalized),
+          "@id": pageId(routePath),
           name: "Community media",
-          url: absoluteUrl(normalized),
+          url: absoluteUrl(routePath),
           isPartOf: { "@id": `${siteOrigin}/#website` },
         },
       ],
@@ -242,7 +243,7 @@ function routeConfig(path: string): SeoConfig {
       title: "Open-source projects | Italian Builders",
       description:
         "Community-maintained open-source projects and shared infrastructure for Italian builders.",
-      path: normalized,
+      path: routePath,
     };
   }
 
@@ -251,14 +252,14 @@ function routeConfig(path: string): SeoConfig {
       title: "Pantheon of Italian innovators | Italian Builders",
       description:
         "A library of the greatest Italian inventors, scientists, artists and builders, from Leonardo da Vinci and Galileo to Olivetti and Faggin, and why they shaped the modern world.",
-      path: normalized,
+      path: routePath,
       jsonLd: [
         {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          "@id": pageId(normalized),
+          "@id": pageId(routePath),
           name: "Pantheon of Italian innovators",
-          url: absoluteUrl(normalized),
+          url: absoluteUrl(routePath),
           isPartOf: { "@id": `${siteOrigin}/#website` },
         },
       ],
@@ -270,17 +271,7 @@ function routeConfig(path: string): SeoConfig {
       title: "Mission | Italian Builders",
       description:
         "Italian Builders exists to connect people who build products, companies, software, creative work, and technology in or connected to Italy.",
-      path: normalized,
-    };
-  }
-
-  if (normalized === "/hp-2") {
-    return {
-      title: "Homepage preview 02 | Italian Builders",
-      description:
-        "Hidden alternate homepage proposal for the Italian Builders community.",
-      path: "/hp-2",
-      ...noIndex,
+      path: routePath,
     };
   }
 
@@ -289,7 +280,7 @@ function routeConfig(path: string): SeoConfig {
       title: "Request access | Italian Builders",
       description:
         "Request access to Italian Builders and share what you are building with the community.",
-      path: normalized,
+      path: routePath,
     };
   }
 
@@ -298,7 +289,7 @@ function routeConfig(path: string): SeoConfig {
       title: "Privacy Policy | Italian Builders",
       description:
         "How Italian Builders collects, uses, stores, and protects information for the community.",
-      path: normalized,
+      path: routePath,
     };
   }
 
@@ -307,14 +298,14 @@ function routeConfig(path: string): SeoConfig {
       title: "Terms of Service | Italian Builders",
       description:
         "The basic rules for using the Italian Builders website and community features.",
-      path: normalized,
+      path: routePath,
     };
   }
 
   return {
     title: "Italian Builders | connecting people who build",
     description: defaultDescription,
-    path: normalized,
+    path: routePath,
     imageAlt: defaultImageAlt,
   };
 }

@@ -16,7 +16,6 @@ import {
   useListBuilders,
   useListProjects,
 } from "@workspace/api-client-react";
-import { StyleSwitch, type HomeMapBuilder } from "@/pages/Home";
 import {
   STATIC_BUILDERS,
   STATIC_DIRECTORY_STATS,
@@ -33,6 +32,19 @@ import {
 import { supabase, useSupabaseSession } from "@/lib/supabase";
 import type { Profile } from "@/lib/supabase";
 import "./Hp2.css";
+
+type HomeMapBuilder = {
+  id: string | number;
+  name: string;
+  username?: string;
+  role: string;
+  location: string;
+  avatarUrl: string;
+  highlight: string;
+  tags: string[];
+  lat: number;
+  lng: number;
+};
 
 type Hp2Profile = Pick<
   Profile,
@@ -69,6 +81,7 @@ type Hp2GlobePoint = {
   lng: number;
   color: string;
   radius: number;
+  builderId?: HomeMapBuilder["id"];
 };
 
 const profileSelect =
@@ -82,6 +95,7 @@ const hp2EuropeGeoJsonUrl = "/maps/europe-italy-vector.geojson";
 const hp2MapOceanColor = "#101a14";
 const hp2MapCountryColor = "rgba(199, 184, 145, 0.82)";
 const hp2MapItalyColor = "rgba(27, 138, 69, 0.96)";
+const hp2MapAtmosphereColor = "#1b8a45";
 const hp2MapItalyStroke = "rgba(238, 232, 207, 0.86)";
 const hp2MapPinColor = "#b92c2c";
 const hp2MapPinOutline = "rgba(248, 242, 218, 0.92)";
@@ -90,29 +104,29 @@ const hp2MapPinRing = "rgba(27, 138, 69, 0.46)";
 let hp2TurnstileScriptPromise: Promise<void> | null = null;
 
 const hp2PrimaryLinks = [
-  { href: "/hp-2/builders", label: "Builders" },
-  { href: "/hp-2/projects", label: "Projects" },
-  { href: "/hp-2/community-projects", label: "Community projects" },
-  { href: "/hp-2/content", label: "Content" },
-  { href: "/hp-2/pantheon", label: "Pantheon" },
+  { href: "/builders", label: "Builders" },
+  { href: "/projects", label: "Projects" },
+  { href: "/community-projects", label: "Community projects" },
+  { href: "/content", label: "Content" },
+  { href: "/pantheon", label: "Pantheon" },
 ];
 
 const hp2FooterGroups = [
   {
     title: "Platform",
     links: [
-      { href: "/hp-2/builders", label: "Directory" },
-      { href: "/hp-2/projects", label: "Showcase" },
-      { href: "/hp-2/community-projects", label: "Community projects" },
-      { href: "/hp-2/content", label: "Content" },
+      { href: "/builders", label: "Directory" },
+      { href: "/projects", label: "Showcase" },
+      { href: "/community-projects", label: "Community projects" },
+      { href: "/content", label: "Content" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { href: "/hp-2/mission", label: "Mission" },
-      { href: "/hp-2/os-projects", label: "Open source" },
-      { href: "/hp-2/pantheon", label: "Pantheon" },
+      { href: "/mission", label: "Mission" },
+      { href: "/os-projects", label: "Open source" },
+      { href: "/pantheon", label: "Pantheon" },
       { label: "Guides", comingSoon: true },
       { label: "Changelog", comingSoon: true },
     ],
@@ -120,8 +134,8 @@ const hp2FooterGroups = [
   {
     title: "Legal",
     links: [
-      { href: "/hp-2/privacy", label: "Privacy policy" },
-      { href: "/hp-2/terms", label: "Terms of service" },
+      { href: "/privacy", label: "Privacy policy" },
+      { href: "/terms", label: "Terms of service" },
       { href: "mailto:info@italianbuilders.co", label: "Contact us" },
     ],
   },
@@ -187,14 +201,14 @@ function useR2AuthState() {
 
   async function signOut() {
     await supabase?.auth.signOut();
-    window.location.href = "/hp-2";
+    window.location.href = "/";
   }
 
   const isAdmin =
     profile?.platform_role === "admin" || profile?.platform_role === "owner";
   const profileHref = profile?.username
-    ? `/hp-2/builders/${profile.username}`
-    : "/hp-2/dashboard/profile";
+    ? `/builders/${profile.username}`
+    : "/dashboard/profile";
 
   return { user, loading, profile, isAdmin, profileHref, signOut };
 }
@@ -208,8 +222,8 @@ export function R2HeaderAuthControls() {
   if (!user) {
     return (
       <span className="hp2-auth-actions">
-        <a href="/hp-2/login">Login</a>
-        <a href="/hp-2/join">Join</a>
+        <a href="/login">Login</a>
+        <a href="/join">Join</a>
       </span>
     );
   }
@@ -220,8 +234,8 @@ export function R2HeaderAuthControls() {
         <img src={profile?.avatar_url || defaultAvatarUrl} alt="" />
         Profile
       </a>
-      <a href="/hp-2/dashboard">Dashboard</a>
-      {isAdmin && <a href="/hp-2/admin">Admin</a>}
+      <a href="/dashboard">Dashboard</a>
+      {isAdmin && <a href="/admin">Admin</a>}
       <button type="button" onClick={signOut}>
         <LogOut size={13} /> Sign out
       </button>
@@ -237,7 +251,7 @@ export function R2FooterAuthLinks() {
   if (!user) {
     return (
       <span className="hp2-footer-auth">
-        <a href="/hp-2/login">Builders login</a>
+        <a href="/login">Builders login</a>
       </span>
     );
   }
@@ -245,8 +259,8 @@ export function R2FooterAuthLinks() {
   return (
     <span className="hp2-footer-auth">
       <a href={profileHref}>Profile</a>
-      <a href="/hp-2/dashboard">Dashboard</a>
-      {isAdmin && <a href="/hp-2/admin">Admin</a>}
+      <a href="/dashboard">Dashboard</a>
+      {isAdmin && <a href="/admin">Admin</a>}
       <button type="button" onClick={signOut}>
         <LogOut size={13} /> Sign out
       </button>
@@ -294,7 +308,6 @@ export function Hp2Footer() {
         <p>© {new Date().getFullYear()} Italian Builders.</p>
         <div>
           <R2FooterAuthLinks />
-          <StyleSwitch />
         </div>
       </div>
     </footer>
@@ -625,14 +638,17 @@ function ManifestoSequence() {
 function Hp2BuilderGlobe({
   builders,
   activeBuilder,
+  onBuilderSelect,
 }: {
   builders: HomeMapBuilder[];
   activeBuilder: HomeMapBuilder | null;
+  onBuilderSelect?: (builderId: HomeMapBuilder["id"]) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<any>(null);
   const activeBuilderRef = useRef(activeBuilder);
   const buildersRef = useRef(builders);
+  const onBuilderSelectRef = useRef(onBuilderSelect);
 
   const pointData = (
     allBuilders: HomeMapBuilder[],
@@ -643,6 +659,7 @@ function Hp2BuilderGlobe({
       lng: builder.lng,
       color: builder.id === active?.id ? hp2MapPinOutline : hp2MapPinColor,
       radius: builder.id === active?.id ? 0.17 : 0.075,
+      builderId: builder.id,
     }));
 
     return active
@@ -653,6 +670,7 @@ function Hp2BuilderGlobe({
             lng: active.lng,
             color: hp2MapPinColor,
             radius: 0.12,
+            builderId: active.id,
           },
         ]
       : base;
@@ -674,9 +692,10 @@ function Hp2BuilderGlobe({
   useEffect(() => {
     activeBuilderRef.current = activeBuilder;
     buildersRef.current = builders;
+    onBuilderSelectRef.current = onBuilderSelect;
     globeRef.current?.pointsData(pointData(builders, activeBuilder));
     globeRef.current?.ringsData(activeRing(activeBuilder));
-  }, [builders, activeBuilder]);
+  }, [builders, activeBuilder, onBuilderSelect]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -686,6 +705,7 @@ function Hp2BuilderGlobe({
     let renderer: any = null;
     let resizeObserver: ResizeObserver | null = null;
     let removeScrollListener: (() => void) | null = null;
+    let removePointerListeners: (() => void) | null = null;
     let targetScroll = 0;
     let easedScroll = 0;
     let frame = 0;
@@ -712,7 +732,7 @@ function Hp2BuilderGlobe({
         renderer.domElement.style.display = "block";
         renderer.domElement.style.position = "relative";
         renderer.domElement.style.zIndex = "0";
-        renderer.domElement.style.pointerEvents = "none";
+        renderer.domElement.style.pointerEvents = "auto";
         host.appendChild(renderer.domElement);
 
         const globe = new ThreeGlobe({
@@ -720,7 +740,7 @@ function Hp2BuilderGlobe({
           animateIn: false,
         })
           .showAtmosphere(true)
-          .atmosphereColor(hp2MapItalyColor)
+          .atmosphereColor(hp2MapAtmosphereColor)
           .atmosphereAltitude(0.09)
           .globeCurvatureResolution(2)
           .pointsData(pointData(buildersRef.current, activeBuilderRef.current))
@@ -789,6 +809,85 @@ function Hp2BuilderGlobe({
         const driftQuaternion = new THREE.Quaternion();
         const xAxis = new THREE.Vector3(1, 0, 0);
         const yAxis = new THREE.Vector3(0, 1, 0);
+        const pointer = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+
+        const pointDataFromObject = (object: any): Hp2GlobePoint | null => {
+          let current = object;
+          while (current) {
+            if (
+              current.__globeObjType === "point" &&
+              current.__data?.builderId !== undefined
+            ) {
+              return current.__data as Hp2GlobePoint;
+            }
+            current = current.parent;
+          }
+          return null;
+        };
+
+        const globeObjectType = (object: any): string | null => {
+          let current = object;
+          while (current) {
+            if (typeof current.__globeObjType === "string") {
+              return current.__globeObjType;
+            }
+            current = current.parent;
+          }
+          return null;
+        };
+
+        const hitPointForEvent = (event: PointerEvent) => {
+          const rect = renderer.domElement.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) return null;
+          pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+          pointer.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
+          raycaster.setFromCamera(pointer, camera);
+          const hits = raycaster.intersectObjects(scene.children, true);
+          for (const hit of hits) {
+            const pointData = pointDataFromObject(hit.object);
+            if (pointData) return pointData;
+            const objectType = globeObjectType(hit.object);
+            if (objectType === "globe" || objectType === "polygon") break;
+          }
+          return null;
+        };
+
+        const handlePointerMove = (event: PointerEvent) => {
+          renderer.domElement.style.cursor = hitPointForEvent(event)
+            ? "pointer"
+            : "default";
+        };
+
+        const handlePointerLeave = () => {
+          renderer.domElement.style.cursor = "default";
+        };
+
+        const handlePointerClick = (event: PointerEvent) => {
+          const pointData = hitPointForEvent(event);
+          if (pointData?.builderId === undefined) return;
+          event.preventDefault();
+          event.stopPropagation();
+          onBuilderSelectRef.current?.(pointData.builderId);
+        };
+
+        renderer.domElement.addEventListener("pointermove", handlePointerMove);
+        renderer.domElement.addEventListener(
+          "pointerleave",
+          handlePointerLeave,
+        );
+        renderer.domElement.addEventListener("click", handlePointerClick);
+        removePointerListeners = () => {
+          renderer.domElement.removeEventListener(
+            "pointermove",
+            handlePointerMove,
+          );
+          renderer.domElement.removeEventListener(
+            "pointerleave",
+            handlePointerLeave,
+          );
+          renderer.domElement.removeEventListener("click", handlePointerClick);
+        };
 
         const resize = () => {
           const width = host.clientWidth || 720;
@@ -858,6 +957,7 @@ function Hp2BuilderGlobe({
       cancelAnimationFrame(frame);
       resizeObserver?.disconnect();
       removeScrollListener?.();
+      removePointerListeners?.();
       globeRef.current = null;
       if (renderer?.domElement.parentNode === host) {
         host.removeChild(renderer.domElement);
@@ -1142,17 +1242,16 @@ export default function Hp2Page() {
   return (
     <div className="hp2-page">
       <header className="hp2-mast">
-        <a href="/hp-2" className="hp2-logo-link" aria-label="Italian Builders">
+        <a href="/" className="hp2-logo-link" aria-label="Italian Builders">
           <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
         </a>
-        <nav aria-label="Hidden homepage preview sections">
+        <nav aria-label="Primary navigation">
           {hp2PrimaryLinks.map((link) => (
             <a key={link.href} href={link.href}>
               {link.label}
             </a>
           ))}
           <R2HeaderAuthControls />
-          <StyleSwitch currentStyle="r2" />
         </nav>
       </header>
 
@@ -1278,6 +1377,7 @@ export default function Hp2Page() {
                 <Hp2BuilderGlobe
                   builders={builders}
                   activeBuilder={activeBuilder}
+                  onBuilderSelect={setActiveBuilderId}
                 />
               </div>
             </aside>

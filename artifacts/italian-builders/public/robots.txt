@@ -4,6 +4,9 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /invite
+Disallow: /login
+Disallow: /login-code
 Disallow: /reset-password
+Disallow: /hp-2
 
 Sitemap: https://italianbuilders.co/sitemap.xml

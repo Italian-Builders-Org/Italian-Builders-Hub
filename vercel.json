@@ -17,6 +17,18 @@
       "schedule": "15 6 * * *"
     }
   ],
+  "redirects": [
+    {
+      "source": "/hp-2",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/hp-2/:path*",
+      "destination": "/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/telegram/webhook",

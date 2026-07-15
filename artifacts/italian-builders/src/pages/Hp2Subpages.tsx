@@ -1,13 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { ArrowRight, ExternalLink, Github, Globe, Search } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  ExternalLink,
+  Github,
+  Globe,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import {
   Hp2DirectoryJoinForm,
   Hp2Footer,
   R2HeaderAuthControls,
 } from "@/pages/Hp2";
-import { StyleSwitch } from "@/pages/Home";
 import { PIONEERS, PIONEER_CATEGORIES, type Pioneer } from "@/data/pioneers";
+import { PIONEER_MEDIA, type PioneerMediaItem } from "@/data/pioneersMedia";
 import {
   STATIC_BUILDERS,
   STATIC_OS_PROJECTS,
@@ -16,7 +24,15 @@ import {
 } from "@/data/directory";
 import { defaultAvatarUrl } from "@/lib/assets";
 import { supabase, useSupabaseSession } from "@/lib/supabase";
+import { normalizeItalianCitySearch } from "@/lib/geo";
 import { Seo, communityProjectSeo, profileSeo, projectSeo } from "@/lib/seo";
+import { openCookieSettings } from "@/components/CookieConsentBanner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type {
   CommunityProject,
   Profile,
@@ -25,18 +41,76 @@ import type {
 } from "@/lib/supabase";
 
 const publicProfileSelect =
-  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
+  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, municipality_istat_code, province_code, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
 const projectCategoryRelationSelect =
   "project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))";
+const allFilterValue = "All";
+
+type R2SelectOption = {
+  value: string;
+  label: string;
+};
+
+function sortedUnique(values: Array<string | null | undefined>) {
+  return Array.from(
+    new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]),
+  ).sort((a, b) => a.localeCompare(b));
+}
+
+function profileLocationOption(profile: Profile): R2SelectOption | null {
+  const city = profile.city?.trim();
+  if (!city) return null;
+
+  const province = profile.province_code?.trim().toUpperCase() ?? "";
+  const value =
+    profile.municipality_istat_code ||
+    `${province || "unknown"}:${normalizeItalianCitySearch(city)}`;
+
+  return {
+    value,
+    label: province ? `${city} (${province})` : city,
+  };
+}
+
+function uniqueLocationOptions(options: Array<R2SelectOption | null>) {
+  const seen = new Set<string>();
+  return options
+    .filter((option): option is R2SelectOption => Boolean(option))
+    .filter((option) => {
+      if (seen.has(option.value)) return false;
+      seen.add(option.value);
+      return true;
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function profileMatchesLocation(
+  profile: Profile,
+  province: string,
+  city: string,
+) {
+  if (
+    province !== allFilterValue &&
+    profile.province_code?.toUpperCase() !== province
+  ) {
+    return false;
+  }
+
+  if (city !== allFilterValue) {
+    return profileLocationOption(profile)?.value === city;
+  }
+
+  return true;
+}
 
 const r2PrimaryLinks = [
-  { href: "/hp-2/builders", label: "Builders" },
-  { href: "/hp-2/projects", label: "Projects" },
-  { href: "/hp-2/community-projects", label: "Community projects" },
-  { href: "/hp-2/content", label: "Content" },
-  { href: "/hp-2/os-projects", label: "Open source" },
-  { href: "/hp-2/pantheon", label: "Pantheon" },
-  { href: "/hp-2/mission", label: "Mission" },
+  { href: "/builders", label: "Builders" },
+  { href: "/projects", label: "Projects" },
+  { href: "/community-projects", label: "Community projects" },
+  { href: "/content", label: "Content" },
+  { href: "/os-projects", label: "Open source" },
+  { href: "/pantheon", label: "Pantheon" },
+  { href: "/mission", label: "Mission" },
 ];
 
 const missionParagraphs = [
@@ -55,17 +129,16 @@ function R2Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="hp2-page hp2-subpage">
       <header className="hp2-mast">
-        <a href="/hp-2" className="hp2-logo-link" aria-label="Italian Builders">
+        <a href="/" className="hp2-logo-link" aria-label="Italian Builders">
           <img src="/logo-vector-dark-mattoni.svg" alt="Italian Builders" />
         </a>
-        <nav aria-label="R2 preview navigation">
+        <nav aria-label="Primary navigation">
           {r2PrimaryLinks.map((link) => (
             <a key={link.href} href={link.href}>
               {link.label}
             </a>
           ))}
           <R2HeaderAuthControls />
-          <StyleSwitch currentStyle="r2" />
         </nav>
       </header>
       <R2BreadcrumbBar />
@@ -77,20 +150,17 @@ function R2Shell({ children }: { children: React.ReactNode }) {
 
 function R2BreadcrumbBar() {
   const [location] = useLocation();
-  const pathname = location.split(/[?#]/)[0].replace(/\/+$/, "") || "/hp-2";
+  const pathname = location.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
 
-  if (pathname === "/hp-2") return null;
+  if (pathname === "/") return null;
 
-  const segments = pathname
-    .replace(/^\/hp-2\/?/, "")
-    .split("/")
-    .filter(Boolean);
+  const segments = pathname.replace(/^\/+/, "").split("/").filter(Boolean);
 
   return (
     <div className="hp2-breadcrumbs">
-      <a href="/hp-2">Home</a>
+      <a href="/">Home</a>
       {segments.map((segment, index) => {
-        const href = `/hp-2/${segments.slice(0, index + 1).join("/")}`;
+        const href = `/${segments.slice(0, index + 1).join("/")}`;
         const label = decodeURIComponent(segment)
           .replace(/[-_]+/g, " ")
           .replace(/\b\w/g, (character) => character.toUpperCase());
@@ -178,13 +248,19 @@ function R2Select({
 }: {
   value: string;
   onChange: (value: string) => void;
-  options: string[];
+  options: Array<string | R2SelectOption>;
 }) {
   return (
     <select value={value} onChange={(event) => onChange(event.target.value)}>
-      {options.map((option) => (
-        <option key={option}>{option}</option>
-      ))}
+      {options.map((option) => {
+        const value = typeof option === "string" ? option : option.value;
+        const label = typeof option === "string" ? option : option.label;
+        return (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        );
+      })}
     </select>
   );
 }
@@ -278,7 +354,7 @@ function useR2Profiles() {
     load();
   }, [sessionLoading, user?.id]);
 
-  return { profiles, loading };
+  return { profiles, loading, user };
 }
 
 function useR2Projects() {
@@ -332,36 +408,88 @@ function useR2CommunityProjects() {
 }
 
 export function Hp2BuildersPage() {
-  const { profiles, loading } = useR2Profiles();
+  const { profiles, loading, user } = useR2Profiles();
   const [query, setQuery] = useState("");
-  const [role, setRole] = useState("All");
+  const [role, setRole] = useState(allFilterValue);
+  const [province, setProvince] = useState(allFilterValue);
+  const [city, setCity] = useState(allFilterValue);
+  const [skill, setSkill] = useState(allFilterValue);
+  const [need, setNeed] = useState(allFilterValue);
+  const memberDiscoveryEnabled = Boolean(user?.id);
   const fallbackBuilders =
     profiles.length === 0 && !loading ? STATIC_BUILDERS : [];
-  const roles = [
-    "All",
-    ...Array.from(
-      new Set(profiles.map((profile) => profile.role).filter(Boolean)),
-    ),
-  ] as string[];
+  const roles = useMemo(
+    () => sortedUnique(profiles.map((profile) => profile.role)),
+    [profiles],
+  );
+  const provinces = useMemo(
+    () =>
+      sortedUnique(
+        profiles.map((profile) => profile.province_code?.toUpperCase()),
+      ),
+    [profiles],
+  );
+  const cities = useMemo(() => {
+    const candidates =
+      province === allFilterValue
+        ? profiles
+        : profiles.filter(
+            (profile) => profile.province_code?.toUpperCase() === province,
+          );
+    return uniqueLocationOptions(candidates.map(profileLocationOption));
+  }, [profiles, province]);
+  const skills = useMemo(
+    () => sortedUnique(profiles.flatMap((profile) => profile.skills ?? [])),
+    [profiles],
+  );
+  const needs = useMemo(
+    () =>
+      sortedUnique(profiles.flatMap((profile) => profile.looking_for ?? [])),
+    [profiles],
+  );
+
+  useEffect(() => {
+    setCity(allFilterValue);
+  }, [province]);
+
   const filteredProfiles = profiles.filter((profile) => {
+    const normalizedQuery = query.toLowerCase();
     const haystack =
-      `${profile.full_name} ${profile.username} ${profile.headline ?? ""} ${profile.bio ?? ""} ${profile.city ?? ""} ${profile.skills?.join(" ") ?? ""}`.toLowerCase();
+      `${profile.full_name} ${profile.username} ${profile.headline ?? ""} ${profile.bio ?? ""} ${profile.city ?? ""} ${profile.province_code ?? ""} ${profile.skills?.join(" ") ?? ""} ${profile.looking_for?.join(" ") ?? ""}`.toLowerCase();
+    const matchesMemberFilters =
+      !memberDiscoveryEnabled ||
+      (profileMatchesLocation(profile, province, city) &&
+        (skill === allFilterValue || profile.skills?.includes(skill)) &&
+        (need === allFilterValue || profile.looking_for?.includes(need)));
+
     return (
-      haystack.includes(query.toLowerCase()) &&
-      (role === "All" || profile.role === role)
+      haystack.includes(normalizedQuery) &&
+      (role === allFilterValue || profile.role === role) &&
+      matchesMemberFilters
     );
   });
+  const hasActiveFilters =
+    query.trim().length > 0 ||
+    role !== allFilterValue ||
+    province !== allFilterValue ||
+    city !== allFilterValue ||
+    skill !== allFilterValue ||
+    need !== allFilterValue;
 
   return (
     <R2Shell>
       <R2Hero
         label="Directory"
         title="Find Italian builders."
-        copy="Public member records, photos where available, location, skills, and the work people are building now."
+        copy={
+          memberDiscoveryEnabled
+            ? "Community-visible member records with location, skills, collaboration signals, and the work people are building now."
+            : "Public member records, photos where available, location, skills, and the work people are building now."
+        }
         meta={
           <div className="hp2-substats">
             <span>{profiles.length || STATIC_BUILDERS.length} builders</span>
-            <span>{roles.length > 1 ? roles.length - 1 : 0} roles</span>
+            <span>{roles.length} roles</span>
           </div>
         }
       />
@@ -371,8 +499,49 @@ export function Hp2BuildersPage() {
           onChange={setQuery}
           placeholder="Search builders, cities, skills..."
         >
-          {roles.length > 1 && (
-            <R2Select value={role} onChange={setRole} options={roles} />
+          <R2Select
+            value={role}
+            onChange={setRole}
+            options={[
+              { value: allFilterValue, label: "All roles" },
+              ...roles.map((item) => ({ value: item, label: item })),
+            ]}
+          />
+          {memberDiscoveryEnabled && (
+            <>
+              <R2Select
+                value={province}
+                onChange={setProvince}
+                options={[
+                  { value: allFilterValue, label: "All provinces" },
+                  ...provinces.map((item) => ({ value: item, label: item })),
+                ]}
+              />
+              <R2Select
+                value={city}
+                onChange={setCity}
+                options={[
+                  { value: allFilterValue, label: "All comuni" },
+                  ...cities,
+                ]}
+              />
+              <R2Select
+                value={skill}
+                onChange={setSkill}
+                options={[
+                  { value: allFilterValue, label: "All skills" },
+                  ...skills.map((item) => ({ value: item, label: item })),
+                ]}
+              />
+              <R2Select
+                value={need}
+                onChange={setNeed}
+                options={[
+                  { value: allFilterValue, label: "All needs" },
+                  ...needs.map((item) => ({ value: item, label: item })),
+                ]}
+              />
+            </>
           )}
         </R2Search>
         {loading ? (
@@ -383,7 +552,7 @@ export function Hp2BuildersPage() {
               <a
                 key={profile.id}
                 className="hp2-person-card"
-                href={`/hp-2/builders/${profile.username}`}
+                href={`/builders/${profile.username}`}
               >
                 <div className="hp2-person-card-head">
                   <img
@@ -398,10 +567,18 @@ export function Hp2BuildersPage() {
                 <p className="hp2-person-card-role">
                   {profile.headline || profile.role || "Builder"}
                 </p>
+                <p className="hp2-person-card-meta">
+                  {profileLocation(profile)}
+                  {profile.province_code ? ` · ${profile.province_code}` : ""}
+                </p>
                 <p className="hp2-person-card-bio">
                   {profile.bio || "This member has not added a bio yet."}
                 </p>
                 <R2Tags items={profile.skills} />
+                {memberDiscoveryEnabled &&
+                  (profile.looking_for?.length ?? 0) > 0 && (
+                    <R2Tags items={profile.looking_for} />
+                  )}
                 <span className="hp2-person-card-action">
                   View profile <ArrowRight size={13} />
                 </span>
@@ -427,8 +604,14 @@ export function Hp2BuildersPage() {
           </div>
         ) : (
           <R2Empty
-            title="No public builders yet"
-            copy="Once invited members complete onboarding, they will appear here."
+            title={
+              hasActiveFilters ? "No matching builders" : "No builders yet"
+            }
+            copy={
+              hasActiveFilters
+                ? "Try another city, provincia, skill, or search query."
+                : "Once invited members complete onboarding, they will appear here."
+            }
           />
         )}
       </section>
@@ -507,10 +690,7 @@ export function Hp2BuilderProfilePage() {
 
   return (
     <R2Shell>
-      <Seo
-        {...profileSeo(profile)}
-        path={`/hp-2/builders/${profile.username}`}
-      />
+      <Seo {...profileSeo(profile)} path={`/builders/${profile.username}`} />
       <section className="hp2-profile-hero">
         <div className="hp2-profile-media">
           {profile.cover_url && <img src={profile.cover_url} alt="" />}
@@ -558,7 +738,7 @@ export function Hp2BuilderProfilePage() {
             {projects.length > 0 ? (
               <div className="hp2-row-list">
                 {projects.map((project) => (
-                  <a key={project.id} href={`/hp-2/projects/${project.slug}`}>
+                  <a key={project.id} href={`/projects/${project.slug}`}>
                     <strong>{project.name}</strong>
                     <span>{project.tagline || project.description}</span>
                     <ArrowRight size={15} />
@@ -719,7 +899,7 @@ function R2ProjectCard({ project }: { project: Project }) {
   const labels = projectCategoryLabels(project);
   const contributorCount = project.project_members?.length ?? 0;
   return (
-    <a className="hp2-project-card" href={`/hp-2/projects/${project.slug}`}>
+    <a className="hp2-project-card" href={`/projects/${project.slug}`}>
       <div className="hp2-project-card-media">
         {project.image_url ? (
           <img src={project.image_url} alt={project.name} />
@@ -805,7 +985,7 @@ export function Hp2ProjectDetailPage() {
 
   return (
     <R2Shell>
-      <Seo {...projectSeo(project)} path={`/hp-2/projects/${project.slug}`} />
+      <Seo {...projectSeo(project)} path={`/projects/${project.slug}`} />
       <R2Hero
         label={projectCategoryLabels(project).join(" / ") || "Project"}
         title={project.name}
@@ -840,7 +1020,7 @@ export function Hp2ProjectDetailPage() {
             <h2>Contributors</h2>
             <div className="hp2-mini-people">
               {project.profiles?.username && (
-                <a href={`/hp-2/builders/${project.profiles.username}`}>
+                <a href={`/builders/${project.profiles.username}`}>
                   <img
                     src={project.profiles.avatar_url || defaultAvatarUrl}
                     alt=""
@@ -856,8 +1036,8 @@ export function Hp2ProjectDetailPage() {
                   key={member.id}
                   href={
                     member.profiles?.username
-                      ? `/hp-2/builders/${member.profiles.username}`
-                      : "/hp-2/builders"
+                      ? `/builders/${member.profiles.username}`
+                      : "/builders"
                   }
                 >
                   <img
@@ -971,7 +1151,7 @@ function R2CommunityProjectCard({ project }: { project: CommunityProject }) {
   return (
     <a
       className="hp2-project-card hp2-compact-card"
-      href={`/hp-2/community-projects/${project.slug}`}
+      href={`/community-projects/${project.slug}`}
     >
       <div>
         <div className="hp2-project-card-head">
@@ -1084,7 +1264,7 @@ export function Hp2CommunityProjectDetailPage() {
     <R2Shell>
       <Seo
         {...communityProjectSeo(project)}
-        path={`/hp-2/community-projects/${project.slug}`}
+        path={`/community-projects/${project.slug}`}
       />
       <R2Hero
         label={project.category || "Community project"}
@@ -1152,8 +1332,8 @@ export function Hp2CommunityProjectDetailPage() {
                     key={member.id}
                     href={
                       member.profiles?.username
-                        ? `/hp-2/builders/${member.profiles.username}`
-                        : "/hp-2/builders"
+                        ? `/builders/${member.profiles.username}`
+                        : "/builders"
                     }
                   >
                     <img
@@ -1178,6 +1358,7 @@ export function Hp2CommunityProjectDetailPage() {
 export function Hp2PantheonPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
+  const [activePioneer, setActivePioneer] = useState<Pioneer | null>(null);
   const categories = ["All", ...PIONEER_CATEGORIES];
   const filtered = PIONEERS.filter((pioneer) => {
     const haystack =
@@ -1217,17 +1398,36 @@ export function Hp2PantheonPage() {
         </div>
         <div className="hp2-pioneer-grid">
           {filtered.map((pioneer) => (
-            <R2PioneerCard key={pioneer.slug} pioneer={pioneer} />
+            <R2PioneerCard
+              key={pioneer.slug}
+              pioneer={pioneer}
+              onOpen={setActivePioneer}
+            />
           ))}
         </div>
       </section>
+      <R2PioneerDialog
+        pioneer={activePioneer}
+        onClose={() => setActivePioneer(null)}
+      />
     </R2Shell>
   );
 }
 
-function R2PioneerCard({ pioneer }: { pioneer: Pioneer }) {
+function R2PioneerCard({
+  pioneer,
+  onOpen,
+}: {
+  pioneer: Pioneer;
+  onOpen: (pioneer: Pioneer) => void;
+}) {
   return (
-    <article className="hp2-pioneer-card">
+    <button
+      type="button"
+      className="hp2-pioneer-card"
+      onClick={() => onOpen(pioneer)}
+      aria-label={`Read the biography of ${pioneer.name}`}
+    >
       <div className="hp2-pioneer-media">
         <img
           src={pioneer.portrait ?? pioneer.work?.image}
@@ -1246,8 +1446,124 @@ function R2PioneerCard({ pioneer }: { pioneer: Pioneer }) {
         <small>
           {pioneer.role} · {pioneer.lifespan}
         </small>
+        <span className="hp2-pioneer-action">
+          Read biography <ArrowUpRight size={14} />
+        </span>
       </div>
-    </article>
+    </button>
+  );
+}
+
+function R2PioneerMedia({ item }: { item: PioneerMediaItem }) {
+  return (
+    <figure className="hp2-pioneer-dialog-media">
+      <img src={item.src} alt={item.caption} loading="lazy" />
+      <figcaption>{item.caption}</figcaption>
+    </figure>
+  );
+}
+
+function R2PioneerBiography({ pioneer }: { pioneer: Pioneer }) {
+  const headerImage = pioneer.portrait ?? pioneer.work?.image;
+  const media = (PIONEER_MEDIA[pioneer.slug] ?? []).filter(
+    (item) => item.src !== headerImage,
+  );
+  const lastIndex = pioneer.bio.length - 1;
+  const trailing = media.filter(
+    (item) => item.after > lastIndex || item.after < 0,
+  );
+
+  return (
+    <div className="hp2-pioneer-biography">
+      {pioneer.bio.map((paragraph, index) => (
+        <div key={paragraph.slice(0, 32)}>
+          <p>{paragraph}</p>
+          {media
+            .filter((item) => item.after === index)
+            .map((item) => (
+              <R2PioneerMedia key={item.src} item={item} />
+            ))}
+        </div>
+      ))}
+      {trailing.map((item) => (
+        <R2PioneerMedia key={item.src} item={item} />
+      ))}
+    </div>
+  );
+}
+
+function R2PioneerDialog({
+  pioneer,
+  onClose,
+}: {
+  pioneer: Pioneer | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={Boolean(pioneer)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="hp2-pioneer-dialog">
+        {pioneer && (
+          <>
+            <header className="hp2-pioneer-dialog-head">
+              <img
+                src={pioneer.portrait ?? pioneer.work?.image}
+                alt={pioneer.name}
+              />
+              <div>
+                <span>{pioneer.category}</span>
+                <DialogTitle>{pioneer.name}</DialogTitle>
+                <DialogDescription>
+                  {pioneer.role} · {pioneer.lifespan}
+                </DialogDescription>
+                <small>
+                  {pioneer.origin} · {pioneer.era}
+                </small>
+              </div>
+            </header>
+            <div className="hp2-pioneer-dialog-body">
+              <section className="hp2-pioneer-why">
+                <h2>
+                  <Sparkles size={14} /> Why they matter
+                </h2>
+                <p>{pioneer.whyGreat}</p>
+              </section>
+              {pioneer.facts?.length ? (
+                <dl className="hp2-pioneer-facts">
+                  {pioneer.facts.map((fact) => (
+                    <div key={fact.label}>
+                      <dt>{fact.label}</dt>
+                      <dd>{fact.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : null}
+              <section>
+                <h2>The story</h2>
+                <R2PioneerBiography pioneer={pioneer} />
+              </section>
+              <section>
+                <h2>Key contributions</h2>
+                <ul className="hp2-pioneer-contributions">
+                  {pioneer.contributions.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+              <footer className="hp2-pioneer-dialog-foot">
+                <div className="hp2-tags">
+                  {pioneer.fields.map((field) => (
+                    <span key={field}>{field}</span>
+                  ))}
+                </div>
+                <a href={pioneer.wikipedia} target="_blank" rel="noreferrer">
+                  Learn more <ArrowUpRight size={14} />
+                </a>
+              </footer>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1269,7 +1585,7 @@ export function Hp2MissionPage() {
           <aside className="hp2-mission-aside">
             <p className="hp2-subhero-label">Core idea</p>
             <strong>What unites us is that we choose to build.</strong>
-            <a href="/hp-2/join">
+            <a href="/join">
               Join the community <ArrowRight size={14} />
             </a>
           </aside>
@@ -1305,25 +1621,153 @@ export function Hp2PrivacyPage() {
       sections={[
         [
           "Who we are",
-          "Italian Builders is a community for people who build products, companies, software, creative work, and technology in or connected to Italy.",
+          <p>
+            Italian Builders is a community for people who build products,
+            companies, software, creative work, and technology in or connected
+            to Italy. In this policy, Italian Builders, we, us, and our mean the
+            operators of the Italian Builders website and community.
+          </p>,
         ],
         [
           "Information we collect",
-          "Waitlist records, account information, public profile content, project listings, media, links, technical logs, security events, local interface preferences, and Telegram community message text needed to generate daily digests.",
+          <LegalList
+            items={[
+              "Waitlist and invite information, such as name, email address, role, what you are building, website or project links, and social handles you choose to provide.",
+              "Account information, such as email address, authentication data, username, profile details, profile visibility settings, and invite status.",
+              "Community content, such as builder profiles, project listings, community project details, links, images, videos, and collaboration notes that you choose to submit.",
+              "Telegram digest and moderation data from approved community chats, including message text, links, chat IDs, topic IDs, message IDs, timestamps, Telegram sender IDs, usernames, first names, and last names where Telegram provides them.",
+              "Technical information, such as IP address, browser type, device information, log events, security events, page URLs, and error diagnostics.",
+              "Preference data stored in your browser, such as label mode, session state, cookie notice status, and interface preferences.",
+            ]}
+          />,
         ],
         [
           "How we use information",
-          "We use this information to run the community, review access requests, authenticate members, display public profiles and projects, store media, contact members, create member-only Telegram topic digests, and keep the website reliable.",
+          <LegalList
+            items={[
+              "To run the community, review access requests, create invites, authenticate members, and display public or member-visible profiles and projects.",
+              "To store and serve media uploaded by authenticated members.",
+              "To generate member-only Telegram topic digests, post short TLDR links back into approved Telegram chats, and create admin-review moderation flags for clear suspected rule violations.",
+              "To keep the website reliable, secure, and maintainable.",
+              "To contact you about your access request, account, invite, or important community updates.",
+              "To comply with legal obligations and enforce the Terms of Service.",
+            ]}
+          />,
+        ],
+        [
+          "Legal bases",
+          <p>
+            When GDPR or similar laws apply, we rely on performance of a
+            contract or pre-contractual steps when you request access or use the
+            community, legitimate interests in operating and securing the
+            service, consent where we ask for it, and legal obligations where
+            applicable.
+          </p>,
         ],
         [
           "Telegram digest bot",
-          "The Telegram bot stores message text, links, chat IDs, topic IDs, message IDs, timestamps, and minimal sender metadata from approved community chats. Sender metadata is used for admin-only moderation review. Public digest output does not tag people. Digest and moderation processing may send relevant message text to OpenRouter model providers. Full digests are visible only to signed-in members.",
+          <>
+            <p>
+              The Italian Builders Telegram digest bot is added only to approved
+              community chats. It stores message text, links, chat IDs, topic
+              IDs, message IDs, timestamps, and minimal Telegram sender metadata
+              needed to create daily topic summaries and admin-review moderation
+              flags. Digest output does not tag people.
+            </p>
+            <p>
+              Relevant message text may be sent to OpenRouter and its model
+              providers. Full digests are available only to signed-in members.
+              Short TLDR messages may be posted back into the matching chat or
+              topic. Moderation flags are suggestions for admins only: the bot
+              does not apply strikes, delete messages, or remove members.
+            </p>
+          </>,
         ],
         [
           "Service providers",
-          "We use Vercel, Supabase, Cloudflare R2, OpenRouter for digest generation, Sentry when configured, Google Fonts, LinkedIn, X, and Telegram where those services are part of the product experience.",
+          <LegalList
+            items={[
+              "Vercel for hosting, deployment, serverless API routes, and Open Graph image generation.",
+              "Supabase for authentication, database records, member sessions, invite flows, and related backend services.",
+              "Cloudflare R2 for member-uploaded media storage and public media delivery.",
+              "OpenRouter and selected model providers for Telegram digest generation.",
+              "Telegram for bot message delivery, webhook updates, and community chat interactions.",
+              "Sentry for error monitoring, performance diagnostics, and issue investigation when configured.",
+              "Adobe Fonts for loading the typefaces used by the interface.",
+              "LinkedIn and X when you click our social links or publish those links on your profile.",
+            ]}
+          />,
         ],
-        ["Contact", "For privacy requests, contact info@italianbuilders.co."],
+        [
+          "Cookies and local storage",
+          <>
+            <p>
+              We currently use only strictly necessary cookies and local
+              storage. These support login sessions, account security, upload
+              access, interface preferences, and remembering that you have seen
+              the cookie notice. When you save your preference, we also keep a
+              consent record with the consent version, selected categories,
+              timestamp, page path, IP address, user agent, and your account id
+              if you are signed in.
+            </p>
+            <p>
+              We do not currently use advertising or analytics cookies. If
+              optional tracking is added later, we will update this policy and
+              ask for consent where required.
+            </p>
+            <button
+              type="button"
+              className="hp2-legal-action"
+              onClick={openCookieSettings}
+            >
+              Open cookie settings
+            </button>
+          </>,
+        ],
+        [
+          "Public content",
+          <p>
+            Some profile and project information may be public depending on the
+            visibility settings you choose. Do not add private or sensitive
+            information to public profile fields, project pages, links, images,
+            or videos.
+          </p>,
+        ],
+        [
+          "Retention",
+          <p>
+            We keep information for as long as needed to operate the community,
+            maintain security, resolve disputes, comply with legal obligations,
+            and preserve legitimate community records. You can ask us to delete
+            or update personal information, subject to legal, security, and
+            abuse-prevention limits.
+          </p>,
+        ],
+        [
+          "International transfers",
+          <p>
+            Our providers may process information in countries other than where
+            you live. Where required, we rely on appropriate safeguards such as
+            data processing agreements, standard contractual clauses, and
+            provider compliance programs.
+          </p>,
+        ],
+        [
+          "Your rights",
+          <p>
+            Depending on where you live, you may have rights to access, correct,
+            delete, restrict, object to, or export your personal information.
+            You may also withdraw consent where processing is based on consent.
+          </p>,
+        ],
+        [
+          "Contact",
+          <p>
+            For privacy requests, contact{" "}
+            <a href="mailto:info@italianbuilders.co">info@italianbuilders.co</a>
+            .
+          </p>,
+        ],
       ]}
     />
   );
@@ -1337,24 +1781,124 @@ export function Hp2TermsPage() {
       intro="These terms set the basic rules for using Italian Builders while the community is still early."
       sections={[
         [
-          "Access",
-          "We may accept, reject, suspend, or remove access to protect the community and operate the service.",
+          "Using Italian Builders",
+          <p>
+            By accessing or using Italian Builders, you agree to these terms. If
+            you do not agree, do not use the website or community features.
+          </p>,
         ],
         [
-          "Community content",
-          "You are responsible for the profile, project, links, images, videos, and other content you submit.",
+          "Accounts and access",
+          <LegalList
+            items={[
+              "Access may require an invite, account, or approval from an admin.",
+              "You are responsible for keeping your account and login credentials secure.",
+              "You must provide accurate information and keep it reasonably up to date.",
+              "We may accept, reject, suspend, or remove access to protect the community or operate the service.",
+            ]}
+          />,
         ],
         [
-          "Acceptable use",
-          "Do not abuse the service, misrepresent yourself, upload malicious content, or use the community for deceptive promotion.",
+          "Community rules",
+          <LegalList
+            items={[
+              "Be respectful and do not harass, threaten, impersonate, or mislead others.",
+              "Do not upload malware, spam, illegal content, or content that violates someone else's rights.",
+              "Do not scrape, abuse, overload, reverse engineer, or interfere with the service.",
+              "Do not use the community to send unsolicited commercial messages or deceptive promotions.",
+            ]}
+          />,
         ],
         [
-          "Early-stage service",
-          "Italian Builders is provided as an early-stage community service and may change as the product evolves.",
+          "Your content",
+          <>
+            <p>
+              You keep ownership of content you submit, such as profiles,
+              project descriptions, links, images, and videos. You give us
+              permission to host, store, display, resize, transmit, and
+              otherwise use that content as needed to operate and promote
+              Italian Builders.
+            </p>
+            <p>
+              You are responsible for the content you submit and for having the
+              rights needed to share it.
+            </p>
+          </>,
         ],
-        ["Contact", "For terms questions, contact info@italianbuilders.co."],
+        [
+          "Public profiles and projects",
+          <p>
+            Some areas are designed to be visible publicly or to other members.
+            Published information may be viewed, indexed, shared, or copied by
+            others. Visibility settings help control display inside the product
+            but cannot guarantee that already-published information will not be
+            seen elsewhere.
+          </p>,
+        ],
+        [
+          "Third-party services",
+          <p>
+            The service relies on Vercel, Supabase, Cloudflare, OpenRouter,
+            Telegram, Sentry, Adobe Fonts, LinkedIn, and X. Their own terms and
+            policies may apply when you interact with their services or when
+            they process data to provide infrastructure to us.
+          </p>,
+        ],
+        [
+          "Availability",
+          <p>
+            Italian Builders is an early-stage community service. We may change,
+            pause, remove, or discontinue features at any time. We do not
+            promise uninterrupted availability or that every feature will remain
+            available.
+          </p>,
+        ],
+        [
+          "No warranties",
+          <p>
+            The service is provided as is and as available. To the maximum
+            extent allowed by law, we disclaim warranties of merchantability,
+            fitness for a particular purpose, non-infringement, and
+            uninterrupted or error-free operation.
+          </p>,
+        ],
+        [
+          "Limitation of liability",
+          <p>
+            To the maximum extent allowed by law, Italian Builders and its
+            operators will not be liable for indirect, incidental, special,
+            consequential, or punitive damages, or for lost profits, lost data,
+            or business interruption arising from your use of the service.
+          </p>,
+        ],
+        [
+          "Changes",
+          <p>
+            We may update these terms as the community and product evolve. The
+            updated date on this page shows when the latest version was
+            published.
+          </p>,
+        ],
+        [
+          "Contact",
+          <p>
+            For terms questions, contact{" "}
+            <a href="mailto:info@italianbuilders.co">info@italianbuilders.co</a>
+            .
+          </p>,
+        ],
       ]}
     />
+  );
+}
+
+function LegalList({ items }: { items: string[] }) {
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
   );
 }
 
@@ -1367,16 +1911,17 @@ function R2LegalPage({
   label: string;
   title: string;
   intro: string;
-  sections: Array<[string, string]>;
+  sections: Array<[string, React.ReactNode]>;
 }) {
   return (
     <R2Shell>
       <R2Hero label={label} title={title} copy={intro} />
       <section className="hp2-legal-body">
+        <p className="hp2-legal-updated">Last updated: June 19, 2026</p>
         {sections.map(([sectionTitle, body]) => (
           <section key={sectionTitle}>
             <h2>{sectionTitle}</h2>
-            <p>{body}</p>
+            <div>{body}</div>
           </section>
         ))}
       </section>

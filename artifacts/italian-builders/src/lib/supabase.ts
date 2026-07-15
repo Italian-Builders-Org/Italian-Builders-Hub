@@ -41,6 +41,8 @@ export type Profile = {
   country: string;
   latitude: number | null;
   longitude: number | null;
+  municipality_istat_code: string | null;
+  province_code: string | null;
   telegram_handle: string | null;
   telegram_bot_username: string | null;
   telegram_bot_username_set_at: string | null;
