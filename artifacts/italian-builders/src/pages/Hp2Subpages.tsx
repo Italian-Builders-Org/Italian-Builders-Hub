@@ -41,7 +41,7 @@ import type {
 } from "@/lib/supabase";
 
 const publicProfileSelect =
-  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, municipality_istat_code, province_code, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
+  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, province_code, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
 const projectCategoryRelationSelect =
   "project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))";
 const allFilterValue = "All";
@@ -62,9 +62,7 @@ function profileLocationOption(profile: Profile): R2SelectOption | null {
   if (!city) return null;
 
   const province = profile.province_code?.trim().toUpperCase() ?? "";
-  const value =
-    profile.municipality_istat_code ||
-    `${province || "unknown"}:${normalizeItalianCitySearch(city)}`;
+  const value = `${province || "unknown"}:${normalizeItalianCitySearch(city)}`;
 
   return {
     value,

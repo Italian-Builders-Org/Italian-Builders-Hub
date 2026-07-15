@@ -198,7 +198,7 @@ const projectCategorySelect =
 const projectCategoryRelationSelect =
   "project_category_tags(position, project_categories(id, slug, name, group_name, sort_order, is_active, created_at, updated_at))";
 const anonymousProfileSelect =
-  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, municipality_istat_code, province_code, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
+  "id, username, full_name, headline, bio, avatar_url, cover_url, location, city, country, latitude, longitude, province_code, email, email_public, website_url, linkedin_url, x_url, github_url, youtube_url, instagram_url, role, skills, interests, looking_for, languages, intro_video_url, visibility, platform_role, onboarding_completed, created_at, updated_at";
 const italianCitySelect =
   "istat_code, name, search_name, region, province_code, latitude, longitude";
 const hiddenProjectCategorySlugs = new Set(["virtual-try-on"]);
@@ -220,9 +220,7 @@ function profileLocationFilterOption(profile: Profile): FilterOption | null {
   if (!city) return null;
 
   const province = profile.province_code?.trim().toUpperCase() ?? "";
-  const value =
-    profile.municipality_istat_code ||
-    `${province || "unknown"}:${normalizeItalianCitySearch(city)}`;
+  const value = `${province || "unknown"}:${normalizeItalianCitySearch(city)}`;
 
   return {
     value,
@@ -3833,7 +3831,6 @@ type ProfileFormState = {
   country: string;
   latitude: string;
   longitude: string;
-  municipality_istat_code: string;
   province_code: string;
   intro_video_url: string;
   visibility: Profile["visibility"];
@@ -3864,7 +3861,6 @@ function profileToForm(profile: Profile | null): ProfileFormState {
     country,
     latitude: profile?.latitude?.toString() ?? inferredCoords.latitude,
     longitude: profile?.longitude?.toString() ?? inferredCoords.longitude,
-    municipality_istat_code: profile?.municipality_istat_code ?? "",
     province_code: profile?.province_code ?? "",
     intro_video_url: profile?.intro_video_url ?? "",
     visibility: profile?.visibility ?? "members",
@@ -4014,7 +4010,6 @@ function ProfileEditorView({
   function updateCity(value: string) {
     const coords = inferredCoordinateText(value, form.country);
     update("city", value);
-    update("municipality_istat_code", "");
     update("province_code", "");
     update("latitude", coords.latitude);
     update("longitude", coords.longitude);
@@ -4024,7 +4019,6 @@ function ProfileEditorView({
     const coords = inferredCoordinateText(form.city, value);
     update("country", value);
     if (!cityLookupEnabled(value)) {
-      update("municipality_istat_code", "");
       update("province_code", "");
     }
     update("latitude", coords.latitude);
@@ -4035,7 +4029,6 @@ function ProfileEditorView({
     const coords = italianCityCoordinateText(city);
     update("city", city.name);
     update("country", "Italy");
-    update("municipality_istat_code", city.istat_code);
     update("province_code", city.province_code ?? "");
     update("latitude", coords.latitude);
     update("longitude", coords.longitude);
@@ -4700,7 +4693,6 @@ function ProfileForm({
             location: null,
             latitude,
             longitude,
-            municipality_istat_code: form.municipality_istat_code || null,
             province_code: form.province_code || null,
             intro_video_url:
               normalizeHttpUrlInput(form.intro_video_url) || null,
@@ -4737,7 +4729,6 @@ function ProfileForm({
       location: null,
       latitude,
       longitude,
-      municipality_istat_code: form.municipality_istat_code || null,
       province_code: form.province_code || null,
       intro_video_url: normalizeHttpUrlInput(form.intro_video_url) || null,
       visibility: form.visibility,
