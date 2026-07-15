@@ -99,7 +99,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-const TELEGRAM_COMMUNITY_URL = "https://t.me/+soxY4hNPmxdhYjRk";
+const TELEGRAM_COMMUNITY_URL = "https://telegram.me/+soxY4hNPmxdhYjRk";
 const EMAIL_LOGO_URL = "https://italianbuilders.co/logo-vector.svg";
 
 function acceptedInviteEmailHtml({ name, actionLink }) {
