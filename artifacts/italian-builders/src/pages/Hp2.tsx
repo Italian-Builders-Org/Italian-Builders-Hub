@@ -88,7 +88,7 @@ const profileSelect =
   "id, username, full_name, headline, bio, avatar_url, location, city, country, latitude, longitude, role, skills, created_at";
 const hp2TurnstileScriptSrc =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-const hp2TurnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
+export const hp2TurnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as
   | string
   | undefined;
 const hp2EuropeGeoJsonUrl = "/maps/europe-italy-vector.geojson";
@@ -127,6 +127,7 @@ const hp2FooterGroups = [
       { href: "/mission", label: "Mission" },
       { href: "/os-projects", label: "Open source" },
       { href: "/pantheon", label: "Pantheon" },
+      { href: "/merch", label: "Merch" },
       { label: "Guides", comingSoon: true },
       { label: "Changelog", comingSoon: true },
     ],
@@ -972,7 +973,7 @@ function Hp2BuilderGlobe({
   );
 }
 
-function Hp2TurnstileChallenge({
+export function Hp2TurnstileChallenge({
   siteKey,
   resetNonce,
   onVerify,

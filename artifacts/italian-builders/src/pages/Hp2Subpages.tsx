@@ -14,6 +14,11 @@ import {
   Hp2Footer,
   R2HeaderAuthControls,
 } from "@/pages/Hp2";
+import {
+  Hp2MerchInterestForm,
+  MERCH_CAPS,
+  type MerchCapColor,
+} from "@/pages/Hp2Merch";
 import { PIONEERS, PIONEER_CATEGORIES, type Pioneer } from "@/data/pioneers";
 import { PIONEER_MEDIA, type PioneerMediaItem } from "@/data/pioneersMedia";
 import {
@@ -108,6 +113,7 @@ const r2PrimaryLinks = [
   { href: "/content", label: "Content" },
   { href: "/os-projects", label: "Open source" },
   { href: "/pantheon", label: "Pantheon" },
+  { href: "/merch", label: "Merch" },
   { href: "/mission", label: "Mission" },
 ];
 
@@ -1610,6 +1616,83 @@ export function Hp2JoinPage() {
   );
 }
 
+export function Hp2MerchPage() {
+  const [selectedColor, setSelectedColor] = useState<MerchCapColor>("navy");
+  const activeCap =
+    MERCH_CAPS.find((cap) => cap.id === selectedColor) ?? MERCH_CAPS[0];
+
+  return (
+    <R2Shell>
+      <R2Hero
+        label="Merch"
+        title="Italian Builders caps."
+        copy="First drop: a classic baseball cap with the three-square mark. Choose a color and leave your shipping details. Payment happens in a second phase: we email you a Stripe link."
+        meta={
+          <a className="hp2-merch-hero-cta" href="#interest">
+            Register interest <ArrowRight size={14} />
+          </a>
+        }
+      />
+
+      <section
+        className="hp2-list-section hp2-merch-product"
+        aria-label="Cap interest"
+      >
+        <div className="hp2-merch-stage">
+          <div className="hp2-merch-stage-visual">
+            <figure className="hp2-merch-stage-media">
+              <img
+                key={activeCap.id}
+                src={activeCap.image}
+                alt={`Italian Builders cap in ${activeCap.label}`}
+                width={1024}
+                height={1024}
+                decoding="async"
+              />
+            </figure>
+            <div className="hp2-merch-thumb-row" role="list">
+              {MERCH_CAPS.map((cap) => {
+                const selected = selectedColor === cap.id;
+                return (
+                  <button
+                    key={cap.id}
+                    type="button"
+                    role="listitem"
+                    className={`hp2-merch-thumb${selected ? " is-selected" : ""}`}
+                    aria-pressed={selected}
+                    aria-label={`Select ${cap.label}`}
+                    onClick={() => setSelectedColor(cap.id)}
+                  >
+                    <img
+                      src={cap.image}
+                      alt=""
+                      width={320}
+                      height={320}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <span>{cap.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="hp2-merch-stage-copy">
+            <p className="hp2-subhero-label">Selected</p>
+            <strong>{activeCap.label}</strong>
+            <p>
+              Classic six-panel cap with the green, white, and red squares on
+              the front. Adjustable fit for everyday wear.
+            </p>
+            <Hp2MerchInterestForm selectedColor={selectedColor} />
+          </div>
+        </div>
+      </section>
+    </R2Shell>
+  );
+}
+
 export function Hp2PrivacyPage() {
   return (
     <R2LegalPage
@@ -1631,6 +1714,7 @@ export function Hp2PrivacyPage() {
           <LegalList
             items={[
               "Waitlist and invite information, such as name, email address, role, what you are building, website or project links, and social handles you choose to provide.",
+              "Merchandising interest information, such as name, email, phone, preferred product color and size, quantity, and shipping address details you submit for future print-on-demand orders.",
               "Account information, such as email address, authentication data, username, profile details, profile visibility settings, and invite status.",
               "Community content, such as builder profiles, project listings, community project details, links, images, videos, and collaboration notes that you choose to submit.",
               "Telegram digest and moderation data from approved community chats, including message text, links, chat IDs, topic IDs, message IDs, timestamps, Telegram sender IDs, usernames, first names, and last names where Telegram provides them.",
@@ -1644,6 +1728,7 @@ export function Hp2PrivacyPage() {
           <LegalList
             items={[
               "To run the community, review access requests, create invites, authenticate members, and display public or member-visible profiles and projects.",
+              "To collect merchandising interest and shipping details for future print-on-demand drops, and to email a Stripe payment link when a batch opens.",
               "To store and serve media uploaded by authenticated members.",
               "To generate member-only Telegram topic digests, post short TLDR links back into approved Telegram chats, and create admin-review moderation flags for clear suspected rule violations.",
               "To keep the website reliable, secure, and maintainable.",

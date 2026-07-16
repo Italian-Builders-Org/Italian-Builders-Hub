@@ -283,6 +283,16 @@ function routeConfig(path: string): SeoConfig {
     };
   }
 
+  if (routePath === "/merch") {
+    return {
+      title: "Merch | Italian Builders",
+      description:
+        "Register interest for the first Italian Builders caps. Leave shipping details now; payment happens later via a Stripe link sent by email.",
+      path: routePath,
+      image: absoluteUrl("/images/merch/cap-navy.jpg"),
+    };
+  }
+
   if (routePath === "/privacy") {
     return {
       title: "Privacy Policy | Italian Builders",
