@@ -13,6 +13,7 @@ import {
   Hp2CommunityProjectDetailPage,
   Hp2CommunityProjectsPage,
   Hp2JoinPage,
+  Hp2MerchPage,
   Hp2MissionPage,
   Hp2OpenSourcePage,
   Hp2PantheonPage,
@@ -75,6 +76,7 @@ function Router() {
         <Route path="/os-projects" component={Hp2OpenSourcePage} />
         <Route path="/pantheon" component={Hp2PantheonPage} />
         <Route path="/mission" component={Hp2MissionPage} />
+        <Route path="/merch" component={Hp2MerchPage} />
         <Route path="/join" component={Hp2JoinPage} />
         <Route path="/privacy" component={Hp2PrivacyPage} />
         <Route path="/terms" component={Hp2TermsPage} />
