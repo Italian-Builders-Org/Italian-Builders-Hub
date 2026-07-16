@@ -1624,69 +1624,71 @@ export function Hp2MerchPage() {
   return (
     <R2Shell>
       <div className="hp2-merch-page">
-        <R2Hero
-          label="Merch"
-          title="Italian Builders caps."
-          copy="Classic baseball cap with the three-square mark. One size. Choose a color, leave shipping details, then pay later via Stripe email link."
-          meta={
-            <a className="hp2-merch-hero-cta" href="#interest">
-              Register interest <ArrowRight size={14} />
-            </a>
-          }
-        />
+        <div className="hp2-merch-shell">
+          <R2Hero
+            label="Merch"
+            title="Italian Builders caps."
+            copy="Classic baseball cap with the three-square mark. One size. Choose a color, leave shipping details, then pay later via Stripe email link."
+            meta={
+              <a className="hp2-merch-hero-cta" href="#interest">
+                Register interest <ArrowRight size={14} />
+              </a>
+            }
+          />
 
-        <section
-          className="hp2-list-section hp2-merch-product"
-          aria-label="Cap interest"
-        >
-          <div className="hp2-merch-stage">
-            <div className="hp2-merch-stage-visual">
-              <figure className="hp2-merch-stage-media">
-                <img
-                  key={activeCap.id}
-                  src={activeCap.image}
-                  alt={`Italian Builders cap in ${activeCap.label}`}
-                  width={1024}
-                  height={1024}
-                  decoding="async"
+          <section
+            className="hp2-list-section hp2-merch-product"
+            aria-label="Cap interest"
+          >
+            <div className="hp2-merch-stage">
+              <div className="hp2-merch-stage-visual">
+                <figure className="hp2-merch-stage-media">
+                  <img
+                    key={activeCap.id}
+                    src={activeCap.image}
+                    alt={`Italian Builders cap in ${activeCap.label}`}
+                    width={1024}
+                    height={1024}
+                    decoding="async"
+                  />
+                </figure>
+                <div className="hp2-merch-thumb-row" role="list">
+                  {MERCH_CAPS.map((cap) => {
+                    const selected = selectedColor === cap.id;
+                    return (
+                      <button
+                        key={cap.id}
+                        type="button"
+                        role="listitem"
+                        className={`hp2-merch-thumb${selected ? " is-selected" : ""}`}
+                        aria-pressed={selected}
+                        aria-label={`Preview ${cap.label}`}
+                        onClick={() => setSelectedColor(cap.id)}
+                      >
+                        <img
+                          src={cap.image}
+                          alt=""
+                          width={320}
+                          height={320}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <span>{cap.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="hp2-merch-stage-copy">
+                <Hp2MerchInterestForm
+                  selectedColor={selectedColor}
+                  onColorChange={setSelectedColor}
                 />
-              </figure>
-              <div className="hp2-merch-thumb-row" role="list">
-                {MERCH_CAPS.map((cap) => {
-                  const selected = selectedColor === cap.id;
-                  return (
-                    <button
-                      key={cap.id}
-                      type="button"
-                      role="listitem"
-                      className={`hp2-merch-thumb${selected ? " is-selected" : ""}`}
-                      aria-pressed={selected}
-                      aria-label={`Preview ${cap.label}`}
-                      onClick={() => setSelectedColor(cap.id)}
-                    >
-                      <img
-                        src={cap.image}
-                        alt=""
-                        width={320}
-                        height={320}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <span>{cap.label}</span>
-                    </button>
-                  );
-                })}
               </div>
             </div>
-
-            <div className="hp2-merch-stage-copy">
-              <Hp2MerchInterestForm
-                selectedColor={selectedColor}
-                onColorChange={setSelectedColor}
-              />
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </R2Shell>
   );
