@@ -93,10 +93,9 @@ async function verifyTurnstile(req, token) {
   }
 
   if (!payload.success) {
-    throw Object.assign(
-      new Error("Security check failed. Please try again."),
-      { statusCode: 400 },
-    );
+    throw Object.assign(new Error("Security check failed. Please try again."), {
+      statusCode: 400,
+    });
   }
 }
 
@@ -115,9 +114,7 @@ function mapPayload(body) {
     });
   }
 
-  const size = (
-    cleanString(body.size, 20) || "osfa"
-  ).toLowerCase();
+  const size = (cleanString(body.size, 20) || "osfa").toLowerCase();
   if (!ALLOWED_SIZES.has(size)) {
     throw Object.assign(new Error("Choose a valid size."), {
       statusCode: 400,
@@ -125,9 +122,7 @@ function mapPayload(body) {
   }
 
   const quantityRaw = Number(body.quantity ?? 1);
-  const quantity = Number.isFinite(quantityRaw)
-    ? Math.trunc(quantityRaw)
-    : NaN;
+  const quantity = Number.isFinite(quantityRaw) ? Math.trunc(quantityRaw) : NaN;
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 20) {
     throw Object.assign(new Error("Quantity must be between 1 and 20."), {
       statusCode: 400,

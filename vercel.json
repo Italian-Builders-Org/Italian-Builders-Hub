@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @workspace/italian-builders run build",
+  "buildCommand": "pnpm run check:vercel-functions && pnpm --filter @workspace/italian-builders run build",
   "outputDirectory": "artifacts/italian-builders/dist/public",
   "crons": [
     {
@@ -77,6 +77,10 @@
     {
       "source": "/api/admin/content/preview",
       "destination": "/api/admin/waitlist/action?action=content-preview"
+    },
+    {
+      "source": "/api/merch-interest",
+      "destination": "/api/waitlist?action=merch-interest"
     },
     {
       "source": "/api/(.*)",

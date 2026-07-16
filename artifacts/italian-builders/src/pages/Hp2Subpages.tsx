@@ -1634,7 +1634,10 @@ export function Hp2MerchPage() {
         }
       />
 
-      <section className="hp2-list-section hp2-merch-product" aria-label="Cap interest">
+      <section
+        className="hp2-list-section hp2-merch-product"
+        aria-label="Cap interest"
+      >
         <div className="hp2-merch-stage">
           <div className="hp2-merch-stage-visual">
             <figure className="hp2-merch-stage-media">
