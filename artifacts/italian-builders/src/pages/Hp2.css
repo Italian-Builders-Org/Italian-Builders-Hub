@@ -2478,10 +2478,20 @@
 }
 
 
+.hp2-merch-page {
+  --hp2-merch-max: 1040px;
+  --hp2-merch-pad: clamp(18px, 4vw, 60px);
+  padding-inline: var(--hp2-merch-pad);
+}
+
 .hp2-merch-page .hp2-subhero {
-  padding: clamp(22px, 3.2vw, 40px) clamp(18px, 4vw, 60px) clamp(16px, 2.4vw, 28px);
+  width: 100%;
+  max-width: var(--hp2-merch-max);
+  margin-inline: auto;
+  padding: clamp(22px, 3.2vw, 40px) 0 clamp(16px, 2.4vw, 28px);
   gap: clamp(16px, 3vw, 40px);
   align-items: center;
+  box-sizing: border-box;
 }
 
 .hp2-merch-page .hp2-subhero h1 {
@@ -2522,19 +2532,20 @@
   display: grid;
   gap: 0;
   justify-items: center;
-  padding: 0 clamp(18px, 4vw, 60px) clamp(24px, 4vw, 48px) !important;
+  padding: 0 0 clamp(24px, 4vw, 48px) !important;
 }
 
 .hp2-merch-stage {
   display: grid;
   width: 100%;
-  max-width: 1040px;
+  max-width: var(--hp2-merch-max);
   grid-template-columns: 240px minmax(0, 1fr);
   gap: clamp(16px, 2vw, 24px);
   align-items: start;
   border: 2px solid var(--hp2-ink);
   background: oklch(0.98 0.012 96);
   padding: clamp(12px, 1.6vw, 16px);
+  box-sizing: border-box;
 }
 
 .hp2-merch-stage-visual {
