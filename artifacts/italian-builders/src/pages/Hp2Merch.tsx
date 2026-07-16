@@ -1,6 +1,9 @@
 import { useCallback, useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
-import { Hp2TurnstileChallenge, hp2TurnstileSiteKey } from "@/pages/Hp2";
+import {
+  Hp2TurnstileChallenge,
+  hp2TurnstileSiteKey,
+} from "@/pages/Hp2";
 
 export const MERCH_CAPS = [
   {
@@ -25,18 +28,12 @@ export const MERCH_CAPS = [
 
 export type MerchCapColor = (typeof MERCH_CAPS)[number]["id"];
 
-const MERCH_SIZES = [
-  { value: "osfa", label: "One size (adjustable)" },
-  { value: "s", label: "S" },
-  { value: "m", label: "M" },
-  { value: "l", label: "L" },
-  { value: "xl", label: "XL" },
-] as const;
-
 export function Hp2MerchInterestForm({
   selectedColor,
+  onColorChange,
 }: {
   selectedColor: MerchCapColor;
+  onColorChange: (color: MerchCapColor) => void;
 }) {
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -84,6 +81,10 @@ export function Hp2MerchInterestForm({
         throw new Error("Complete the security check before submitting.");
       }
 
+      const color = String(formData.get("color") ?? selectedColor)
+        .trim()
+        .toLowerCase() as MerchCapColor;
+
       const response = await fetch("/api/merch-interest", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -93,16 +94,16 @@ export function Hp2MerchInterestForm({
             .trim()
             .toLowerCase(),
           phone: getValue("phone"),
-          color: selectedColor,
+          color,
           quantity: Number(formData.get("quantity") ?? 1),
-          size: String(formData.get("size") ?? "osfa").trim(),
+          size: "osfa",
           addressLine1: String(formData.get("addressLine1") ?? "").trim(),
           addressLine2: getValue("addressLine2"),
           city: String(formData.get("city") ?? "").trim(),
           province: getValue("province"),
           postalCode: String(formData.get("postalCode") ?? "").trim(),
           country: String(formData.get("country") ?? "Italy").trim(),
-          notes: getValue("notes"),
+          notes: null,
           turnstileToken,
         }),
       });
@@ -159,20 +160,50 @@ export function Hp2MerchInterestForm({
       <div className="hp2-merch-form-head">
         <p className="hp2-subhero-label">Register interest</p>
         <p>
-          Leave shipping details for the {selectedColor} cap. Payment is a
-          second phase via Stripe link by email.
+          One size for everyone. Payment is a second phase via Stripe link by
+          email.
         </p>
+      </div>
+
+      <div className="hp2-merch-form-grid hp2-merch-form-grid-3">
+        <label>
+          <span>Color</span>
+          <select
+            name="color"
+            required
+            value={selectedColor}
+            onChange={(event) =>
+              onColorChange(event.target.value as MerchCapColor)
+            }
+          >
+            {MERCH_CAPS.map((cap) => (
+              <option key={cap.id} value={cap.id}>
+                {cap.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Quantity</span>
+          <input
+            name="quantity"
+            type="number"
+            required
+            min={1}
+            max={20}
+            defaultValue={1}
+          />
+        </label>
+        <label>
+          <span>Size</span>
+          <input value="One size" readOnly tabIndex={-1} aria-readonly="true" />
+        </label>
       </div>
 
       <div className="hp2-merch-form-grid">
         <label>
           <span>Name</span>
-          <input
-            name="name"
-            required
-            autoComplete="name"
-            placeholder="Your name"
-          />
+          <input name="name" required autoComplete="name" placeholder="Your name" />
         </label>
         <label>
           <span>Email</span>
@@ -194,27 +225,6 @@ export function Hp2MerchInterestForm({
           />
         </label>
         <label>
-          <span>Quantity</span>
-          <input
-            name="quantity"
-            type="number"
-            required
-            min={1}
-            max={20}
-            defaultValue={1}
-          />
-        </label>
-        <label>
-          <span>Size</span>
-          <select name="size" required defaultValue="osfa">
-            {MERCH_SIZES.map((size) => (
-              <option key={size.value} value={size.value}>
-                {size.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
           <span>Country</span>
           <input
             name="country"
@@ -225,7 +235,7 @@ export function Hp2MerchInterestForm({
         </label>
       </div>
 
-      <label>
+      <label className="hp2-merch-form-span">
         <span>Address</span>
         <input
           name="addressLine1"
@@ -235,7 +245,7 @@ export function Hp2MerchInterestForm({
         />
       </label>
 
-      <label>
+      <label className="hp2-merch-form-span">
         <span>Address line 2 (optional)</span>
         <input
           name="addressLine2"
@@ -244,7 +254,7 @@ export function Hp2MerchInterestForm({
         />
       </label>
 
-      <div className="hp2-merch-form-grid">
+      <div className="hp2-merch-form-grid hp2-merch-form-grid-3">
         <label>
           <span>City</span>
           <input
@@ -255,11 +265,11 @@ export function Hp2MerchInterestForm({
           />
         </label>
         <label>
-          <span>Province / state</span>
+          <span>Province</span>
           <input
             name="province"
             autoComplete="address-level1"
-            placeholder="MI, RM, ..."
+            placeholder="MI, RM..."
           />
         </label>
         <label>
@@ -273,18 +283,8 @@ export function Hp2MerchInterestForm({
         </label>
       </div>
 
-      <label>
-        <span>Notes (optional)</span>
-        <textarea
-          name="notes"
-          rows={2}
-          placeholder="Anything we should know before ordering"
-        />
-      </label>
-
       <p className="hp2-merch-form-note">
-        Interest only for now. In a second phase we will email you a Stripe
-        payment link before printing.
+        Interest only. We email a Stripe payment link before printing.
       </p>
 
       <div className="hp2-merch-form-check">
@@ -303,7 +303,7 @@ export function Hp2MerchInterestForm({
 
       <button type="submit" disabled={isSubmitting || !canSubmit}>
         {isSubmitting ? "Saving..." : "Register interest"}
-        <ArrowRight size={18} />
+        <ArrowRight size={16} />
       </button>
     </form>
   );

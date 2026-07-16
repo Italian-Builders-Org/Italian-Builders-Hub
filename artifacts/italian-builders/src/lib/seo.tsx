@@ -287,7 +287,7 @@ function routeConfig(path: string): SeoConfig {
     return {
       title: "Merch | Italian Builders",
       description:
-        "Register interest for the first Italian Builders caps. Leave shipping details now; payment happens later via a Stripe link sent by email.",
+        "Register interest for the first Italian Builders caps. One size, three colors. Leave shipping details now; payment happens later via a Stripe link sent by email.",
       path: routePath,
       image: absoluteUrl("/images/merch/cap-navy.jpg"),
     };

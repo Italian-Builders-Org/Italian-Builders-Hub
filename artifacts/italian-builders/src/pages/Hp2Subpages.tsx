@@ -1623,72 +1623,71 @@ export function Hp2MerchPage() {
 
   return (
     <R2Shell>
-      <R2Hero
-        label="Merch"
-        title="Italian Builders caps."
-        copy="First drop: a classic baseball cap with the three-square mark. Choose a color and leave your shipping details. Payment happens in a second phase: we email you a Stripe link."
-        meta={
-          <a className="hp2-merch-hero-cta" href="#interest">
-            Register interest <ArrowRight size={14} />
-          </a>
-        }
-      />
+      <div className="hp2-merch-page">
+        <R2Hero
+          label="Merch"
+          title="Italian Builders caps."
+          copy="Classic baseball cap with the three-square mark. One size. Choose a color, leave shipping details, then pay later via Stripe email link."
+          meta={
+            <a className="hp2-merch-hero-cta" href="#interest">
+              Register interest <ArrowRight size={14} />
+            </a>
+          }
+        />
 
-      <section
-        className="hp2-list-section hp2-merch-product"
-        aria-label="Cap interest"
-      >
-        <div className="hp2-merch-stage">
-          <div className="hp2-merch-stage-visual">
-            <figure className="hp2-merch-stage-media">
-              <img
-                key={activeCap.id}
-                src={activeCap.image}
-                alt={`Italian Builders cap in ${activeCap.label}`}
-                width={1024}
-                height={1024}
-                decoding="async"
+        <section
+          className="hp2-list-section hp2-merch-product"
+          aria-label="Cap interest"
+        >
+          <div className="hp2-merch-stage">
+            <div className="hp2-merch-stage-visual">
+              <figure className="hp2-merch-stage-media">
+                <img
+                  key={activeCap.id}
+                  src={activeCap.image}
+                  alt={`Italian Builders cap in ${activeCap.label}`}
+                  width={1024}
+                  height={1024}
+                  decoding="async"
+                />
+              </figure>
+              <div className="hp2-merch-thumb-row" role="list">
+                {MERCH_CAPS.map((cap) => {
+                  const selected = selectedColor === cap.id;
+                  return (
+                    <button
+                      key={cap.id}
+                      type="button"
+                      role="listitem"
+                      className={`hp2-merch-thumb${selected ? " is-selected" : ""}`}
+                      aria-pressed={selected}
+                      aria-label={`Preview ${cap.label}`}
+                      onClick={() => setSelectedColor(cap.id)}
+                    >
+                      <img
+                        src={cap.image}
+                        alt=""
+                        width={320}
+                        height={320}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <span>{cap.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="hp2-merch-stage-copy">
+              <Hp2MerchInterestForm
+                selectedColor={selectedColor}
+                onColorChange={setSelectedColor}
               />
-            </figure>
-            <div className="hp2-merch-thumb-row" role="list">
-              {MERCH_CAPS.map((cap) => {
-                const selected = selectedColor === cap.id;
-                return (
-                  <button
-                    key={cap.id}
-                    type="button"
-                    role="listitem"
-                    className={`hp2-merch-thumb${selected ? " is-selected" : ""}`}
-                    aria-pressed={selected}
-                    aria-label={`Select ${cap.label}`}
-                    onClick={() => setSelectedColor(cap.id)}
-                  >
-                    <img
-                      src={cap.image}
-                      alt=""
-                      width={320}
-                      height={320}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <span>{cap.label}</span>
-                  </button>
-                );
-              })}
             </div>
           </div>
-
-          <div className="hp2-merch-stage-copy">
-            <p className="hp2-subhero-label">Selected</p>
-            <strong>{activeCap.label}</strong>
-            <p>
-              Classic six-panel cap with the green, white, and red squares on
-              the front. Adjustable fit for everyday wear.
-            </p>
-            <Hp2MerchInterestForm selectedColor={selectedColor} />
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </R2Shell>
   );
 }
@@ -1714,7 +1713,7 @@ export function Hp2PrivacyPage() {
           <LegalList
             items={[
               "Waitlist and invite information, such as name, email address, role, what you are building, website or project links, and social handles you choose to provide.",
-              "Merchandising interest information, such as name, email, phone, preferred product color and size, quantity, and shipping address details you submit for future print-on-demand orders.",
+              "Merchandising interest information, such as name, email, phone, preferred product color, quantity, and shipping address details you submit for future print-on-demand orders.",
               "Account information, such as email address, authentication data, username, profile details, profile visibility settings, and invite status.",
               "Community content, such as builder profiles, project listings, community project details, links, images, videos, and collaboration notes that you choose to submit.",
               "Telegram digest and moderation data from approved community chats, including message text, links, chat IDs, topic IDs, message IDs, timestamps, Telegram sender IDs, usernames, first names, and last names where Telegram provides them.",

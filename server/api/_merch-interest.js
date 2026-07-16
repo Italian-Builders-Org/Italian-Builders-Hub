@@ -1,7 +1,6 @@
 const { createClient } = require("@supabase/supabase-js");
 
 const ALLOWED_COLORS = new Set(["navy", "white", "sky"]);
-const ALLOWED_SIZES = new Set(["osfa", "s", "m", "l", "xl"]);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 let cachedSupabaseAdmin;
@@ -114,12 +113,7 @@ function mapPayload(body) {
     });
   }
 
-  const size = (cleanString(body.size, 20) || "osfa").toLowerCase();
-  if (!ALLOWED_SIZES.has(size)) {
-    throw Object.assign(new Error("Choose a valid size."), {
-      statusCode: 400,
-    });
-  }
+  const size = "osfa";
 
   const quantityRaw = Number(body.quantity ?? 1);
   const quantity = Number.isFinite(quantityRaw) ? Math.trunc(quantityRaw) : NaN;

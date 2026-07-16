@@ -26,7 +26,7 @@ create table if not exists public.merch_interest_signups (
     quantity >= 1 and quantity <= 20
   ),
   constraint merch_interest_signups_size_check check (
-    size in ('osfa', 's', 'm', 'l', 'xl')
+    size = 'osfa'
   ),
   constraint merch_interest_signups_status_check check (
     status in ('interested', 'contacted', 'ordered', 'cancelled')
