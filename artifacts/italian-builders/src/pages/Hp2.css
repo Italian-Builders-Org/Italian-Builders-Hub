@@ -2795,7 +2795,7 @@
 @media (max-width: 980px) {
   .hp2-merch-stage {
     grid-template-columns: 1fr;
-    max-width: 560px;
+    max-width: none;
   }
 
   .hp2-merch-stage-copy {
@@ -2805,6 +2805,7 @@
   .hp2-merch-stage-visual {
     order: 2;
     max-width: 200px;
+    justify-self: center;
   }
 
   .hp2-merch-stage-media {
