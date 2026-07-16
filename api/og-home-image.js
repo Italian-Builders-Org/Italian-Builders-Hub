@@ -1,17 +1,17 @@
 const fs = require("fs");
 const path = require("path");
-const { createClient } = require("@supabase/supabase-js");
 
 const WIDTH = 1200;
 const HEIGHT = 630;
-const DEFAULT_MEMBER_COUNT = 635;
-const DEFAULT_PUBLIC_BUILDERS = 62;
-const DEFAULT_CITY_COUNT = 14;
-const DEFAULT_PROJECT_COUNT = 9;
+const HOME_STATS = {
+  memberCount: 635,
+  builders: 62,
+  cities: 14,
+  projects: 9,
+};
 
 let cachedLogoDataUrl;
 let cachedFonts;
-let cachedSupabase;
 
 function h(type, props, ...children) {
   return {
@@ -23,97 +23,7 @@ function h(type, props, ...children) {
   };
 }
 
-function getSupabaseConfig() {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const supabaseKey =
-    process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) return null;
-  return { supabaseUrl, supabaseKey };
-}
-
-function getSupabase() {
-  if (cachedSupabase) return cachedSupabase;
-  const config = getSupabaseConfig();
-  if (!config) return null;
-
-  cachedSupabase = createClient(config.supabaseUrl, config.supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-  return cachedSupabase;
-}
-
-async function readCount(query) {
-  const { count, error } = await query;
-  if (error) return null;
-  return typeof count === "number" ? count : null;
-}
-
-async function getHomeStats() {
-  const supabase = getSupabase();
-  if (!supabase) {
-    return {
-      memberCount: DEFAULT_MEMBER_COUNT,
-      publicBuilders: DEFAULT_PUBLIC_BUILDERS,
-      cities: DEFAULT_CITY_COUNT,
-      projects: DEFAULT_PROJECT_COUNT,
-    };
-  }
-
-  const [waitlistCount, profileCount, cityResponse, projectCount] =
-    await Promise.all([
-      readCount(
-        supabase
-          .from("waitlist_signups")
-          .select("id", { count: "exact", head: true }),
-      ),
-      readCount(
-        supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
-          .eq("visibility", "public"),
-      ),
-      supabase
-        .from("profiles")
-        .select("city")
-        .eq("visibility", "public")
-        .not("city", "is", null),
-      readCount(
-        supabase
-          .from("projects")
-          .select("id", { count: "exact", head: true })
-          .eq("is_public", true),
-      ),
-    ]);
-
-  const cityCount = Array.isArray(cityResponse.data)
-    ? new Set(
-        cityResponse.data
-          .map((profile) =>
-            String(profile.city || "")
-              .trim()
-              .toLowerCase(),
-          )
-          .filter(Boolean),
-      ).size
-    : null;
-
-  return {
-    memberCount: Math.max(
-      waitlistCount ?? DEFAULT_MEMBER_COUNT,
-      profileCount ?? DEFAULT_MEMBER_COUNT,
-    ),
-    publicBuilders: profileCount ?? DEFAULT_PUBLIC_BUILDERS,
-    cities: cityCount || DEFAULT_CITY_COUNT,
-    projects: projectCount ?? DEFAULT_PROJECT_COUNT,
-  };
-}
-
 function formatCount(value) {
-  if (typeof value !== "number") return "Live";
   return new Intl.NumberFormat("en").format(value);
 }
 
@@ -267,7 +177,7 @@ function StatBlock({ value, label, accent }) {
 function buildImage(stats) {
   const logo = readLogoDataUrl();
   const memberCount = formatCount(stats.memberCount);
-  const publicBuilderCount = formatCount(stats.publicBuilders);
+  const builderCount = formatCount(stats.builders);
   const cityCount = formatCount(stats.cities);
   const projectCount = formatCount(stats.projects);
 
@@ -431,7 +341,7 @@ function buildImage(stats) {
             label: "Members",
             accent: "Telegram",
           }),
-          h(StatBlock, { value: publicBuilderCount, label: "Builders" }),
+          h(StatBlock, { value: builderCount, label: "Builders" }),
           h(StatBlock, { value: cityCount, label: "Cities" }),
           h(StatBlock, { value: projectCount, label: "Projects" }),
         ),
@@ -466,14 +376,8 @@ function buildImage(stats) {
 }
 
 module.exports = async function handler(req, res) {
-  const stats = await getHomeStats().catch(() => ({
-    memberCount: DEFAULT_MEMBER_COUNT,
-    publicBuilders: DEFAULT_PUBLIC_BUILDERS,
-    cities: DEFAULT_CITY_COUNT,
-    projects: DEFAULT_PROJECT_COUNT,
-  }));
   const { ImageResponse } = await import("@vercel/og");
-  const response = new ImageResponse(buildImage(stats), {
+  const response = new ImageResponse(buildImage(HOME_STATS), {
     width: WIDTH,
     height: HEIGHT,
     fonts: readFonts(),
