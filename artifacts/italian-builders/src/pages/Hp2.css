@@ -2521,27 +2521,34 @@
 .hp2-merch-product {
   display: grid;
   gap: 0;
+  justify-items: center;
   padding: 0 clamp(18px, 4vw, 60px) clamp(24px, 4vw, 48px) !important;
 }
 
 .hp2-merch-stage {
   display: grid;
-  grid-template-columns: minmax(220px, 0.78fr) minmax(320px, 1.22fr);
-  gap: clamp(14px, 2.2vw, 28px);
+  width: 100%;
+  max-width: 1040px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: clamp(16px, 2vw, 24px);
   align-items: start;
   border: 2px solid var(--hp2-ink);
   background: oklch(0.98 0.012 96);
-  padding: clamp(12px, 1.8vw, 18px);
+  padding: clamp(12px, 1.6vw, 16px);
 }
 
 .hp2-merch-stage-visual {
   display: grid;
+  width: 100%;
+  max-width: 240px;
+  justify-self: center;
   gap: 8px;
 }
 
 .hp2-merch-stage-media {
   margin: 0;
-  max-height: min(42vh, 360px);
+  width: 100%;
+  max-height: min(32vh, 240px);
   aspect-ratio: 1;
   overflow: hidden;
   background: #fff;
@@ -2576,6 +2583,7 @@
 
 .hp2-merch-thumb-row {
   display: grid;
+  width: 100%;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
@@ -2770,6 +2778,7 @@
 @media (max-width: 980px) {
   .hp2-merch-stage {
     grid-template-columns: 1fr;
+    max-width: 560px;
   }
 
   .hp2-merch-stage-copy {
@@ -2778,17 +2787,11 @@
 
   .hp2-merch-stage-visual {
     order: 2;
+    max-width: 200px;
   }
 
   .hp2-merch-stage-media {
     max-height: 160px;
-    margin-inline: auto;
-    width: min(100%, 180px);
-  }
-
-  .hp2-merch-thumb-row {
-    max-width: 280px;
-    margin-inline: auto;
   }
 
   .hp2-merch-page .hp2-subhero {
@@ -2812,7 +2815,6 @@
 
   .hp2-merch-stage-media {
     max-height: 120px;
-    width: min(100%, 140px);
   }
 }
 
