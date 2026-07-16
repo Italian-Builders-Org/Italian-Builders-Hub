@@ -4,9 +4,13 @@ const { createClient } = require("@supabase/supabase-js");
 
 const WIDTH = 1200;
 const HEIGHT = 630;
-const DEFAULT_SIGNUP_COUNT = 0;
+const DEFAULT_MEMBER_COUNT = 635;
+const DEFAULT_PUBLIC_BUILDERS = 62;
+const DEFAULT_CITY_COUNT = 14;
+const DEFAULT_PROJECT_COUNT = 9;
 
 let cachedLogoDataUrl;
+let cachedFonts;
 let cachedSupabase;
 
 function h(type, props, ...children) {
@@ -52,14 +56,14 @@ async function getHomeStats() {
   const supabase = getSupabase();
   if (!supabase) {
     return {
-      signupCount: DEFAULT_SIGNUP_COUNT,
-      publicBuilders: null,
-      projects: null,
-      communityProjects: null,
+      memberCount: DEFAULT_MEMBER_COUNT,
+      publicBuilders: DEFAULT_PUBLIC_BUILDERS,
+      cities: DEFAULT_CITY_COUNT,
+      projects: DEFAULT_PROJECT_COUNT,
     };
   }
 
-  const [waitlistCount, profileCount, projectCount, communityProjectCount] =
+  const [waitlistCount, profileCount, cityResponse, projectCount] =
     await Promise.all([
       readCount(
         supabase
@@ -72,28 +76,39 @@ async function getHomeStats() {
           .select("id", { count: "exact", head: true })
           .eq("visibility", "public"),
       ),
+      supabase
+        .from("profiles")
+        .select("city")
+        .eq("visibility", "public")
+        .not("city", "is", null),
       readCount(
         supabase
           .from("projects")
           .select("id", { count: "exact", head: true })
           .eq("is_public", true),
       ),
-      readCount(
-        supabase
-          .from("community_projects")
-          .select("id", { count: "exact", head: true })
-          .eq("is_public", true),
-      ),
     ]);
 
+  const cityCount = Array.isArray(cityResponse.data)
+    ? new Set(
+        cityResponse.data
+          .map((profile) =>
+            String(profile.city || "")
+              .trim()
+              .toLowerCase(),
+          )
+          .filter(Boolean),
+      ).size
+    : null;
+
   return {
-    signupCount: Math.max(
-      waitlistCount ?? DEFAULT_SIGNUP_COUNT,
-      profileCount ?? DEFAULT_SIGNUP_COUNT,
+    memberCount: Math.max(
+      waitlistCount ?? DEFAULT_MEMBER_COUNT,
+      profileCount ?? DEFAULT_MEMBER_COUNT,
     ),
-    publicBuilders: profileCount,
-    projects: projectCount,
-    communityProjects: communityProjectCount,
+    publicBuilders: profileCount ?? DEFAULT_PUBLIC_BUILDERS,
+    cities: cityCount || DEFAULT_CITY_COUNT,
+    projects: projectCount ?? DEFAULT_PROJECT_COUNT,
   };
 }
 
@@ -108,11 +123,11 @@ function readLogoDataUrl() {
   const candidates = [
     path.join(
       process.cwd(),
-      "artifacts/italian-builders/public/logo-vector.svg",
+      "artifacts/italian-builders/public/logo-vector-dark-mattoni.svg",
     ),
     path.join(
       process.cwd(),
-      "artifacts/italian-builders/dist/public/logo-vector.svg",
+      "artifacts/italian-builders/dist/public/logo-vector-dark-mattoni.svg",
     ),
   ];
   const logoPath = candidates.find((candidate) => fs.existsSync(candidate));
@@ -125,6 +140,37 @@ function readLogoDataUrl() {
   return cachedLogoDataUrl;
 }
 
+function readFontData(fileName) {
+  const candidates = [
+    path.join(
+      process.cwd(),
+      "artifacts/italian-builders/public/fonts",
+      fileName,
+    ),
+    path.join(
+      process.cwd(),
+      "artifacts/italian-builders/dist/public/fonts",
+      fileName,
+    ),
+  ];
+  const fontPath = candidates.find((candidate) => fs.existsSync(candidate));
+  return fontPath ? fs.readFileSync(fontPath) : null;
+}
+
+function readFonts() {
+  if (cachedFonts) return cachedFonts;
+
+  const regular = readFontData("Inter-Regular.otf");
+  const black = readFontData("Inter-Black.otf");
+  cachedFonts = [
+    regular
+      ? { name: "Inter", data: regular, weight: 400, style: "normal" }
+      : null,
+    black ? { name: "Inter", data: black, weight: 900, style: "normal" } : null,
+  ].filter(Boolean);
+  return cachedFonts;
+}
+
 function HeroNavItem({ label }) {
   return h(
     "div",
@@ -132,23 +178,98 @@ function HeroNavItem({ label }) {
       style: {
         display: "flex",
         alignItems: "center",
-        color: "#71717a",
-        fontSize: 14,
-        fontWeight: 700,
-        letterSpacing: 2.2,
+        color: "#08100b",
+        fontSize: 11,
+        fontWeight: 900,
         textTransform: "uppercase",
       },
     },
-    "/",
     label,
+  );
+}
+
+function HeaderButton({ label }) {
+  return h(
+    "div",
+    {
+      style: {
+        height: 30,
+        border: "2px solid #08100b",
+        padding: "0 12px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#08100b",
+        fontSize: 11,
+        fontWeight: 900,
+        textTransform: "uppercase",
+      },
+    },
+    label,
+  );
+}
+
+function StatBlock({ value, label, accent }) {
+  return h(
+    "div",
+    {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        paddingTop: 22,
+        width: 120,
+      },
+    },
+    h(
+      "div",
+      {
+        style: {
+          color: "#08100b",
+          fontSize: 68,
+          fontWeight: 900,
+          lineHeight: 0.9,
+          letterSpacing: -1,
+        },
+      },
+      value,
+    ),
+    h(
+      "div",
+      {
+        style: {
+          marginTop: 10,
+          color: "#4f5248",
+          display: "flex",
+          flexDirection: "column",
+          fontSize: 10,
+          fontWeight: 900,
+          textTransform: "uppercase",
+        },
+      },
+      label,
+      accent
+        ? h(
+            "span",
+            {
+              style: {
+                color: "#1b8a45",
+                display: "flex",
+                marginTop: 4,
+              },
+            },
+            accent,
+          )
+        : null,
+    ),
   );
 }
 
 function buildImage(stats) {
   const logo = readLogoDataUrl();
+  const memberCount = formatCount(stats.memberCount);
   const publicBuilderCount = formatCount(stats.publicBuilders);
+  const cityCount = formatCount(stats.cities);
   const projectCount = formatCount(stats.projects);
-  const communityProjectCount = formatCount(stats.communityProjects);
 
   return h(
     "div",
@@ -156,79 +277,41 @@ function buildImage(stats) {
       style: {
         width: WIDTH,
         height: HEIGHT,
-        background: "#070708",
-        color: "#f4f4f5",
+        background: "#f2ecdf",
+        color: "#08100b",
         display: "flex",
-        position: "relative",
+        flexDirection: "column",
         overflow: "hidden",
         fontFamily: "Inter, Arial, sans-serif",
       },
     },
-    h("div", {
-      style: {
-        position: "absolute",
-        inset: 0,
-        background: "#09090b",
-        display: "flex",
-      },
-    }),
-    h("div", {
-      style: {
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: WIDTH,
-        height: HEIGHT,
-        backgroundImage:
-          "linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px)",
-        backgroundSize: "48px 48px",
-        opacity: 0.38,
-        display: "flex",
-      },
-    }),
-    h("div", {
-      style: {
-        position: "absolute",
-        right: -72,
-        top: -90,
-        width: 690,
-        height: 690,
-        borderRadius: 999,
-        background: "rgba(37,99,235,0.18)",
-        display: "flex",
-      },
-    }),
     h(
       "div",
       {
         style: {
-          position: "absolute",
-          left: 0,
-          top: 0,
-          width: WIDTH,
+          width: "100%",
           height: 54,
-          borderBottom: "1px solid #27272a",
+          borderBottom: "2px solid #08100b",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 72px",
+          padding: "0 40px",
         },
       },
       logo
         ? h("img", {
             src: logo,
-            width: 181,
-            height: 28,
-            style: { width: 181, height: 28, objectFit: "contain" },
+            width: 258,
+            height: 40,
+            style: { width: 258, height: 40, objectFit: "contain" },
           })
         : h(
             "div",
             {
               style: {
-                color: "#fff",
-                fontSize: 22,
+                color: "#08100b",
+                fontSize: 30,
                 fontWeight: 900,
-                letterSpacing: 0,
                 display: "flex",
               },
             },
@@ -239,290 +322,144 @@ function buildImage(stats) {
         {
           style: {
             display: "flex",
-            gap: 56,
+            gap: 23,
             alignItems: "center",
           },
         },
         h(HeroNavItem, { label: "Builders" }),
         h(HeroNavItem, { label: "Projects" }),
         h(HeroNavItem, { label: "Community projects" }),
+        h(HeroNavItem, { label: "Content" }),
+        h(HeroNavItem, { label: "Pantheon" }),
+        h(HeaderButton, { label: "Dashboard" }),
       ),
     ),
     h(
       "div",
       {
         style: {
-          position: "absolute",
-          left: 72,
-          top: 116,
-          width: 584,
           display: "flex",
           flexDirection: "column",
+          height: 492,
+          justifyContent: "space-between",
+          padding: "42px 38px 20px",
         },
       },
       h(
         "div",
         {
           style: {
-            color: "#60a5fa",
-            fontSize: 17,
-            fontWeight: 850,
-            letterSpacing: 1.5,
-            textTransform: "uppercase",
             display: "flex",
+            flexDirection: "column",
           },
         },
-        "> Community graph --Italy",
+        h(
+          "div",
+          {
+            style: {
+              color: "#08100b",
+              fontSize: 112,
+              lineHeight: 0.88,
+              fontWeight: 900,
+              letterSpacing: -4,
+              display: "flex",
+              flexDirection: "column",
+            },
+          },
+          h("span", null, "Connecting"),
+          h("span", null, "the people"),
+        ),
+        h(
+          "div",
+          {
+            style: {
+              color: "#08100b",
+              fontSize: 104,
+              lineHeight: 0.92,
+              fontWeight: 900,
+              letterSpacing: -4,
+              display: "flex",
+              alignItems: "baseline",
+            },
+          },
+          h("span", null, "who"),
+          h(
+            "span",
+            { style: { color: "#1b8a45", marginLeft: 28, fontSize: 118 } },
+            "Build.",
+          ),
+        ),
       ),
       h(
         "div",
         {
           style: {
-            marginTop: 30,
-            color: "#ffffff",
-            fontSize: 78,
-            lineHeight: 0.92,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 48,
+          },
+        },
+        h(
+          "div",
+          {
+            style: {
+              width: 395,
+              color: "#4f5248",
+              fontSize: 21,
+              lineHeight: 1.28,
+              fontWeight: 400,
+              display: "flex",
+              flexDirection: "column",
+            },
+          },
+          h("span", null, "Italian Builders exists to connect developers,"),
+          h("span", null, "designers, founders, creators, researchers, and"),
+          h("span", null, "entrepreneurs across Italy."),
+        ),
+        h(
+          "div",
+          {
+            style: {
+              width: 640,
+              borderTop: "2px solid #08100b",
+              display: "flex",
+              justifyContent: "space-between",
+            },
+          },
+          h(StatBlock, {
+            value: memberCount,
+            label: "Members",
+            accent: "Telegram",
+          }),
+          h(StatBlock, { value: publicBuilderCount, label: "Builders" }),
+          h(StatBlock, { value: cityCount, label: "Cities" }),
+          h(StatBlock, { value: projectCount, label: "Projects" }),
+        ),
+      ),
+    ),
+    h(
+      "div",
+      {
+        style: {
+          height: 84,
+          borderTop: "2px solid #08100b",
+          alignItems: "center",
+          justifyContent: "center",
+          display: "flex",
+        },
+      },
+      h(
+        "div",
+        {
+          style: {
+            color: "#08100b",
+            display: "flex",
+            fontSize: 42,
             fontWeight: 900,
-            letterSpacing: 0,
-            display: "flex",
-            flexDirection: "column",
+            letterSpacing: -1,
           },
         },
-        h("span", null, "Connecting"),
-        h("span", null, "the people"),
-        h(
-          "span",
-          { style: { display: "flex" } },
-          "who",
-          h("span", { style: { color: "#3b82f6", marginLeft: 18 } }, "BUILD."),
-        ),
-      ),
-      h(
-        "div",
-        {
-          style: {
-            marginTop: 28,
-            color: "#a1a1aa",
-            fontSize: 22,
-            lineHeight: 1.36,
-            fontWeight: 500,
-            letterSpacing: 0,
-            display: "flex",
-            flexDirection: "column",
-          },
-        },
-        h("span", null, "Italian Builders exists to help founders, developers,"),
-        h("span", null, "designers and makers discover each other, share"),
-        h("span", null, "projects and create opportunities."),
-      ),
-      h(
-        "div",
-        {
-          style: {
-            marginTop: 28,
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-          },
-        },
-        h(
-          "div",
-          {
-            style: {
-              height: 44,
-              padding: "0 22px",
-              background: "#2563eb",
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 13,
-              fontWeight: 800,
-              letterSpacing: 1.1,
-              textTransform: "uppercase",
-            },
-          },
-          "Join waitlist",
-        ),
-        h(
-          "div",
-          {
-            style: {
-              color: "#71717a",
-              display: "flex",
-              fontSize: 13,
-              fontWeight: 700,
-              letterSpacing: 2.4,
-              textTransform: "uppercase",
-            },
-          },
-          "Builders / Projects / Initiatives",
-        ),
-      ),
-    ),
-    h(
-      "div",
-      {
-        style: {
-          position: "absolute",
-          right: 64,
-          top: 148,
-          width: 438,
-          height: 390,
-          border: "1px solid #2b2b31",
-          background: "rgba(9,9,11,0.92)",
-          display: "flex",
-          flexDirection: "column",
-          padding: "18px 18px",
-        },
-      },
-      h(
-        "div",
-        {
-          style: {
-            color: "#71717a",
-            fontSize: 13,
-            fontWeight: 850,
-            letterSpacing: 3,
-            textTransform: "uppercase",
-            display: "flex",
-            justifyContent: "space-between",
-          },
-        },
-        h("span", null, "Builder map"),
-        h("span", { style: { color: "#60a5fa" } }, "Italia"),
-      ),
-      h("div", {
-        style: {
-          position: "absolute",
-          left: 18,
-          right: 18,
-          top: 50,
-          bottom: 18,
-          border: "1px solid #2b2b31",
-          display: "flex",
-        },
-      }),
-      h("div", {
-        style: {
-          position: "absolute",
-          left: 140,
-          top: 132,
-          width: 192,
-          height: 192,
-          borderRadius: 999,
-          border: "1px solid rgba(59,130,246,0.28)",
-          background: "rgba(30,64,175,0.16)",
-          display: "flex",
-        },
-      }),
-      ...[
-        [232, 190],
-        [190, 218],
-        [260, 252],
-        [300, 300],
-        [150, 274],
-      ].map(([left, top], index) =>
-        h("div", {
-          key: index,
-          style: {
-            position: "absolute",
-            left,
-            top,
-            width: index === 0 ? 10 : 8,
-            height: index === 0 ? 10 : 8,
-            borderRadius: 999,
-            background: "#3b82f6",
-            boxShadow: "0 0 18px rgba(59,130,246,0.95)",
-            display: "flex",
-          },
-        }),
-      ),
-      h(
-        "div",
-        {
-          style: {
-            position: "absolute",
-            left: 46,
-            right: 46,
-            bottom: 36,
-            height: 66,
-            border: "1px solid #2b2b31",
-            background: "rgba(9,9,11,0.84)",
-            display: "flex",
-          },
-        },
-        h(
-          "div",
-          {
-            style: {
-              width: "33.333%",
-              borderRight: "1px solid #2b2b31",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column",
-            },
-          },
-          h("div", { style: { fontSize: 20, color: "#f4f4f5" } }, publicBuilderCount),
-          h("div", { style: { fontSize: 10, color: "#71717a", letterSpacing: 1.8, textTransform: "uppercase" } }, "Builders"),
-        ),
-        h(
-          "div",
-          {
-            style: {
-              width: "33.333%",
-              borderRight: "1px solid #2b2b31",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column",
-            },
-          },
-          h("div", { style: { fontSize: 20, color: "#f4f4f5" } }, projectCount),
-          h("div", { style: { fontSize: 10, color: "#71717a", letterSpacing: 1.8, textTransform: "uppercase" } }, "Projects"),
-        ),
-        h(
-          "div",
-          {
-            style: {
-              width: "33.333%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column",
-            },
-          },
-          h("div", { style: { fontSize: 20, color: "#f4f4f5" } }, communityProjectCount),
-          h("div", { style: { fontSize: 10, color: "#71717a", letterSpacing: 1.8, textTransform: "uppercase" } }, "Initiatives"),
-        ),
-      ),
-    ),
-    h(
-      "div",
-      {
-        style: {
-          position: "absolute",
-          left: 72,
-          right: 72,
-          bottom: 30,
-          borderTop: "1px solid #27272a",
-          paddingTop: 10,
-          justifyContent: "flex-end",
-          display: "flex",
-        },
-      },
-      h(
-        "div",
-        {
-          style: {
-            color: "#71717a",
-            display: "flex",
-            fontSize: 15,
-            fontWeight: 700,
-          },
-        },
-        "italianbuilders.co",
+        "The Manifesto",
       ),
     ),
   );
@@ -530,15 +467,16 @@ function buildImage(stats) {
 
 module.exports = async function handler(req, res) {
   const stats = await getHomeStats().catch(() => ({
-    signupCount: DEFAULT_SIGNUP_COUNT,
-    publicBuilders: null,
-    projects: null,
-    communityProjects: null,
+    memberCount: DEFAULT_MEMBER_COUNT,
+    publicBuilders: DEFAULT_PUBLIC_BUILDERS,
+    cities: DEFAULT_CITY_COUNT,
+    projects: DEFAULT_PROJECT_COUNT,
   }));
   const { ImageResponse } = await import("@vercel/og");
   const response = new ImageResponse(buildImage(stats), {
     width: WIDTH,
     height: HEIGHT,
+    fonts: readFonts(),
   });
 
   res.statusCode = 200;

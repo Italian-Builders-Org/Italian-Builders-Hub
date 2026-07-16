@@ -13,10 +13,10 @@ const siteName = "Italian Builders";
 // into canonical, Open Graph, or structured-data URLs.
 const siteOrigin = "https://italianbuilders.co";
 const defaultDescription =
-  "Italian Builders helps founders, developers, designers and makers discover each other, share projects and create opportunities.";
+  "Italian Builders exists to connect developers, designers, founders, creators, researchers, and entrepreneurs across Italy.";
 const defaultImage = absoluteUrl("/api/og-home-image");
 const defaultImageAlt =
-  "Italian Builders homepage hero with builder map, projects and community initiatives.";
+  "Italian Builders homepage hero with cream background, green Build headline, stats, and manifesto section.";
 const socialProfiles = [
   "https://x.com/italianbldrs",
   "https://www.linkedin.com/company/italian-builders-community/posts/?feedView=all",
