@@ -1,9 +1,6 @@
 import { useCallback, useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
-import {
-  Hp2TurnstileChallenge,
-  hp2TurnstileSiteKey,
-} from "@/pages/Hp2";
+import { Hp2TurnstileChallenge, hp2TurnstileSiteKey } from "@/pages/Hp2";
 
 export const MERCH_CAPS = [
   {
@@ -203,7 +200,12 @@ export function Hp2MerchInterestForm({
       <div className="hp2-merch-form-grid">
         <label>
           <span>Name</span>
-          <input name="name" required autoComplete="name" placeholder="Your name" />
+          <input
+            name="name"
+            required
+            autoComplete="name"
+            placeholder="Your name"
+          />
         </label>
         <label>
           <span>Email</span>

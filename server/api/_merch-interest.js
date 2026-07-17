@@ -115,8 +115,7 @@ function mapPayload(body) {
 
   const size = "osfa";
 
-  const quantityRaw = Number(body.quantity ?? 1);
-  const quantity = Number.isFinite(quantityRaw) ? Math.trunc(quantityRaw) : NaN;
+  const quantity = Number(body.quantity ?? 1);
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 20) {
     throw Object.assign(new Error("Quantity must be between 1 and 20."), {
       statusCode: 400,
@@ -171,5 +170,6 @@ async function submitMerchInterest(req) {
 }
 
 module.exports = {
+  mapMerchInterestPayload: mapPayload,
   submitMerchInterest,
 };
