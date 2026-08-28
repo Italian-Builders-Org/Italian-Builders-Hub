@@ -13,6 +13,7 @@ const PROMPT_VERSION = "telegram-community-daily-digest-v2";
 const MAX_TELEGRAM_MESSAGE_LENGTH = 3900;
 const MAX_SOURCE_TEASER_LENGTH = 900;
 const DEFAULT_MAX_DAILY_MESSAGES = 3000;
+const MIN_MESSAGES_PER_DIGEST_SOURCE = 20;
 const DEFAULT_MODERATION_BATCH_LIMIT = 60;
 
 const MODERATION_RULES = [
@@ -1431,6 +1432,7 @@ async function dailyMessages(supabaseAdmin, chatId, reportDate) {
     .select("message_id, message_thread_id, sent_at, text, text_urls")
     .eq("chat_id", chatId)
     .eq("message_local_date", reportDate)
+    .or("from_is_bot.is.null,from_is_bot.eq.false")
     .order("sent_at", { ascending: true })
     .limit(Number.isFinite(limit) && limit > 0 ? limit : 500);
   if (error) throw error;
@@ -1560,11 +1562,34 @@ async function runDailyReport({ date, force = false }) {
 
   if (!allMessages.length) return { reportDate, results };
 
+  const qualifyingTargets = sourceDigestTargets(allMessages).filter(
+    (target) => target.messageCount >= MIN_MESSAGES_PER_DIGEST_SOURCE,
+  );
+  if (!qualifyingTargets.length) {
+    results.push({
+      status: "skipped_below_message_threshold",
+      minimumMessageCount: MIN_MESSAGES_PER_DIGEST_SOURCE,
+      messageCount: allMessages.length,
+    });
+    return { reportDate, results };
+  }
+
+  const qualifyingSourceIds = new Set(
+    qualifyingTargets.map((target) => target.sourceId),
+  );
+  const digestMessages = allMessages.filter((message) =>
+    qualifyingSourceIds.has(
+      `${message.chat_id}:${message.message_thread_id || "general"}`,
+    ),
+  );
+  const activeChatCount = new Set(
+    qualifyingTargets.map((target) => String(target.chatId)),
+  ).size;
+
   const digest = await createOpenRouterDigest({
-    messages: allMessages,
+    messages: digestMessages,
     reportDate,
-    activeChatCount: results.filter((item) => item.status === "included")
-      .length,
+    activeChatCount,
   });
   const ownerChatId = process.env.TELEGRAM_DIGEST_OWNER_CHAT_ID;
   const sentMessageId = ownerChatId
@@ -1575,16 +1600,15 @@ async function runDailyReport({ date, force = false }) {
     supabaseAdmin,
     reportDate,
     digest,
-    messageCount: allMessages.length,
-    activeChatCount: results.filter((item) => item.status === "included")
-      .length,
+    messageCount: digestMessages.length,
+    activeChatCount,
     sentMessageId,
   });
 
   const sourcePosts = await sendSourceDigestTeasers({
     digest,
     reportDate,
-    messages: allMessages,
+    messages: digestMessages,
   });
   if (sourcePosts.length) {
     await updateReportSourcePosts(supabaseAdmin, reportDate, sourcePosts);
@@ -1594,7 +1618,8 @@ async function runDailyReport({ date, force = false }) {
     status: sentMessageId
       ? "sent_private_digest"
       : "saved_without_private_send",
-    messageCount: allMessages.length,
+    messageCount: digestMessages.length,
+    minimumMessageCount: MIN_MESSAGES_PER_DIGEST_SOURCE,
     sentMessageId,
     sourcePosts,
   });
