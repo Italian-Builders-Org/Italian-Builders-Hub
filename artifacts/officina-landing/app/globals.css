@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1c1c28;
+  --color-paper: #f4f1e8;
+  --color-verde: #2e7d46;
+  --color-rosso: #c33a3a;
+  --color-steel: #bfc3c7;
+
+  --font-display: "Archivo Black", "Archivo", sans-serif;
+  --font-sans: "Archivo", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* ---------------------------------------------------------------- */
+/* Scroll reveal: moduli che entrano lungo assi ortogonali e si     */
+/* bloccano in posizione (comportamento "assembla e blocca").       */
+/* Lo stato nascosto esiste solo quando JS è attivo (html.js).      */
+/* ---------------------------------------------------------------- */
+html.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+}
+html.js [data-reveal="left"] {
+  transform: translateX(-24px);
+}
+html.js [data-reveal="right"] {
+  transform: translateX(24px);
+}
+html.js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--d, 0ms);
+}
+
+/* ---------------------------------------------------------------- */
+/* Assemblaggio del simbolo nel hero: le sette celle entrano lungo  */
+/* assi ortogonali e si fermano sulla griglia.                      */
+/* ---------------------------------------------------------------- */
+@keyframes cell-from-left {
+  from { opacity: 0; transform: translateX(-46px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes cell-from-right {
+  from { opacity: 0; transform: translateX(46px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes cell-from-top {
+  from { opacity: 0; transform: translateY(-46px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes cell-from-bottom {
+  from { opacity: 0; transform: translateY(46px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.mark-cell {
+  opacity: 0;
+  animation-duration: 0.7s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+.mark-cell-1 { animation-name: cell-from-left;   animation-delay: 0.10s; }
+.mark-cell-2 { animation-name: cell-from-top;    animation-delay: 0.22s; }
+.mark-cell-3 { animation-name: cell-from-left;   animation-delay: 0.34s; }
+.mark-cell-5 { animation-name: cell-from-right;  animation-delay: 0.46s; }
+.mark-cell-6 { animation-name: cell-from-bottom; animation-delay: 0.58s; }
+.mark-cell-7 { animation-name: cell-from-right;  animation-delay: 0.70s; }
+.mark-cell-4 { animation-name: cell-from-top;    animation-delay: 0.85s; }
+
+/* ---------------------------------------------------------------- */
+/* Marquee dei profili: un solo nastro in tutta la pagina.          */
+/* ---------------------------------------------------------------- */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 36s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  html.js [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .mark-cell {
+    opacity: 1;
+    animation: none;
+  }
+  .marquee-track {
+    animation: none;
+  }
+}

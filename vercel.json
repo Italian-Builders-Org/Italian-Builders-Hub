@@ -1,22 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run check:vercel-functions && pnpm --filter @workspace/italian-builders run build",
-  "outputDirectory": "artifacts/italian-builders/dist/public",
-  "crons": [
-    {
-      "path": "/api/telegram/daily-report",
-      "schedule": "10 23 * * *"
-    },
-    {
-      "path": "/api/telegram/moderation-scan",
-      "schedule": "20 6 * * *"
-    },
-    {
-      "path": "/api/telegram-onboarding/email-queue",
-      "schedule": "15 6 * * *"
-    }
-  ],
+  "buildCommand": "pnpm --filter @workspace/officina-landing run build",
+  "outputDirectory": "artifacts/officina-landing/out",
   "redirects": [
     {
       "source": "/hp-2",
@@ -27,69 +13,109 @@
       "source": "/hp-2/:path*",
       "destination": "/:path*",
       "permanent": true
+    },
+    {
+      "source": "/join",
+      "destination": "https://x.com/italianbldrs",
+      "permanent": false
+    },
+    {
+      "source": "/projects",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/projects/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/community-projects",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/community-projects/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/builders",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/builders/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/dashboard/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/admin",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/login",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/login-code",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/invite/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/merch",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/content",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/os-projects",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/pantheon",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/mission",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/identity",
+      "destination": "/",
+      "permanent": true
     }
   ],
   "rewrites": [
-    {
-      "source": "/api/telegram/webhook",
-      "destination": "/api/admin/waitlist/action?action=telegram-webhook"
-    },
-    {
-      "source": "/api/telegram/daily-report",
-      "destination": "/api/admin/waitlist/action?action=telegram-daily-report"
-    },
-    {
-      "source": "/api/telegram/moderation-scan",
-      "destination": "/api/admin/waitlist/action?action=telegram-moderation-scan"
-    },
-    {
-      "source": "/api/telegram/setup-webhook",
-      "destination": "/api/admin/waitlist/action?action=telegram-setup-webhook"
-    },
-    {
-      "source": "/api/telegram-onboarding/webhook",
-      "destination": "/api/admin/waitlist/action?action=telegram-onboarding-webhook"
-    },
-    {
-      "source": "/api/telegram-onboarding/setup-webhook",
-      "destination": "/api/admin/waitlist/action?action=telegram-onboarding-setup-webhook"
-    },
-    {
-      "source": "/api/telegram-onboarding/email-queue",
-      "destination": "/api/admin/waitlist/action?action=telegram-onboarding-email-queue"
-    },
-    {
-      "source": "/api/telegram-onboarding/link-profile",
-      "destination": "/api/admin/waitlist/action?action=telegram-onboarding-link-profile"
-    },
-    {
-      "source": "/api/admin/waitlist/activate",
-      "destination": "/api/admin/waitlist/action?action=activate"
-    },
-    {
-      "source": "/api/admin/waitlist/activate-batch",
-      "destination": "/api/admin/waitlist/action?action=activate-batch"
-    },
-    {
-      "source": "/api/admin/waitlist/:id/activate",
-      "destination": "/api/admin/waitlist/action?action=activate&id=:id"
-    },
-    {
-      "source": "/api/admin/content/preview",
-      "destination": "/api/admin/waitlist/action?action=content-preview"
-    },
-    {
-      "source": "/api/merch-interest",
-      "destination": "/api/waitlist?action=merch-interest"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
-    {
-      "source": "/builders/:username",
-      "destination": "/api/builder-profile?username=:username"
-    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
